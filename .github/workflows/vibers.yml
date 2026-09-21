@@ -1,0 +1,17 @@
+name: Vibers Code Review
+on:
+  push:
+    branches: [main]
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - uses: marsiandeployer/vibers-action@v1
+        with:
+          spec_url: 'https://github.com/Ozzy/remotework'
+          telegram_contact: '@onoutnoxon'
+          review_scope: 'full'
