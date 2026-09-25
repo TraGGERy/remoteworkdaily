@@ -18,6 +18,8 @@ import {
   Copy,
   Check,
 } from "lucide-react";
+import { WorkInformation } from "./work-information";
+import { GatedApplyAction } from "./gated-apply-action";
 
 interface JobDetailDrawerProps {
   job: Job;
@@ -170,11 +172,21 @@ export function JobDetailDrawer({
         </div>
       )}
 
-      {/* Rich Job Description */}
-      <div className="py-6 text-sm sm:text-base text-neutral-800 dark:text-neutral-200 leading-relaxed space-y-4 prose dark:prose-invert max-w-none">
-        <div className="whitespace-pre-line font-sans">
-          {job.description}
-        </div>
+      {/* Rich Job Description & Work Information */}
+      <div className="py-6 border-b border-neutral-100 dark:border-neutral-800">
+        <WorkInformation description={job.description} isGated={true} />
+      </div>
+
+      {/* Inline Gated Application Action Box */}
+      <div className="py-4">
+        <GatedApplyAction
+          jobId={job.id}
+          jobTitle={job.title}
+          company={job.company}
+          applyUrl={job.applyUrl}
+          variant="inline"
+          onApplySuccess={onApply}
+        />
       </div>
 
       {/* Floating Action Bar at Bottom of Card */}
@@ -189,16 +201,14 @@ export function JobDetailDrawer({
         </div>
 
         <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto">
-          <a
-            href={job.applyUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={onApply}
-            className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-6 py-3 rounded-lg text-sm font-extrabold bg-[#FF4742] hover:bg-[#e03a35] text-white shadow-lg shadow-red-500/30 transition-transform active:scale-95"
-          >
-            <span>Apply for this job</span>
-            <ExternalLink className="w-4 h-4" />
-          </a>
+          <GatedApplyAction
+            jobId={job.id}
+            jobTitle={job.title}
+            company={job.company}
+            applyUrl={job.applyUrl}
+            variant="floating"
+            onApplySuccess={onApply}
+          />
 
           {onNextJob && (
             <button

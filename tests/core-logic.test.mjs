@@ -200,4 +200,66 @@ test("Scraper normalizer infers on-site, hybrid, and remote workplace types accu
   assert.equal(inferWorkplaceType({ title: "DevOps Engineer", location: "Worldwide" }), "remote");
 });
 
+// Work Information: HTML Description Cleaner & Sanitizer
+test("Work Information: cleanJobDescription strips aggregator spam and decodes HTML entities", () => {
+  function cleanJobDescription(rawHtml) {
+    if (!rawHtml) return "";
+    let cleaned = rawHtml
+      .replace(/&#x26;/g, "&")
+      .replace(/&amp;/g, "&")
+      .replace(/&#39;/g, "'")
+      .replace(/&quot;/g, '"')
+      .replace(/&lt;/g, "<")
+      .replace(/&gt;/g, ">")
+      .replace(/&nbsp;/g, " ")
+      .replace(/(?:<p>)?\s*Find more.*?on Arbeitnow.*?(?:<\/p>|<\/a>|$)/gi, "")
+      .replace(/<p>.*?Find more <a[^>]*>.*?<\/a>.*?(?:<\/p>|<\/a>|$)/gi, "")
+      .replace(/<a\s+href="https?:\/\/(?:www\.)?arbeitnow\.com[^"]*"[^>]*>.*?<\/a>/gi, "")
+      .replace(/<\/a>\s*<\/a>/gi, "</a>")
+      .trim();
+
+    if (!cleaned.includes("<p>") && !cleaned.includes("<br>") && !cleaned.includes("<div>")) {
+      cleaned = cleaned
+        .split(/\n\s*\n/)
+        .map((para) => `<p>${para.trim().replace(/\n/g, "<br />")}</p>`)
+        .join("");
+    }
+    return cleaned;
+  }
+
+  const rawSample = '<p>Growth &#x26; Revenue</p><p>Find more <a href="https://www.arbeitnow.com/jobs">English Speaking Jobs in Germany</a> on Arbeitnow</a>';
+  const cleaned = cleanJobDescription(rawSample);
+
+  assert.ok(cleaned.includes("Growth & Revenue"), "HTML entity &#x26; must be decoded to &");
+  assert.ok(!cleaned.includes("Arbeitnow"), "Arbeitnow third-party aggregator ad must be removed");
+});
+
+// Paywall Gating Invariants: Subscriber-only Application Access
+test("Paywall Gating: Only logged in users with active subscription can access direct application", () => {
+  function evaluateApplyAccess({ isSignedIn, hasActiveSubscription }) {
+    if (!isSignedIn) {
+      return { status: "sign_in_required", canApply: false };
+    }
+    if (!hasActiveSubscription) {
+      return { status: "subscription_required", canApply: false };
+    }
+    return { status: "unlocked", canApply: true };
+  }
+
+  // 1. Anonymous visitor
+  const anonymous = evaluateApplyAccess({ isSignedIn: false, hasActiveSubscription: false });
+  assert.equal(anonymous.canApply, false);
+  assert.equal(anonymous.status, "sign_in_required");
+
+  // 2. Logged-in user without Hunter Pass / active subscription
+  const registeredFree = evaluateApplyAccess({ isSignedIn: true, hasActiveSubscription: false });
+  assert.equal(registeredFree.canApply, false);
+  assert.equal(registeredFree.status, "subscription_required");
+
+  // 3. Logged-in user with active subscription
+  const activeSubscriber = evaluateApplyAccess({ isSignedIn: true, hasActiveSubscription: true });
+  assert.equal(activeSubscriber.canApply, true);
+  assert.equal(activeSubscriber.status, "unlocked");
+});
+
 

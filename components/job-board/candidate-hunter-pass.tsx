@@ -4,6 +4,8 @@ import React, { useState, useEffect } from "react";
 import { CANDIDATE_PRICING } from "@/lib/constants";
 import { Zap, ShieldCheck, CheckCircle2, X, Sparkles, ArrowRight, Lock } from "lucide-react";
 
+import { useSubscription } from "@/components/auth/subscription-context";
+
 /**
  * Candidate Hunter Pass component.
  *
@@ -14,11 +16,33 @@ import { Zap, ShieldCheck, CheckCircle2, X, Sparkles, ArrowRight, Lock } from "l
  * 3. Urgent value: 2-hour early-bird alerts before public distribution.
  */
 export function CandidateHunterPass() {
+  const {
+    isUpgradeModalOpen,
+    setUpgradeModalOpen,
+    simulateSubscription,
+    userEmail,
+    hasActiveSubscription,
+  } = useSubscription();
+
   const [isOpen, setIsOpen] = useState(false);
   const [dismissed, setDismissed] = useState(true);
   const [email, setEmail] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
   const [purchased, setPurchased] = useState(false);
+
+  // Sync with global upgrade modal trigger
+  useEffect(() => {
+    if (isUpgradeModalOpen) {
+      setIsOpen(true);
+    }
+  }, [isUpgradeModalOpen]);
+
+  // Pre-fill email if user is logged in
+  useEffect(() => {
+    if (userEmail && !email) {
+      setEmail(userEmail);
+    }
+  }, [userEmail, email]);
 
   useEffect(() => {
     const isDismissed = localStorage.getItem("remotework_hunter_banner_dismissed");
@@ -30,6 +54,11 @@ export function CandidateHunterPass() {
   const handleDismiss = () => {
     setDismissed(true);
     localStorage.setItem("remotework_hunter_banner_dismissed", "true");
+  };
+
+  const handleCloseModal = () => {
+    setIsOpen(false);
+    setUpgradeModalOpen(false);
   };
 
   const handlePurchase = async (e: React.FormEvent) => {
@@ -49,6 +78,7 @@ export function CandidateHunterPass() {
         window.location.href = data.url;
       } else if (data.success) {
         setPurchased(true);
+        simulateSubscription(true);
       } else {
         alert(data.error || "Failed to initiate payment. Please try again.");
       }
@@ -116,7 +146,7 @@ export function CandidateHunterPass() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-neutral-950/70 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="relative w-full max-w-lg rounded-3xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 p-6 sm:p-8 shadow-2xl space-y-6">
             <button
-              onClick={() => setIsOpen(false)}
+              onClick={handleCloseModal}
               className="absolute top-5 right-5 text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 p-1"
               aria-label="Close modal"
             >
@@ -136,7 +166,7 @@ export function CandidateHunterPass() {
                 </p>
                 <button
                   type="button"
-                  onClick={() => setIsOpen(false)}
+                  onClick={handleCloseModal}
                   className="px-6 py-2.5 rounded-xl text-sm font-bold bg-[#FF4742] text-white hover:bg-[#e03a35]"
                 >
                   Back to Jobs

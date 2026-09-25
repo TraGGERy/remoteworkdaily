@@ -14,6 +14,8 @@ import {
   Calendar,
   Share2,
 } from "lucide-react";
+import { WorkInformation } from "@/components/job-board/work-information";
+import { GatedApplyAction } from "@/components/job-board/gated-apply-action";
 
 interface PageProps {
   params: Promise<{ id: string; slug: string }>;
@@ -97,15 +99,13 @@ export default async function JobDetailPage({ params }: PageProps) {
               </div>
             </div>
 
-            <a
-              href={job.applyUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl text-sm font-black bg-[#FF4742] hover:bg-[#e03a35] text-white shadow-lg shadow-red-500/25 active:scale-95 transition-all"
-            >
-              <span>Apply for this job</span>
-              <ExternalLink className="w-4 h-4" />
-            </a>
+            <GatedApplyAction
+              jobId={job.id}
+              jobTitle={job.title}
+              company={job.company}
+              applyUrl={job.applyUrl}
+              variant="header"
+            />
           </div>
 
           {/* Quick Stats Grid */}
@@ -167,22 +167,18 @@ export default async function JobDetailPage({ params }: PageProps) {
           </div>
         )}
 
-        {/* Description Body */}
-        <div className="p-6 sm:p-8 rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow-sm space-y-4 prose dark:prose-invert max-w-none text-sm sm:text-base leading-relaxed">
-          <div className="whitespace-pre-line">
-            {job.description}
-          </div>
+        {/* Description Body & Work Information */}
+        <div className="p-6 sm:p-8 rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow-sm space-y-6">
+          <WorkInformation description={job.description} isGated={true} />
 
-          <div className="pt-8 border-t border-neutral-100 dark:border-neutral-800 flex justify-center">
-            <a
-              href={job.applyUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 px-8 py-4 rounded-xl text-base font-black bg-[#FF4742] hover:bg-[#e03a35] text-white shadow-xl shadow-red-500/25 active:scale-95 transition-all"
-            >
-              <span>Apply now on {job.company} Careers</span>
-              <ExternalLink className="w-5 h-5" />
-            </a>
+          <div className="pt-6 border-t border-neutral-100 dark:border-neutral-800">
+            <GatedApplyAction
+              jobId={job.id}
+              jobTitle={job.title}
+              company={job.company}
+              applyUrl={job.applyUrl}
+              variant="inline"
+            />
           </div>
         </div>
       </div>

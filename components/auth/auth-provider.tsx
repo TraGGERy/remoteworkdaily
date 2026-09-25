@@ -3,6 +3,8 @@
 import React, { createContext, useContext } from "react";
 import { ClerkProvider } from "@clerk/nextjs";
 
+import { SubscriptionProvider } from "./subscription-context";
+
 interface AuthContextType {
   isConfigured: boolean;
 }
@@ -24,7 +26,9 @@ export function AppAuthProvider({ children }: { children: React.ReactNode }) {
     return (
       <ClerkProvider publishableKey={publishableKey}>
         <AuthContext.Provider value={{ isConfigured: true }}>
-          {children}
+          <SubscriptionProvider>
+            {children}
+          </SubscriptionProvider>
         </AuthContext.Provider>
       </ClerkProvider>
     );
@@ -33,7 +37,9 @@ export function AppAuthProvider({ children }: { children: React.ReactNode }) {
   // Graceful fallback for local development before user adds real Clerk keys
   return (
     <AuthContext.Provider value={{ isConfigured: false }}>
-      {children}
+      <SubscriptionProvider>
+        {children}
+      </SubscriptionProvider>
     </AuthContext.Provider>
   );
 }
