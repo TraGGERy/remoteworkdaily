@@ -83,7 +83,7 @@ export function JobBoardClient({
     updateFilters({ tags: nextTags });
   };
 
-  const handleSyncApify = async () => {
+  const handleRefreshJobs = async () => {
     setIsSyncing(true);
     try {
       const res = await fetch("/api/jobs/sync", { method: "POST" });
@@ -94,8 +94,8 @@ export function JobBoardClient({
         alert(data.error);
       }
     } catch (err) {
-      console.error("Apify sync failed:", err);
-      alert("Failed to sync remote jobs. Please check network connection.");
+      console.error("Job feed refresh failed:", err);
+      alert("Failed to refresh remote job feed. Please check your network connection.");
     } finally {
       setIsSyncing(false);
     }
@@ -133,7 +133,7 @@ export function JobBoardClient({
         jobs={filteredJobs}
         onTagClick={handleTagClick}
         onResetFilters={handleResetFilters}
-        onRefreshJobs={handleSyncApify}
+        onRefreshJobs={handleRefreshJobs}
         isSyncing={isSyncing}
       />
     </div>

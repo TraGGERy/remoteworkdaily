@@ -33,54 +33,35 @@ export function Header() {
         </div>
 
         {/* Center/Desktop navigation shortcuts */}
-        <nav className="hidden lg:flex items-center gap-5 text-sm font-medium text-neutral-600 dark:text-neutral-300">
+        <nav className="hidden lg:flex items-center gap-6 text-sm font-semibold text-neutral-600 dark:text-neutral-300">
           <Link
             href="/remote-dev-jobs"
             className="hover:text-[#FF4742] transition-colors"
           >
-            🤓 Developers
+            Engineering
           </Link>
           <Link
             href="/remote-design-jobs"
             className="hover:text-[#FF4742] transition-colors"
           >
-            🎨 Designers
+            Design
           </Link>
           <Link
             href="/remote-marketing-jobs"
             className="hover:text-[#FF4742] transition-colors"
           >
-            🚥 Marketing
+            Marketing
           </Link>
           <Link
-            href="/tools/remote-savings-calculator"
-            className="inline-flex items-center gap-1 font-bold text-[#FF4742] hover:text-[#e03a35] transition-colors"
+            href="/remote-exec-jobs"
+            className="hover:text-[#FF4742] transition-colors"
           >
-            <span>🧮</span>
-            <span>WFH Calculator</span>
-          </Link>
-          <Link
-            href="/remote-jobs.json"
-            target="_blank"
-            className="text-xs px-2 py-0.5 rounded bg-neutral-100 dark:bg-neutral-800 text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-200 font-mono transition-colors"
-          >
-            API
+            Product & Ops
           </Link>
         </nav>
 
         {/* Right: Actions */}
         <div className="flex items-center gap-2 sm:gap-3">
-          {/* Health Insurance nomad link */}
-          <Link
-            href="https://safetywing.com"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="hidden xl:flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100 transition-colors"
-          >
-            <ShieldCheck className="w-3.5 h-3.5" />
-            <span>Nomad Health</span>
-          </Link>
-
           {/* Post a Job CTA */}
           <Link
             href="/hire-remotely"
@@ -112,45 +93,38 @@ export function Header() {
             <Link
               href="/remote-dev-jobs"
               onClick={() => setMobileMenuOpen(false)}
-              className="p-2 rounded bg-neutral-50 dark:bg-neutral-900 font-medium"
+              className="p-2.5 rounded-xl bg-neutral-50 dark:bg-neutral-900 font-semibold text-neutral-800 dark:text-neutral-200"
             >
-              🤓 Dev Jobs
+              💻 Engineering
             </Link>
             <Link
               href="/remote-design-jobs"
               onClick={() => setMobileMenuOpen(false)}
-              className="p-2 rounded bg-neutral-50 dark:bg-neutral-900 font-medium"
+              className="p-2.5 rounded-xl bg-neutral-50 dark:bg-neutral-900 font-semibold text-neutral-800 dark:text-neutral-200"
             >
-              🎨 Design Jobs
+              🎨 Design
             </Link>
             <Link
               href="/remote-marketing-jobs"
               onClick={() => setMobileMenuOpen(false)}
-              className="p-2 rounded bg-neutral-50 dark:bg-neutral-900 font-medium"
+              className="p-2.5 rounded-xl bg-neutral-50 dark:bg-neutral-900 font-semibold text-neutral-800 dark:text-neutral-200"
             >
-              🚥 Marketing Jobs
+              📈 Marketing
             </Link>
             <Link
               href="/remote-exec-jobs"
               onClick={() => setMobileMenuOpen(false)}
-              className="p-2 rounded bg-neutral-50 dark:bg-neutral-900 font-medium"
+              className="p-2.5 rounded-xl bg-neutral-50 dark:bg-neutral-900 font-semibold text-neutral-800 dark:text-neutral-200"
             >
-              💼 Executive Jobs
-            </Link>
-            <Link
-              href="/tools/remote-savings-calculator"
-              onClick={() => setMobileMenuOpen(false)}
-              className="p-2 rounded bg-red-50 dark:bg-red-950/40 text-[#FF4742] font-bold flex items-center gap-1.5"
-            >
-              <span>🧮</span>
-              <span>Free WFH Commute Calculator</span>
+              ⚡ Product & Ops
             </Link>
           </div>
-          <div className="pt-2 border-t border-neutral-200 dark:border-neutral-800 flex justify-between items-center text-xs text-neutral-500">
-            <Link href="/remote-jobs.json" target="_blank" className="font-mono underline">
-              JSON Feed
-            </Link>
-            <Link href="/hire-remotely" className="font-bold text-[#FF4742]">
+          <div className="pt-3 border-t border-neutral-200 dark:border-neutral-800 flex justify-center">
+            <Link
+              href="/hire-remotely"
+              onClick={() => setMobileMenuOpen(false)}
+              className="w-full py-2.5 text-center text-sm font-bold rounded-xl bg-[#FF4742] text-white shadow-sm"
+            >
               Post a remote job for $249
             </Link>
           </div>

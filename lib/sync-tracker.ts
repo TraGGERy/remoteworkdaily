@@ -49,7 +49,7 @@ export function canSyncToday(force: boolean = false): { allowed: boolean; reason
     return {
       allowed: false,
       lastSyncDate: state.lastSyncDate,
-      reason: `Apify sync has already completed today (${today}). Configured to execute strictly once per day.`,
+      reason: `Job feed sync has already completed today (${today}). Configured to execute strictly once per day.`,
     };
   }
 

@@ -44,24 +44,34 @@ export function JobTable({
   return (
     <div className="w-full max-w-7xl mx-auto px-3 sm:px-6 py-4">
       {/* Top Table Summary Bar */}
-      <div className="flex items-center justify-between pb-3 text-xs text-neutral-500 dark:text-neutral-400 font-semibold px-1">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-3 text-xs text-neutral-500 dark:text-neutral-400 font-semibold px-1">
         <div className="flex items-center gap-2">
           <span>
             Showing <strong className="text-neutral-900 dark:text-white font-extrabold">{jobs.length}</strong> verified remote jobs
           </span>
           <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
+          <span className="hidden md:inline-block text-neutral-300 dark:text-neutral-700">•</span>
+          <span className="hidden md:inline text-emerald-600 dark:text-emerald-400 font-bold">100% #OpenSalaries</span>
         </div>
 
-        {onRefreshJobs && (
-          <button
-            onClick={onRefreshJobs}
-            disabled={isSyncing}
-            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-neutral-200 dark:border-neutral-800 hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-300 transition-colors disabled:opacity-50 text-xs"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? "animate-spin text-[#FF4742]" : ""}`} />
-            <span>{isSyncing ? "Syncing via Apify..." : "Sync Jobs"}</span>
-          </button>
-        )}
+        <div className="flex items-center justify-between sm:justify-end gap-3 w-full sm:w-auto">
+          <div className="flex items-center gap-1.5 text-[11px] text-neutral-500 dark:text-neutral-400">
+            <span className="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            <span>Job Scraper Active</span>
+          </div>
+
+          {onRefreshJobs && (
+            <button
+              onClick={onRefreshJobs}
+              disabled={isSyncing}
+              aria-label="Check for newly scraped remote jobs"
+              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg border border-neutral-200 dark:border-neutral-800 hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-700 dark:text-neutral-300 transition-colors disabled:opacity-50 text-xs font-semibold"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? "animate-spin text-[#FF4742]" : ""}`} />
+              <span>{isSyncing ? "Scanning remote feeds..." : "Check for New Jobs"}</span>
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Empty State */}

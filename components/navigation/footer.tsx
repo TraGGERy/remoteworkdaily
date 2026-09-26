@@ -14,17 +14,28 @@ export function Footer() {
         </div>
 
         <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6 font-medium">
-          <Link href="/remote-jobs.json" target="_blank" className="hover:text-[#FF4742] transition-colors">
-            🪓 JSON Feed
-          </Link>
           <Link href="/remote-dev-jobs" className="hover:text-[#FF4742] transition-colors">
-            Developers
+            Engineering
           </Link>
           <Link href="/remote-design-jobs" className="hover:text-[#FF4742] transition-colors">
-            Designers
+            Design
           </Link>
-          <Link href="/tools/remote-savings-calculator" className="text-[#FF4742] hover:underline font-bold transition-colors">
-            🧮 WFH Savings Calculator
+          <Link href="/remote-marketing-jobs" className="hover:text-[#FF4742] transition-colors">
+            Marketing
+          </Link>
+          <Link href="/tools/remote-savings-calculator" className="hover:text-[#FF4742] transition-colors">
+            WFH Savings Calculator
+          </Link>
+          <Link
+            href="https://safetywing.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hover:text-[#FF4742] transition-colors"
+          >
+            Nomad Health Insurance
+          </Link>
+          <Link href="/remote-jobs.json" target="_blank" className="hover:text-[#FF4742] transition-colors">
+            API Feed
           </Link>
           <Link href="/hire-remotely" className="hover:text-[#FF4742] transition-colors">
             Post a Job ($249)

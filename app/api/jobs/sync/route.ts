@@ -80,7 +80,7 @@ async function handleSync(request: Request) {
   } catch (error) {
     console.error("Daily Apify job sync failed:", error);
     return NextResponse.json(
-      { success: false, error: "Failed to execute daily Apify job sync" },
+      { success: false, error: "Failed to execute remote job feed sync" },
       { status: 500 }
     );
   }

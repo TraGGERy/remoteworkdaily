@@ -8,7 +8,7 @@ export function NoticeBanner() {
   const [dismissed, setDismissed] = useState(false);
 
   useEffect(() => {
-    const isDismissed = localStorage.getItem("remoteok_notice_dismissed");
+    const isDismissed = localStorage.getItem("remotework_notice_dismissed");
     if (isDismissed) {
       setDismissed(true);
     }
@@ -16,7 +16,7 @@ export function NoticeBanner() {
 
   const handleDismiss = () => {
     setDismissed(true);
-    localStorage.setItem("remoteok_notice_dismissed", "true");
+    localStorage.setItem("remotework_notice_dismissed", "true");
   };
 
   if (dismissed) return null;
