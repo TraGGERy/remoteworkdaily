@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { runApifyJobSync } from "@/lib/apify";
+import { runDailyJobIngestionPipeline } from "@/lib/scrapers/orchestrator";
 import { getAllJobs } from "@/lib/jobs-repository";
 import { canSyncToday } from "@/lib/sync-tracker";
 
@@ -7,12 +7,17 @@ const ALLOWED_ACTORS = new Set([
   "apify/web-scraper",
   "apify/cheerio-scraper",
   "apify/puppeteer-scraper",
+  "misceres/indeed-scraper",
+  "bebity/linkedin-jobs-scraper",
+  "curious_coder/linkedin-salary-scraper",
 ]);
 
 async function handleSync(request: Request) {
   try {
     const url = new URL(request.url);
     const isForced = url.searchParams.get("force") === "true";
+    const targetParam = url.searchParams.get("target");
+    const targetCount = targetParam ? Math.min(Math.max(parseInt(targetParam, 10) || 2000, 50), 5000) : 2000;
 
     // 1. Production Cron / Admin Authorization Check
     const cronSecret = process.env.CRON_SECRET;
@@ -65,20 +70,27 @@ async function handleSync(request: Request) {
       }
     }
 
-    // 3. Execute scraping & normalization pipeline
-    const result = await runApifyJobSync(actorId, inputConfig);
-    const updatedJobs = getAllJobs();
+    // 3. Execute High-Capacity Ingestion Pipeline (~2,000 jobs target)
+    const result = await runDailyJobIngestionPipeline({
+      targetCount,
+      force: isForced,
+      apifyActorId: actorId,
+      apifyConfig: inputConfig,
+    });
 
     return NextResponse.json({
       success: true,
       alreadySyncedToday: false,
-      synced: result.synced,
-      source: result.source,
-      totalJobs: updatedJobs.length,
-      jobs: updatedJobs,
+      targetCount: result.targetCount,
+      totalSynced: result.totalSynced,
+      addedCount: result.addedCount,
+      updatedCount: result.updatedCount,
+      totalJobs: result.totalInDatabase,
+      sources: result.sources,
+      durationMs: result.durationMs,
     });
   } catch (error) {
-    console.error("Daily Apify job sync failed:", error);
+    console.error("Daily job sync failed:", error);
     return NextResponse.json(
       { success: false, error: "Failed to execute remote job feed sync" },
       { status: 500 }

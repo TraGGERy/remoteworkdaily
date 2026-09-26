@@ -9,6 +9,8 @@ export interface SyncState {
   lastSyncTimestamp: number;
   syncedCount: number;
   source: string;
+  targetCount?: number;
+  sources?: Record<string, number>;
 }
 
 /**
@@ -59,13 +61,19 @@ export function canSyncToday(force: boolean = false): { allowed: boolean; reason
 /**
  * Records that a daily sync has completed.
  */
-export async function recordSyncCompleted(syncedCount: number, source: string): Promise<SyncState> {
+export async function recordSyncCompleted(
+  syncedCount: number,
+  source: string,
+  details?: { sources?: Record<string, number>; targetCount?: number }
+): Promise<SyncState> {
   const today = getTodayUTC();
   const newState: SyncState = {
     lastSyncDate: today,
     lastSyncTimestamp: Date.now(),
     syncedCount,
     source,
+    targetCount: details?.targetCount,
+    sources: details?.sources,
   };
 
   try {

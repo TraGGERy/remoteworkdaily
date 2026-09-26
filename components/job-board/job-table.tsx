@@ -22,6 +22,23 @@ export function JobTable({
   isSyncing,
 }: JobTableProps) {
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
+  const [visibleCount, setVisibleCount] = useState<number>(40);
+
+  // Reset pagination count when the filtered list changes
+  React.useEffect(() => {
+    setVisibleCount(40);
+  }, [jobs.length]);
+
+  const displayedJobs = jobs.slice(0, visibleCount);
+  const hasMore = visibleCount < jobs.length;
+
+  const handleLoadMore = () => {
+    setVisibleCount((prev) => Math.min(prev + 50, jobs.length));
+  };
+
+  const handleLoadAll = () => {
+    setVisibleCount(jobs.length);
+  };
 
   const selectedIndex = jobs.findIndex((j) => j.id === selectedJobId);
 
@@ -47,7 +64,12 @@ export function JobTable({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-3 text-xs text-neutral-500 dark:text-neutral-400 font-semibold px-1">
         <div className="flex items-center gap-2">
           <span>
-            Showing <strong className="text-neutral-900 dark:text-white font-extrabold">{jobs.length}</strong> verified remote jobs
+            Showing{" "}
+            <strong className="text-neutral-900 dark:text-white font-extrabold">
+              {displayedJobs.length}
+            </strong>
+            {hasMore ? ` of ${jobs.length.toLocaleString()}` : ""}{" "}
+            verified remote jobs
           </span>
           <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
           <span className="hidden md:inline-block text-neutral-300 dark:text-neutral-700">•</span>
@@ -94,7 +116,7 @@ export function JobTable({
       ) : (
         /* Jobs List */
         <div className="space-y-2 sm:space-y-2.5" id="jobsboard">
-          {jobs.map((job) => {
+          {displayedJobs.map((job) => {
             const isSelected = selectedJobId === job.id;
             return (
               <React.Fragment key={job.id}>
@@ -117,6 +139,24 @@ export function JobTable({
               </React.Fragment>
             );
           })}
+
+          {/* Progressive Load More Footer */}
+          {hasMore && (
+            <div className="pt-6 pb-4 flex flex-col sm:flex-row items-center justify-center gap-3">
+              <button
+                onClick={handleLoadMore}
+                className="w-full sm:w-auto px-6 py-2.5 rounded-xl font-bold text-sm bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 text-neutral-800 dark:text-neutral-200 transition-colors shadow-sm"
+              >
+                Load more jobs (+50)
+              </button>
+              <button
+                onClick={handleLoadAll}
+                className="w-full sm:w-auto px-4 py-2.5 rounded-xl font-medium text-xs text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-200 transition-colors"
+              >
+                Show all {jobs.length.toLocaleString()} jobs
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>

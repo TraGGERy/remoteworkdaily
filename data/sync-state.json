@@ -1,6 +1,15 @@
 {
-  "lastSyncDate": "2026-09-17",
-  "lastSyncTimestamp": 1789640180854,
-  "syncedCount": 50,
-  "source": "seed-multi-workplace-scraper"
+  "lastSyncDate": "2026-09-26",
+  "lastSyncTimestamp": 1790401793218,
+  "syncedCount": 1158,
+  "source": "hybrid-multi-source",
+  "targetCount": 2500,
+  "sources": {
+    "arbeitnow": 650,
+    "wwr": 163,
+    "jobicy": 250,
+    "remoteok": 99,
+    "remotive": 19,
+    "himalayas": 0
+  }
 }

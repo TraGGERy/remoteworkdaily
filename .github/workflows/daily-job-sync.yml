@@ -1,0 +1,51 @@
+name: Daily Job Ingestion Pipeline
+
+on:
+  schedule:
+    # Runs everyday at 01:00 UTC (9:00 PM EDT)
+    - cron: '0 1 * * *'
+  workflow_dispatch:
+    inputs:
+      target_jobs:
+        description: 'Target job count to ingest'
+        required: false
+        default: '2000'
+
+jobs:
+  ingest-jobs:
+    name: Harvest ~2,000 Verified Remote Jobs
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Run Multi-Stream Job Scrapers
+        env:
+          APIFY_TOKEN: ${{ secrets.APIFY_TOKEN }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          TARGET=${{ github.event.inputs.target_jobs || '2000' }}
+          node scripts/sync-jobs.mjs --target=$TARGET --force
+
+      - name: Commit & Push Updated Jobs Dataset
+        run: |
+          git config --local user.email "bot@remoteworkdaily.com"
+          git config --local user.name "RemoteWorkDaily Ingestion Engine"
+          git add data/jobs.json data/sync-state.json
+          if ! git diff --staged --quiet; then
+            git commit -m "chore(data): automated daily ingestion of fresh remote jobs [skip ci]" \
+                       -m "Harvested daily verified remote listings from multi-source pipeline."
+            git push origin main
+          else
+            echo "No new jobs detected to commit."
+          fi

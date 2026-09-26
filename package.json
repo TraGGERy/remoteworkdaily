@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "node --test tests/*.test.mjs"
+    "test": "node --test tests/*.test.mjs",
+    "sync:jobs": "node scripts/sync-jobs.mjs"
   },
   "dependencies": {
     "@clerk/nextjs": "^7.9.2",
