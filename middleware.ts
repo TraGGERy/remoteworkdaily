@@ -16,6 +16,7 @@ const isPublicRoute = createRouteMatcher([
   "/jobs/(.*)",
   "/tag/(.*)",
   "/location/(.*)",
+  "/tools/(.*)",
   "/remote-jobs.json",
   "/api/(.*)",
   "/hire-remotely",
