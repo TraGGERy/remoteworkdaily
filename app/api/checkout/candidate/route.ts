@@ -1,10 +1,12 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { createCandidateHunterPassCheckoutSession } from "@/lib/stripe";
+import { createCandidateSubscriptionCheckoutSession } from "@/lib/stripe";
+import { CANDIDATE_PRICING, CandidatePlanId } from "@/lib/constants";
 import { getSupabaseClient, isSupabaseConfigured } from "@/lib/supabase";
 
 const CandidateCheckoutSchema = z.object({
   email: z.string().email("A valid email is required for early alerts"),
+  planId: z.enum(["weekly", "monthly", "lifetime"]).optional().default("monthly"),
 });
 
 export async function POST(request: Request) {
@@ -23,17 +25,18 @@ export async function POST(request: Request) {
     );
   }
 
-  const { email } = parseResult.data;
+  const { email, planId } = parseResult.data;
   const stripeKey = process.env.STRIPE_SECRET_KEY;
   const isLiveStripe = Boolean(stripeKey && !stripeKey.includes("placeholder"));
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 
   try {
     if (isLiveStripe) {
-      const session = await createCandidateHunterPassCheckoutSession({
+      const session = await createCandidateSubscriptionCheckoutSession({
         email,
-        successUrl: `${appUrl}/?hunter_pass=success`,
-        cancelUrl: `${appUrl}/?hunter_pass=cancelled`,
+        planId: planId as CandidatePlanId,
+        successUrl: `${appUrl}/?subscription=success&plan=${planId}`,
+        cancelUrl: `${appUrl}/?subscription=cancelled`,
       });
 
       return NextResponse.json({ url: session.url });
@@ -48,19 +51,21 @@ export async function POST(request: Request) {
     }
 
     // Development fallback: Record in Supabase if configured or return simulated success
+    const selectedPlan = CANDIDATE_PRICING.plans[planId as CandidatePlanId] || CANDIDATE_PRICING.plans.monthly;
     if (isSupabaseConfigured()) {
       const supabase = getSupabaseClient();
       if (supabase) {
         await supabase.from("candidate_passes").insert({
           email,
-          amount: 39,
+          amount: selectedPlan.price,
           currency: "USD",
           status: "active",
+          plan: planId,
         });
       }
     }
 
-    return NextResponse.json({ success: true, mode: "dev_simulated" });
+    return NextResponse.json({ success: true, mode: "dev_simulated", plan: planId });
   } catch (error) {
     console.error("Candidate checkout error:", error);
     return NextResponse.json({ error: "Failed to initiate candidate checkout" }, { status: 500 });

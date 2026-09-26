@@ -47,7 +47,9 @@ export function FilterBar({
     filters.benefits.length > 0 ||
     filters.tags.length > 0 ||
     (filters.workplaceType && filters.workplaceType !== "all") ||
-    (filters.category && filters.category !== "all");
+    (filters.category && filters.category !== "all") ||
+    (filters.freshness && filters.freshness !== "all") ||
+    filters.directAtsOnly;
 
   return (
     <div className="sticky top-16 z-30 w-full bg-white/95 dark:bg-neutral-950/95 backdrop-blur-md border-b border-neutral-200 dark:border-neutral-800 py-3 transition-colors shadow-sm">
@@ -123,6 +125,42 @@ export function FilterBar({
               🔀 Hybrid
             </button>
           </div>
+
+          {/* Freshness Quick Filter (CareerHound model) */}
+          <button
+            type="button"
+            onClick={() =>
+              onUpdateFilters({
+                freshness: filters.freshness === "24h" ? "all" : "24h",
+              })
+            }
+            className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs sm:text-sm font-semibold border transition-all ${
+              filters.freshness === "24h"
+                ? "bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-400 font-bold shadow-sm"
+                : "bg-white dark:bg-neutral-900 text-neutral-700 dark:text-neutral-300 border-neutral-200 dark:border-neutral-800 hover:border-neutral-400 dark:hover:border-neutral-700"
+            }`}
+          >
+            <span>⚡</span>
+            <span>Last 24h</span>
+          </button>
+
+          {/* Direct ATS / Company Careers Quick Filter */}
+          <button
+            type="button"
+            onClick={() =>
+              onUpdateFilters({
+                directAtsOnly: !filters.directAtsOnly,
+              })
+            }
+            className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs sm:text-sm font-semibold border transition-all ${
+              filters.directAtsOnly
+                ? "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-400 font-bold shadow-sm"
+                : "bg-white dark:bg-neutral-900 text-neutral-700 dark:text-neutral-300 border-neutral-200 dark:border-neutral-800 hover:border-neutral-400 dark:hover:border-neutral-700"
+            }`}
+          >
+            <span>🏢</span>
+            <span>Direct ATS</span>
+          </button>
 
           {/* Location Filter Button */}
           <div className="relative">

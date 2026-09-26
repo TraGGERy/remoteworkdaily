@@ -65,6 +65,24 @@ export function filterJobs(jobs: Job[], filters: Partial<FilterState>): Job[] {
     );
   }
 
+  // 6.5 Direct Company Careers / ATS Filter (CareerHound model)
+  if (filters.directAtsOnly) {
+    result = result.filter(
+      (job) => job.source === "ats" || Boolean(job.atsProvider) || Boolean(job.isDirectCompanyPost)
+    );
+  }
+
+  // 6.6 Freshness Filter (e.g. 24h or 7d)
+  if (filters.freshness && filters.freshness !== "all") {
+    const now = Date.now();
+    const cutoffHours = filters.freshness === "24h" ? 24 : 168; // 24 hours or 7 days
+    const cutoffMs = cutoffHours * 60 * 60 * 1000;
+    result = result.filter((job) => {
+      const jobTime = new Date(job.postedAt).getTime();
+      return !isNaN(jobTime) && now - jobTime <= cutoffMs;
+    });
+  }
+
   // 7. Sorting
   result.sort((a, b) => {
     // Pinned/Sticky jobs always stay at top unless sorting by specific criteria

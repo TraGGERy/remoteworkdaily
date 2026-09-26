@@ -34,24 +34,26 @@ export async function POST(req: Request) {
     const session = event.data.object as Stripe.Checkout.Session;
     const metadata = (session.metadata as Record<string, string>) || {};
 
-    // 1. Candidate Hunter Pass Order Processing
-    if (metadata.type === "candidate_pass" || metadata.email) {
+    // 1. Candidate Subscription / Hunter Pass Order Processing
+    if (metadata.type === "candidate_subscription" || metadata.type === "candidate_pass" || (metadata.email && !metadata.jobId)) {
       const email = metadata.email || session.customer_email || session.customer_details?.email;
+      const planId = metadata.planId || "monthly";
       if (email && isSupabaseConfigured()) {
         const supabase = getSupabaseClient();
         if (supabase) {
           await supabase.from("candidate_passes").upsert(
             {
               email,
-              amount: (session.amount_total ?? 3900) / 100,
+              amount: (session.amount_total ?? 1799) / 100,
               currency: (session.currency ?? "usd").toUpperCase(),
               stripe_session_id: session.id,
               stripe_payment_intent: typeof session.payment_intent === "string" ? session.payment_intent : null,
               status: "active",
+              plan: planId,
             },
             { onConflict: "stripe_session_id" }
           );
-          console.log(`[STRIPE WEBHOOK] Candidate Hunter Pass activated for ${email}`);
+          console.log(`[STRIPE WEBHOOK] Candidate subscription activated for ${email} (${planId})`);
         }
       }
     }

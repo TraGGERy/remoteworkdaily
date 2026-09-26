@@ -38,6 +38,8 @@ export function JobBoardClient({
     benefits: searchParams.get("benefits") ? searchParams.get("benefits")!.split(",") : [],
     tags: initialTag ? [initialTag] : searchParams.get("tags") ? searchParams.get("tags")!.split(",") : [],
     sortBy: (searchParams.get("sort") as FilterState["sortBy"]) || "default",
+    freshness: (searchParams.get("freshness") as FilterState["freshness"]) || "all",
+    directAtsOnly: searchParams.get("direct") === "true",
   });
 
   const updateFilters = (updates: Partial<FilterState>) => {
@@ -55,6 +57,8 @@ export function JobBoardClient({
       if (nextFilters.benefits.length > 0) params.set("benefits", nextFilters.benefits.join(","));
       if (nextFilters.tags.length > 0) params.set("tags", nextFilters.tags.join(","));
       if (nextFilters.sortBy && nextFilters.sortBy !== "default") params.set("sort", nextFilters.sortBy);
+      if (nextFilters.freshness && nextFilters.freshness !== "all") params.set("freshness", nextFilters.freshness);
+      if (nextFilters.directAtsOnly) params.set("direct", "true");
 
       const qs = params.toString();
       const targetUrl = qs ? `/?${qs}` : "/";
@@ -72,6 +76,8 @@ export function JobBoardClient({
       benefits: [],
       tags: [],
       sortBy: "default",
+      freshness: "all",
+      directAtsOnly: false,
     });
   };
 

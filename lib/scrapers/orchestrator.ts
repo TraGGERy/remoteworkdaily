@@ -10,6 +10,7 @@ import {
   fetchRemotiveJobs,
   fetchHimalayasJobs,
 } from "./native-scrapers";
+import { fetchDirectAtsJobs } from "./ats-scrapers";
 import { fetchApifyJobs } from "./apify-scraper";
 
 export interface PipelineOptions {
@@ -53,6 +54,7 @@ export async function runDailyJobIngestionPipeline(
     remoteokRes,
     remotiveRes,
     himalayasRes,
+    directAtsRes,
     apifyRes,
   ] = await Promise.allSettled([
     fetchArbeitnowJobs(pagesNeeded),
@@ -61,6 +63,7 @@ export async function runDailyJobIngestionPipeline(
     fetchRemoteOKJobs(),
     fetchRemotiveJobs(),
     fetchHimalayasJobs(),
+    fetchDirectAtsJobs(),
     fetchApifyJobs(options.apifyActorId, options.apifyConfig),
   ]);
 
@@ -72,6 +75,7 @@ export async function runDailyJobIngestionPipeline(
     remoteok: 0,
     remotive: 0,
     himalayas: 0,
+    ats: 0,
     apify: 0,
   };
 
@@ -105,6 +109,11 @@ export async function runDailyJobIngestionPipeline(
     for (const j of himalayasRes.value) rawJobs.push({ job: j, source: "himalayas" });
   }
 
+  if (directAtsRes.status === "fulfilled" && directAtsRes.value.length > 0) {
+    sourcesBreakdown.ats = directAtsRes.value.length;
+    for (const j of directAtsRes.value) rawJobs.push({ job: j, source: "ats" });
+  }
+
   if (apifyRes.status === "fulfilled" && apifyRes.value.length > 0) {
     sourcesBreakdown.apify = apifyRes.value.length;
     for (const j of apifyRes.value) rawJobs.push({ job: j, source: "apify" });
@@ -128,7 +137,10 @@ export async function runDailyJobIngestionPipeline(
     }
 
     // Preserve original ingest source
-    normalized.source = source === "apify" ? "apify" : "feed";
+    normalized.source = source === "ats" ? "ats" : source === "apify" ? "apify" : "feed";
+    if (source === "ats") {
+      normalized.isDirectCompanyPost = true;
+    }
     normalizedJobs.push(normalized);
   }
 

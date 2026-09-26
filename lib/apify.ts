@@ -38,6 +38,9 @@ export interface RawScrapedJob {
   publication_date?: string;
   remote?: boolean;
   workplace_type?: "remote" | "hybrid" | "on-site";
+  source?: "direct" | "apify" | "feed" | "ats";
+  ats_provider?: "greenhouse" | "lever" | "ashby" | "workday" | "direct";
+  is_direct_company_post?: boolean;
 }
 
 export function normalizeScrapedJob(raw: RawScrapedJob): Job {
@@ -194,7 +197,9 @@ export function normalizeScrapedJob(raw: RawScrapedJob): Job {
     postedAt,
     viewsCount: Math.floor(Math.random() * 400) + 15,
     appliesCount: Math.floor(Math.random() * 25) + 1,
-    source: "apify",
+    source: raw.source || "apify",
+    atsProvider: raw.ats_provider,
+    isDirectCompanyPost: raw.is_direct_company_post || raw.source === "ats",
     status: "active",
     canonicalHash: generateCanonicalHash(company, title, applyUrl),
   };

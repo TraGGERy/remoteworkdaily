@@ -24,7 +24,9 @@ export interface Job {
   postedAt: string;       // ISO date
   viewsCount: number;
   appliesCount: number;
-  source: "direct" | "apify" | "feed";
+  source: "direct" | "apify" | "feed" | "ats";
+  atsProvider?: "greenhouse" | "lever" | "ashby" | "workday" | "direct";
+  isDirectCompanyPost?: boolean;
   status?: "active" | "pending_payment" | "archived";
   employerEmail?: string;
   canonicalHash?: string;
@@ -51,6 +53,8 @@ export interface FilterState {
   benefits: string[];
   tags: string[];
   sortBy: "default" | "date" | "salary" | "views" | "applied" | "hot" | "benefits";
+  freshness?: "all" | "24h" | "7d";
+  directAtsOnly?: boolean;
 }
 
 export interface BenefitOption {

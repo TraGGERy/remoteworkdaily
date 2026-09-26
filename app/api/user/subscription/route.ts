@@ -17,7 +17,7 @@ export async function GET(request: Request) {
       if (supabase) {
         const { data, error } = await supabase
           .from("candidate_passes")
-          .select("id, email, status, created_at")
+          .select("id, email, status, created_at, plan")
           .ilike("email", normalizedEmail)
           .eq("status", "active")
           .order("created_at", { ascending: false })

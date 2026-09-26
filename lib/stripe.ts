@@ -1,5 +1,5 @@
 import Stripe from "stripe";
-import { JOB_POSTING_PRICING } from "./constants";
+import { JOB_POSTING_PRICING, CANDIDATE_PRICING, CandidatePlanId } from "./constants";
 
 export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "sk_test_placeholder", {
   apiVersion: "2025-01-27.acacia" as unknown as Stripe.LatestApiVersion,
@@ -126,50 +126,81 @@ export async function createJobPostingCheckoutSession(params: CheckoutParams) {
 
 export interface CandidateCheckoutParams {
   email: string;
+  planId?: CandidatePlanId;
   successUrl: string;
   cancelUrl: string;
 }
 
 /**
- * Creates a one-time payment Checkout Session for the Candidate Hunter Pass ($39 USD).
+ * Creates a Stripe Checkout Session for Candidate Subscriptions (Weekly/Monthly)
+ * or One-Time Lifetime Access, modeled after CareerHound.io.
  */
-export async function createCandidateHunterPassCheckoutSession(params: CandidateCheckoutParams) {
-  const session = await stripe.checkout.sessions.create(
-    {
-      mode: "payment",
-      payment_method_types: ["card"],
-      customer_email: params.email,
-      line_items: [
-        {
-          price_data: {
-            currency: "usd",
-            product_data: {
-              name: "Remote Hunter Lifetime Pass",
-              description: "Instant 2-hour early job alerts, candidate spotlight, and remote salary negotiation playbook.",
+export async function createCandidateSubscriptionCheckoutSession(params: CandidateCheckoutParams) {
+  const planId = params.planId || "monthly";
+  const plan = CANDIDATE_PRICING.plans[planId] || CANDIDATE_PRICING.plans.monthly;
+  const isSubscription = plan.billingType === "subscription";
+
+  const lineItem: Stripe.Checkout.SessionCreateParams.LineItem = {
+    price_data: {
+      currency: "usd",
+      product_data: {
+        name: `Remote Work Daily: ${plan.name}`,
+        description: plan.description,
+      },
+      unit_amount: Math.round(plan.price * 100),
+      ...(isSubscription
+        ? {
+            recurring: {
+              interval: plan.interval as "week" | "month",
             },
-            unit_amount: 3900, // $39.00 USD
-          },
-          quantity: 1,
-        },
-      ],
-      success_url: params.successUrl,
-      cancel_url: params.cancelUrl,
+          }
+        : {}),
+    },
+    quantity: 1,
+  };
+
+  const sessionCreateParams: Stripe.Checkout.SessionCreateParams = {
+    mode: isSubscription ? "subscription" : "payment",
+    payment_method_types: ["card"],
+    customer_email: params.email,
+    line_items: [lineItem],
+    success_url: params.successUrl,
+    cancel_url: params.cancelUrl,
+    metadata: {
+      type: "candidate_subscription",
+      planId: plan.id,
+      email: params.email,
+    },
+  };
+
+  if (!isSubscription) {
+    sessionCreateParams.payment_intent_data = {
       metadata: {
-        type: "candidate_pass",
+        type: "candidate_subscription",
+        planId: plan.id,
         email: params.email,
       },
-      payment_intent_data: {
-        metadata: {
-          type: "candidate_pass",
-          email: params.email,
-        },
+    };
+  } else {
+    sessionCreateParams.subscription_data = {
+      metadata: {
+        type: "candidate_subscription",
+        planId: plan.id,
+        email: params.email,
       },
-    },
+    };
+  }
+
+  const session = await stripe.checkout.sessions.create(
+    sessionCreateParams,
     {
-      idempotencyKey: `checkout-candidate-${params.email.toLowerCase().trim()}-${Math.floor(Date.now() / 60000)}`,
+      idempotencyKey: `checkout-candidate-${planId}-${params.email.toLowerCase().trim()}-${Math.floor(Date.now() / 60000)}`,
     }
   );
 
   return session;
 }
+
+// Backward compatibility alias
+export const createCandidateHunterPassCheckoutSession = createCandidateSubscriptionCheckoutSession;
 

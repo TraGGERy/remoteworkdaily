@@ -153,7 +153,9 @@ function normalizeRawJob(raw) {
     postedAt: raw.posted_at || new Date().toISOString(),
     viewsCount: Math.floor(Math.random() * 300) + 20,
     appliesCount: Math.floor(Math.random() * 20) + 1,
-    source: "feed",
+    source: raw.source || "feed",
+    atsProvider: raw.ats_provider,
+    isDirectCompanyPost: raw.is_direct_company_post || raw.source === "ats",
     status: "active",
     canonicalHash: generateCanonicalHash(company, title, applyUrl),
   };
@@ -171,7 +173,7 @@ async function runScrape() {
   console.log(`[1/4] Harvesting live remote job streams (Arbeitnow 1..${pagesNeeded}, WWR RSS, Jobicy, RemoteOK, Remotive)...`);
 
   const rawJobs = [];
-  const sources = { arbeitnow: 0, wwr: 0, jobicy: 0, remoteok: 0, remotive: 0, himalayas: 0 };
+  const sources = { arbeitnow: 0, wwr: 0, jobicy: 0, remoteok: 0, remotive: 0, himalayas: 0, ats: 0 };
 
   // 1. Arbeitnow Multi-Page
   const pagePromises = Array.from({ length: pagesNeeded }, (_, i) => i + 1).map(async (p) => {
@@ -311,13 +313,108 @@ async function runScrape() {
     }
   })();
 
+  // 6. Direct Company ATS (Greenhouse, Lever, Ashby)
+  const atsPromise = (async () => {
+    const out = [];
+    const ghCompanies = [
+      { token: "gitlab", name: "GitLab" },
+      { token: "zapier", name: "Zapier" },
+      { token: "automattic", name: "Automattic" },
+      { token: "docker", name: "Docker" },
+      { token: "elastic", name: "Elastic" },
+    ];
+    for (const c of ghCompanies) {
+      try {
+        const res = await fetch(`https://boards-api.greenhouse.io/v1/boards/${c.token}/jobs?content=true`, { headers: { "User-Agent": USER_AGENT } });
+        if (!res.ok) continue;
+        const json = await res.json();
+        for (const it of (json.jobs || [])) {
+          out.push({
+            title: it.title,
+            company_name: c.name,
+            url: it.absolute_url,
+            apply_url: it.absolute_url,
+            location: it.location?.name || "Worldwide",
+            description: cleanHtmlDescription(it.content),
+            posted_at: it.updated_at ? new Date(it.updated_at).toISOString() : new Date().toISOString(),
+            remote: true,
+            source: "ats",
+            ats_provider: "greenhouse",
+            is_direct_company_post: true,
+            tags: ["Direct ATS", "Company Careers", c.name],
+          });
+        }
+      } catch {}
+    }
+
+    const leverCompanies = [
+      { slug: "buffer", name: "Buffer" },
+      { slug: "kinsta", name: "Kinsta" },
+      { slug: "postman", name: "Postman" },
+    ];
+    for (const c of leverCompanies) {
+      try {
+        const res = await fetch(`https://api.lever.co/v0/postings/${c.slug}?mode=json`, { headers: { "User-Agent": USER_AGENT } });
+        if (!res.ok) continue;
+        const json = await res.json();
+        for (const it of (json || [])) {
+          out.push({
+            title: it.text,
+            company_name: c.name,
+            url: it.hostedUrl || it.applyUrl,
+            apply_url: it.applyUrl || it.hostedUrl,
+            location: it.categories?.location || "Worldwide",
+            description: cleanHtmlDescription(it.descriptionPlain || it.description),
+            posted_at: it.createdAt ? new Date(it.createdAt).toISOString() : new Date().toISOString(),
+            remote: true,
+            source: "ats",
+            ats_provider: "lever",
+            is_direct_company_post: true,
+            tags: ["Direct ATS", "Company Careers", c.name],
+          });
+        }
+      } catch {}
+    }
+
+    const ashbyCompanies = [
+      { slug: "supabase", name: "Supabase" },
+      { slug: "linear", name: "Linear" },
+      { slug: "cursor", name: "Cursor" },
+    ];
+    for (const c of ashbyCompanies) {
+      try {
+        const res = await fetch(`https://api.ashbyhq.com/posting-api/job-board/${c.slug}`, { headers: { "User-Agent": USER_AGENT } });
+        if (!res.ok) continue;
+        const json = await res.json();
+        for (const it of (json.jobs || [])) {
+          out.push({
+            title: it.title,
+            company_name: c.name,
+            url: it.jobUrl || it.applyUrl,
+            apply_url: it.applyUrl || it.jobUrl,
+            location: it.location || "Worldwide",
+            description: cleanHtmlDescription(it.descriptionHtml),
+            posted_at: it.publishedAt ? new Date(it.publishedAt).toISOString() : new Date().toISOString(),
+            remote: true,
+            source: "ats",
+            ats_provider: "ashby",
+            is_direct_company_post: true,
+            tags: ["Direct ATS", "Company Careers", c.name],
+          });
+        }
+      } catch {}
+    }
+    return out;
+  })();
+
   // Run all in parallel
-  const [arbeitnowResults, wwrList, jobicyList, remoteokList, remotiveList] = await Promise.all([
+  const [arbeitnowResults, wwrList, jobicyList, remoteokList, remotiveList, atsList] = await Promise.all([
     Promise.all(pagePromises),
     wwrPromise,
     jobicyPromise,
     remoteokPromise,
     remotivePromise,
+    atsPromise,
   ]);
 
   for (const group of arbeitnowResults) {
@@ -336,12 +433,16 @@ async function runScrape() {
   sources.remotive = remotiveList.length;
   for (const it of remotiveList) rawJobs.push(it);
 
+  sources.ats = atsList.length;
+  for (const it of atsList) rawJobs.push(it);
+
   console.log(`[2/4] Harvested ${rawJobs.length} raw listings across feeds:`);
   console.log(`      • Arbeitnow: ${sources.arbeitnow}`);
   console.log(`      • WeWorkRemotely RSS: ${sources.wwr}`);
   console.log(`      • Jobicy: ${sources.jobicy}`);
   console.log(`      • RemoteOK: ${sources.remoteok}`);
   console.log(`      • Remotive: ${sources.remotive}`);
+  console.log(`      • Direct ATS (Greenhouse/Lever/Ashby): ${sources.ats}`);
 
   console.log(`[3/4] Normalizing data and deduplicating via SHA-256 canonicalHash...`);
   const seenHashes = new Set();

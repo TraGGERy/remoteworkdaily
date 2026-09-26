@@ -133,13 +133,13 @@ export function GatedApplyAction({
         <div>
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 border border-amber-300/50 mb-2">
             <Sparkles className="w-3.5 h-3.5" />
-            <span>Active Subscription Required</span>
+            <span>Direct ATS Subscription Required</span>
           </div>
           <h3 className="text-xl font-black text-neutral-900 dark:text-white">
             Unlock Direct Application to {company}
           </h3>
           <p className="text-xs sm:text-sm text-neutral-600 dark:text-neutral-400 max-w-md mx-auto mt-1">
-            This verified remote opening is reserved for members with an active subscription. Unlock direct recruiter links, salary negotiation playbooks, and early-bird alerts.
+            Skip the 200+ applicant queue on LinkedIn. Members apply directly to {company}&apos;s internal hiring ATS with unlocked direct URLs, salary negotiation playbooks, and 2-hour early alerts.
           </p>
         </div>
 
@@ -150,18 +150,18 @@ export function GatedApplyAction({
             className="inline-flex items-center gap-2 px-8 py-3.5 rounded-xl text-sm font-black bg-[#FF4742] hover:bg-[#e03a35] text-white shadow-xl shadow-red-500/25 active:scale-95 transition-all"
           >
             <Lock className="w-4 h-4" />
-            <span>Get Hunter Pass ($39 One-Time) to Apply</span>
+            <span>Unlock Direct ATS Application (From $6.99/wk)</span>
           </button>
         </div>
 
         <div className="flex flex-wrap items-center justify-center gap-4 text-xs text-neutral-500 dark:text-neutral-400 font-medium pt-1">
           <span className="flex items-center gap-1">
             <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-            <span>Zero recurring commitments</span>
+            <span>7-Day 100% Refund Policy</span>
           </span>
           <span className="flex items-center gap-1">
             <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-            <span>60-Day Interview Guarantee</span>
+            <span>Weekly & Monthly Plans • Cancel Anytime</span>
           </span>
         </div>
       </div>

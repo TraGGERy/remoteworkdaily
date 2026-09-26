@@ -177,29 +177,109 @@ export const JOB_POSTING_PRICING = {
     remedyText: "If you do not receive at least 5 qualified applicants within 14 days, we will re-pin your job post to the top for 30 additional days at no charge.",
   },
 };
+export type CandidatePlanId = "weekly" | "monthly" | "lifetime";
+
+export interface CandidateSubscriptionPlan {
+  id: CandidatePlanId;
+  name: string;
+  price: number;
+  interval: "week" | "month" | "lifetime";
+  billingType: "subscription" | "one-time";
+  billingTerms: string;
+  badge?: string;
+  isPopular?: boolean;
+  description: string;
+  features: string[];
+}
 
 /**
- * Job seeker candidate monetization catalog.
+ * Job seeker candidate subscription and access catalog.
  *
- * Employs a one-off lifetime pass model to eliminate candidate subscription anxiety
- * while delivering immediate early-bird alerts and career positioning tools.
+ * Implements CareerHound.io's subscription-based model:
+ * - Weekly Sprint ($6.99/week, auto-renews, cancel anytime)
+ * - Monthly Pro ($17.99/month, auto-renews, cancel anytime, Most Popular)
+ * - Lifetime Access ($49.99, one-time payment, perpetual access)
+ *
+ * Backed by a 7-day unconditional money-back refund policy.
  */
 export const CANDIDATE_PRICING = {
   currency: "USD",
-  billingType: "one-time" as const,
+  plans: {
+    weekly: {
+      id: "weekly" as CandidatePlanId,
+      name: "Weekly Sprint",
+      price: 6.99,
+      interval: "week" as const,
+      billingType: "subscription" as const,
+      billingTerms: "$6.99 billed weekly • Auto-renews • Cancel anytime",
+      badge: "Sprint Search",
+      isPopular: false,
+      description: "Ideal for active applicants conducting a fast 1-2 week job search sprint.",
+      features: [
+        "Direct ATS Application Links unlocked immediately",
+        "Direct Company Careers & 'Hidden Jobs' stream",
+        "2-Hour Early-Bird Alerts (Instant email & push)",
+        "Search & filter jobs posted in the last 24 hours",
+      ],
+    },
+    monthly: {
+      id: "monthly" as CandidatePlanId,
+      name: "Monthly Pro",
+      price: 17.99,
+      interval: "month" as const,
+      billingType: "subscription" as const,
+      billingTerms: "$17.99 billed monthly • Auto-renews • Cancel anytime",
+      badge: "Most Popular",
+      isPopular: true,
+      description: "Our most popular plan for active candidates through multi-stage interview rounds.",
+      features: [
+        "Direct ATS Application Links unlocked immediately",
+        "Direct Company Careers & 'Hidden Jobs' stream",
+        "2-Hour Early-Bird Alerts (Instant email & push)",
+        "Search & filter jobs posted in the last 24 hours",
+        "Remote Salary Negotiation Playbook & Scripts ($97 value)",
+        "ATS Keyword Resume Optimization Tool",
+      ],
+    },
+    lifetime: {
+      id: "lifetime" as CandidatePlanId,
+      name: "Lifetime Access",
+      price: 49.99,
+      interval: "lifetime" as const,
+      billingType: "one-time" as const,
+      billingTerms: "$49.99 one-time payment • Never renews • Perpetual access",
+      badge: "Best Value",
+      isPopular: false,
+      description: "Pay once and monitor the remote job market continuously throughout your entire career.",
+      features: [
+        "Perpetual access to all current and future features",
+        "Direct ATS Application Links unlocked permanently",
+        "Priority Early-Bird Alerts & Reverse Candidate Spotlight",
+        "Full Remote Salary Negotiation Playbook & Templates",
+        "Never pay another subscription fee or renewal charge",
+      ],
+    },
+  },
+  guarantees: {
+    refundDays: 7,
+    refundText: "7-day unconditional 100% money-back guarantee. Email support@remoteworkdaily.com for an immediate full refund.",
+    interviewGuaranteeDays: 60,
+    interviewGuaranteeText: "60-day interview guarantee if you do not land at least 2 recruiter screening calls.",
+  },
+  // Backward compatibility alias
   hunterPass: {
-    id: "hunter_pass",
-    name: "Remote Hunter Pass",
-    price: 39,
-    description: "Instant early-bird job alerts, candidate spotlight, and remote salary negotiation playbook.",
-    billingTerms: "One-time payment • Never auto-renews • Valid for your entire job search",
+    id: "lifetime" as CandidatePlanId,
+    name: "Lifetime Access",
+    price: 49.99,
+    description: "Perpetual direct ATS application links, 2-hour early-bird alerts, and salary negotiation playbook.",
+    billingTerms: "One-time payment • Never auto-renews • Valid for your entire career",
     features: [
-      "2-Hour Early-Bird Alerts (Telegram & Email before public feed)",
-      "Featured Candidate Profile on our Reverse Job Board",
+      "Direct ATS Application Links unlocked permanently",
+      "2-Hour Early-Bird Alerts (Email before public feed)",
       "Remote Salary Negotiation Playbook & Email Scripts ($97 value)",
       "ATS Keyword Analyzer for Markdown Resumes",
     ],
-    guarantee: "60-day 100% money-back guarantee if you do not land at least 2 recruiter screening calls",
+    guarantee: "7-day 100% money-back guarantee + 60-day interview guarantee",
   },
 };
 

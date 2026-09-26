@@ -23,6 +23,19 @@ function filterJobs(jobs, filters) {
     result = result.filter((job) => (job.workplaceType || "remote") === filters.workplaceType);
   }
 
+  if (filters.directAtsOnly) {
+    result = result.filter((job) => job.source === "ats" || Boolean(job.atsProvider) || Boolean(job.isDirectCompanyPost));
+  }
+
+  if (filters.freshness && filters.freshness !== "all") {
+    const now = Date.now();
+    const cutoffMs = (filters.freshness === "24h" ? 24 : 168) * 60 * 60 * 1000;
+    result = result.filter((job) => {
+      const t = new Date(job.postedAt).getTime();
+      return !isNaN(t) && now - t <= cutoffMs;
+    });
+  }
+
   if (filters.minSalary && filters.minSalary > 0) {
     result = result.filter((job) => {
       const maxSal = job.salaryMax || job.salaryMin || 0;
@@ -135,20 +148,51 @@ test("AI-SEO: public/llms.txt exists and references remoteworkdaily.com", () => 
   assert.ok(content.includes("/remote-jobs.json"), "llms.txt must reference /remote-jobs.json API feed");
 });
 
-// Monetization Invariants: One-Time Payment Contracts
-test("Monetization: Strictly One-Time Payment contracts are maintained for employer and candidate", () => {
+// Monetization: CareerHound Subscription Pricing Model
+test("Monetization: CareerHound 3-Tier Subscription Model & Employer One-Time contracts are maintained", () => {
   const employerStarter = { type: "one-time", price: 249, subscription: false };
   const employerAccelerator = { type: "one-time", price: 399, subscription: false };
-  const candidatePass = { type: "one-time", price: 39, subscription: false, guaranteeDays: 60 };
 
-  // Guarantee zero recurring commitments
+  // Employer posts remain one-time to prevent corporate card friction
   assert.equal(employerStarter.subscription, false);
   assert.equal(employerAccelerator.subscription, false);
-  assert.equal(candidatePass.subscription, false);
 
-  // Guarantee candidate risk-reversal window
-  assert.equal(candidatePass.guaranteeDays, 60);
-  assert.equal(candidatePass.price, 39);
+  // CareerHound Candidate Subscriptions & Lifetime Model
+  const weeklyPlan = { id: "weekly", price: 6.99, interval: "week", subscription: true };
+  const monthlyPlan = { id: "monthly", price: 17.99, interval: "month", subscription: true, isPopular: true };
+  const lifetimePlan = { id: "lifetime", price: 49.99, interval: "lifetime", subscription: false, guaranteeDays: 60, refundDays: 7 };
+
+  assert.equal(weeklyPlan.price, 6.99);
+  assert.equal(weeklyPlan.interval, "week");
+  assert.equal(weeklyPlan.subscription, true);
+
+  assert.equal(monthlyPlan.price, 17.99);
+  assert.equal(monthlyPlan.interval, "month");
+  assert.equal(monthlyPlan.subscription, true);
+  assert.equal(monthlyPlan.isPopular, true);
+
+  assert.equal(lifetimePlan.price, 49.99);
+  assert.equal(lifetimePlan.subscription, false);
+  assert.equal(lifetimePlan.refundDays, 7);
+  assert.equal(lifetimePlan.guaranteeDays, 60);
+});
+
+// CareerHound Feature: Direct ATS and Freshness (24h) Filtering
+test("filterJobs filters accurately by direct ATS and 24h freshness", () => {
+  const now = Date.now();
+  const jobs = [
+    { id: "1", title: "GitLab SRE", company: "GitLab", status: "active", source: "ats", atsProvider: "greenhouse", postedAt: new Date(now - 2 * 3600 * 1000).toISOString(), tags: [] },
+    { id: "2", title: "Legacy Job", company: "OldCo", status: "active", source: "feed", postedAt: new Date(now - 72 * 3600 * 1000).toISOString(), tags: [] },
+    { id: "3", title: "Buffer Designer", company: "Buffer", status: "active", source: "ats", isDirectCompanyPost: true, postedAt: new Date(now - 80 * 3600 * 1000).toISOString(), tags: [] },
+  ];
+
+  const atsOnly = filterJobs(jobs, { directAtsOnly: true });
+  assert.equal(atsOnly.length, 2);
+  assert.deepEqual(atsOnly.map((j) => j.id), ["1", "3"]);
+
+  const freshOnly = filterJobs(jobs, { freshness: "24h" });
+  assert.equal(freshOnly.length, 1);
+  assert.equal(freshOnly[0].id, "1");
 });
 
 // Workplace Type Filtering & Non-Remote Job Handling
