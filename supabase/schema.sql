@@ -1,6 +1,7 @@
 -- ==============================================================================
 -- Supabase Schema for Remote Work Daily
 -- Production-ready PostgreSQL schema with RLS policies, indexing & constraints
+-- Idempotent: Safe to run on fresh or existing databases without error.
 -- ==============================================================================
 
 -- 1. Jobs Table
@@ -38,6 +39,20 @@ create table if not exists public.jobs (
   updated_at timestamptz default timezone('utc'::text, now()) not null
 );
 
+-- Ensure all columns exist on jobs even if table was created in an earlier migration
+alter table public.jobs add column if not exists location_code text default 'WW';
+alter table public.jobs add column if not exists workplace_type text default 'remote' check (workplace_type in ('remote', 'hybrid', 'on-site'));
+alter table public.jobs add column if not exists company_website text;
+alter table public.jobs add column if not exists verified boolean default true;
+alter table public.jobs add column if not exists featured boolean default false;
+alter table public.jobs add column if not exists sticky boolean default false;
+alter table public.jobs add column if not exists requirements text[] default array[]::text[];
+alter table public.jobs add column if not exists views_count integer default 0;
+alter table public.jobs add column if not exists applies_count integer default 0;
+alter table public.jobs add column if not exists source text default 'direct';
+alter table public.jobs add column if not exists employer_email text;
+alter table public.jobs add column if not exists canonical_hash text;
+
 -- 2. Candidate Passes Table (Subscriptions & Passes)
 create table if not exists public.candidate_passes (
   id text primary key default ('pass_' || gen_random_uuid()),
@@ -50,6 +65,11 @@ create table if not exists public.candidate_passes (
   plan text default 'monthly',
   created_at timestamptz default timezone('utc'::text, now()) not null
 );
+
+-- Ensure all columns exist on candidate_passes if table existed previously
+alter table public.candidate_passes add column if not exists plan text default 'monthly';
+alter table public.candidate_passes add column if not exists stripe_payment_intent text;
+alter table public.candidate_passes add column if not exists currency text default 'USD';
 
 -- 3. Subscribers Table (Newsletter & Job Alerts)
 create table if not exists public.subscribers (
@@ -76,22 +96,27 @@ alter table public.jobs enable row level security;
 alter table public.candidate_passes enable row level security;
 alter table public.subscribers enable row level security;
 
--- Public can read all active jobs
+-- Public can read all active jobs (Idempotent policy creation)
+drop policy if exists "Public read access for active jobs" on public.jobs;
 create policy "Public read access for active jobs"
   on public.jobs for select
   using (status = 'active');
 
--- Service role has full unrestricted access (for server actions and webhooks)
+-- Service role has full unrestricted access
+drop policy if exists "Service role full access on jobs" on public.jobs;
 create policy "Service role full access on jobs"
   on public.jobs for all
   using (auth.role() = 'service_role');
 
 -- Service role full access on candidate passes
+drop policy if exists "Service role full access on candidate passes" on public.candidate_passes;
 create policy "Service role full access on candidate passes"
   on public.candidate_passes for all
   using (auth.role() = 'service_role');
 
 -- Service role full access on subscribers
+drop policy if exists "Service role full access on subscribers" on public.subscribers;
 create policy "Service role full access on subscribers"
   on public.subscribers for all
   using (auth.role() = 'service_role');
+
