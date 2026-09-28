@@ -4,8 +4,13 @@ import Stripe from "stripe";
 import { stripe } from "@/lib/stripe";
 import { getJobById, insertJob } from "@/lib/jobs-repository";
 import { getSupabaseClient, isSupabaseConfigured } from "@/lib/supabase";
+import {
+  sendCandidatePaymentConfirmationEmail,
+  sendEmployerJobConfirmationEmail,
+} from "@/lib/email/resend";
 
 export async function POST(req: Request) {
+
   const body = await req.text();
   const headerPayload = await headers();
   const signature = headerPayload.get("stripe-signature");
@@ -56,6 +61,17 @@ export async function POST(req: Request) {
           console.log(`[STRIPE WEBHOOK] Candidate subscription activated for ${email} (${planId})`);
         }
       }
+
+      // Send Candidate Order Confirmation & Access Welcome Email
+      if (email) {
+        sendCandidatePaymentConfirmationEmail({
+          email,
+          planId,
+          amount: (session.amount_total ?? 1799) / 100,
+          currency: session.currency ?? "usd",
+          sessionId: session.id,
+        }).catch((err) => console.warn("[Resend Email Error - Candidate]:", err));
+      }
     }
 
     // 2. Employer Job Posting Processing
@@ -71,6 +87,25 @@ export async function POST(req: Request) {
         job.featured = metadata.highlight === "true";
         insertJob(job);
         console.log(`[STRIPE WEBHOOK] Activated job ${jobId} upon verified payment completion.`);
+
+        // Send Employer Live Job Posting Confirmation & Receipt Email
+        const employerEmail = metadata.email || session.customer_email || session.customer_details?.email || job.employerEmail;
+        if (employerEmail) {
+          sendEmployerJobConfirmationEmail({
+            email: employerEmail,
+            companyName: job.company,
+            jobTitle: job.title,
+            jobId: job.id,
+            jobSlug: job.slug,
+            amountPaid: (session.amount_total ?? 19900) / 100,
+            currency: session.currency ?? "usd",
+            sticky: job.sticky,
+            featured: job.featured,
+            newsletter: metadata.newsletter === "true",
+            social: metadata.social === "true",
+            sessionId: session.id,
+          }).catch((err) => console.warn("[Resend Email Error - Employer]:", err));
+        }
       }
     }
   } else if (event.type === "invoice.payment_succeeded") {
@@ -95,6 +130,18 @@ export async function POST(req: Request) {
         console.log(`[STRIPE WEBHOOK] Recurring subscription invoice payment succeeded for ${email}`);
       }
     }
+
+    if (email) {
+      sendCandidatePaymentConfirmationEmail({
+        email,
+        planId: "monthly",
+        amount: (invoice.amount_paid ?? 0) / 100,
+        currency: invoice.currency ?? "usd",
+        sessionId: invoice.id,
+        isRenewal: true,
+      }).catch((err) => console.warn("[Resend Email Error - Renewal]:", err));
+    }
+
 
   } else if (event.type === "customer.subscription.deleted") {
     const subscription = event.data.object as Stripe.Subscription;

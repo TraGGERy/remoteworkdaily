@@ -14,15 +14,27 @@ export function CatchEmailsBanner() {
     if (isClosed) setClosed(true);
   }, []);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !email.includes("@")) return;
     setSubmitted(true);
+
+    try {
+      await fetch("/api/newsletter/subscribe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email.trim(), category: "all" }),
+      });
+    } catch (err) {
+      console.warn("Newsletter subscription failed:", err);
+    }
+
     setTimeout(() => {
       setClosed(true);
       sessionStorage.setItem("remoteok_catch_emails_closed", "true");
     }, 2500);
   };
+
 
   const handleClose = () => {
     setClosed(true);

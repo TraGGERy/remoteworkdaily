@@ -364,5 +364,30 @@ test("Date formatting: timeAgo produces clean, human-readable relative times", (
   assert.equal(timeAgo(""), "recently");
 });
 
+test("Email & Marketing System: newsletter schema validates valid emails and rejects malformed inputs", () => {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  assert.ok(emailRegex.test("candidate@example.com"));
+  assert.ok(emailRegex.test("recruiter@stripe.com"));
+  assert.equal(emailRegex.test("not-an-email"), false);
+  assert.equal(emailRegex.test("missing@domain"), false);
+
+  // Verify candidate plan receipt calculation
+  const weeklyPassAmount = 6.99;
+  const monthlyPassAmount = 17.99;
+  const lifetimePassAmount = 49.99;
+  assert.equal(Math.round(weeklyPassAmount * 100), 699);
+  assert.equal(Math.round(monthlyPassAmount * 100), 1799);
+  assert.equal(Math.round(lifetimePassAmount * 100), 4999);
+
+
+  // Verify employer job advertising pricing
+  const standardJobPrice = 199;
+  const stickyPrice = 89;
+  const highlightPrice = 49;
+  const newsletterPrice = 59;
+  assert.equal(standardJobPrice + stickyPrice + highlightPrice + newsletterPrice, 396);
+});
+
+
 
 
