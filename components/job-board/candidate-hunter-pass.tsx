@@ -28,6 +28,41 @@ export function CandidateHunterPass() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [purchased, setPurchased] = useState(false);
 
+  // Cross-device subscription restore state
+  const [restoreMode, setRestoreMode] = useState(false);
+  const [restoreEmail, setRestoreEmail] = useState("");
+  const [restoreStatus, setRestoreStatus] = useState<"idle" | "success" | "not_found" | "error">("idle");
+  const [isRestoring, setIsRestoring] = useState(false);
+
+  const handleRestore = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!restoreEmail || !restoreEmail.includes("@")) return;
+
+    setIsRestoring(true);
+    setRestoreStatus("idle");
+    try {
+      const res = await fetch(`/api/user/subscription?email=${encodeURIComponent(restoreEmail.trim().toLowerCase())}`);
+      const data = await res.json();
+      if (data.active) {
+        setRestoreStatus("success");
+        simulateSubscription(true);
+        localStorage.setItem("rwd_onboarding_completed", "true");
+        localStorage.setItem("remotework_user_email", restoreEmail.trim().toLowerCase());
+        setTimeout(() => {
+          handleCloseModal();
+          setRestoreMode(false);
+          setRestoreStatus("idle");
+        }, 1200);
+      } else {
+        setRestoreStatus("not_found");
+      }
+    } catch {
+      setRestoreStatus("error");
+    } finally {
+      setIsRestoring(false);
+    }
+  };
+
   // Sync with global upgrade modal trigger
   useEffect(() => {
     if (isUpgradeModalOpen) {
@@ -362,6 +397,69 @@ export function CandidateHunterPass() {
                     </p>
                   </div>
                 </form>
+
+                {/* Cross-Device Access Restoration */}
+                <div className="pt-2 text-center border-t border-neutral-100 dark:border-neutral-800">
+                  {!restoreMode ? (
+                    <button
+                      type="button"
+                      onClick={() => setRestoreMode(true)}
+                      className="text-xs text-neutral-500 hover:text-neutral-900 dark:hover:text-white underline font-semibold transition-colors"
+                    >
+                      Already subscribed on another device? Restore access &rarr;
+                    </button>
+                  ) : (
+                    <form onSubmit={handleRestore} className="space-y-2 text-left bg-neutral-50 dark:bg-neutral-800/70 p-3 rounded-xl border border-neutral-200 dark:border-neutral-700 animate-in fade-in duration-150">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-neutral-900 dark:text-white">
+                          Restore Active Subscription
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setRestoreMode(false);
+                            setRestoreStatus("idle");
+                          }}
+                          className="text-[11px] text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                      <div className="flex gap-2">
+                        <input
+                          type="email"
+                          required
+                          placeholder="your-stripe-email@example.com"
+                          value={restoreEmail}
+                          onChange={(e) => setRestoreEmail(e.target.value)}
+                          className="flex-1 px-3 py-1.5 text-xs rounded-lg border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-neutral-900 dark:text-white focus:outline-none focus:border-[#FF4742]"
+                        />
+                        <button
+                          type="submit"
+                          disabled={isRestoring}
+                          className="px-3.5 py-1.5 rounded-lg text-xs font-bold bg-[#FF4742] text-white hover:bg-[#e03a35] active:scale-95 transition-all"
+                        >
+                          {isRestoring ? "Checking..." : "Restore"}
+                        </button>
+                      </div>
+                      {restoreStatus === "success" && (
+                        <p className="text-[11px] text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1">
+                          <CheckCircle2 className="w-3.5 h-3.5" /> Subscription verified! Unlocking all jobs...
+                        </p>
+                      )}
+                      {restoreStatus === "not_found" && (
+                        <p className="text-[11px] text-red-500 font-medium">
+                          No active subscription found for this email. Check for typos or subscribe above.
+                        </p>
+                      )}
+                      {restoreStatus === "error" && (
+                        <p className="text-[11px] text-red-500 font-medium">
+                          Could not verify status. Please check your connection.
+                        </p>
+                      )}
+                    </form>
+                  )}
+                </div>
               </>
             )}
           </div>

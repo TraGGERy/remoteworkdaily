@@ -111,8 +111,11 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
       setSimulatedSub(cached === "true");
     }
 
-    if (primaryEmail) {
-      checkSubscription(primaryEmail);
+    const storedEmail = typeof window !== "undefined" ? localStorage.getItem("remotework_user_email") : null;
+    const emailToCheck = primaryEmail || storedEmail;
+
+    if (emailToCheck) {
+      checkSubscription(emailToCheck);
     } else {
       setIsLoading(false);
     }
@@ -127,7 +130,8 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
   };
 
   const refreshSubscription = async () => {
-    await checkSubscription(primaryEmail);
+    const storedEmail = typeof window !== "undefined" ? localStorage.getItem("remotework_user_email") : null;
+    await checkSubscription(primaryEmail || storedEmail);
   };
 
   // Determine final subscription state:
