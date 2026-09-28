@@ -96,17 +96,28 @@ alter table public.jobs enable row level security;
 alter table public.candidate_passes enable row level security;
 alter table public.subscribers enable row level security;
 
--- Public can read all active jobs (Idempotent policy creation)
+-- Public can read all active jobs
 drop policy if exists "Public read access for active jobs" on public.jobs;
 create policy "Public read access for active jobs"
   on public.jobs for select
   using (status = 'active');
 
--- Service role has full unrestricted access
+-- Service role full access
 drop policy if exists "Service role full access on jobs" on public.jobs;
 create policy "Service role full access on jobs"
   on public.jobs for all
   using (auth.role() = 'service_role');
+
+-- Allow server backend / anon key to insert and update jobs
+drop policy if exists "Allow server insert on jobs" on public.jobs;
+create policy "Allow server insert on jobs"
+  on public.jobs for insert
+  with check (true);
+
+drop policy if exists "Allow server update on jobs" on public.jobs;
+create policy "Allow server update on jobs"
+  on public.jobs for update
+  using (true);
 
 -- Service role full access on candidate passes
 drop policy if exists "Service role full access on candidate passes" on public.candidate_passes;
@@ -114,9 +125,32 @@ create policy "Service role full access on candidate passes"
   on public.candidate_passes for all
   using (auth.role() = 'service_role');
 
+-- Allow server backend to insert and update candidate passes
+drop policy if exists "Allow server insert on candidate passes" on public.candidate_passes;
+create policy "Allow server insert on candidate passes"
+  on public.candidate_passes for insert
+  with check (true);
+
+drop policy if exists "Allow server update on candidate passes" on public.candidate_passes;
+create policy "Allow server update on candidate passes"
+  on public.candidate_passes for update
+  using (true);
+
 -- Service role full access on subscribers
 drop policy if exists "Service role full access on subscribers" on public.subscribers;
 create policy "Service role full access on subscribers"
   on public.subscribers for all
   using (auth.role() = 'service_role');
+
+-- Allow server backend to insert and update subscribers
+drop policy if exists "Allow server insert on subscribers" on public.subscribers;
+create policy "Allow server insert on subscribers"
+  on public.subscribers for insert
+  with check (true);
+
+drop policy if exists "Allow server update on subscribers" on public.subscribers;
+create policy "Allow server update on subscribers"
+  on public.subscribers for update
+  using (true);
+
 
