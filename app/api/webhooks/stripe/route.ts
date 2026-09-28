@@ -73,6 +73,49 @@ export async function POST(req: Request) {
         console.log(`[STRIPE WEBHOOK] Activated job ${jobId} upon verified payment completion.`);
       }
     }
+  } else if (event.type === "invoice.payment_succeeded") {
+    const invoice = event.data.object as any;
+    const email = (invoice.customer_email || invoice.customer_details?.email) as string | undefined;
+    if (email && isSupabaseConfigured()) {
+      const supabase = getSupabaseClient();
+      if (supabase) {
+        const paymentIntent = typeof invoice.payment_intent === "string" ? invoice.payment_intent : null;
+        await supabase.from("candidate_passes").upsert(
+          {
+            email: email.toLowerCase().trim(),
+            amount: (invoice.amount_paid ?? 0) / 100,
+            currency: (invoice.currency ?? "usd").toUpperCase(),
+            stripe_session_id: invoice.id,
+            stripe_payment_intent: paymentIntent,
+            status: "active",
+            plan: invoice.subscription ? "subscription_renewal" : "candidate_pass",
+          },
+          { onConflict: "stripe_session_id" }
+        );
+        console.log(`[STRIPE WEBHOOK] Recurring subscription invoice payment succeeded for ${email}`);
+      }
+    }
+
+  } else if (event.type === "customer.subscription.deleted") {
+    const subscription = event.data.object as Stripe.Subscription;
+    const customerId = typeof subscription.customer === "string" ? subscription.customer : subscription.customer?.id;
+    if (customerId) {
+      try {
+        const customer = await stripe.customers.retrieve(customerId);
+        if (customer && !customer.deleted && "email" in customer && customer.email && isSupabaseConfigured()) {
+          const supabase = getSupabaseClient();
+          if (supabase) {
+            await supabase
+              .from("candidate_passes")
+              .update({ status: "expired" })
+              .ilike("email", customer.email.toLowerCase().trim());
+            console.log(`[STRIPE WEBHOOK] Subscription canceled for ${customer.email}, marked expired.`);
+          }
+        }
+      } catch (err) {
+        console.warn("[STRIPE WEBHOOK] Error handling subscription cancellation:", err);
+      }
+    }
   } else if (event.type === "checkout.session.expired") {
     const session = event.data.object as Stripe.Checkout.Session;
     const metadata = (session.metadata as Record<string, string>) || {};
@@ -90,3 +133,4 @@ export async function POST(req: Request) {
 
   return NextResponse.json({ received: true, event: event.type });
 }
+

@@ -15,11 +15,16 @@ export { filterJobs } from "./filter-jobs";
 
 const DATA_FILE = path.join(process.cwd(), "data", "jobs.json");
 let memoryCache: Job[] | null = null;
+let lastCacheMtime: number = 0;
+let lastCacheCheck: number = 0;
 
-function ensureDataFile(): Job[] {
-  if (memoryCache && memoryCache.length > 0) {
+function ensureDataFile(forceReload: boolean = false): Job[] {
+  const now = Date.now();
+  // Fast path: memory cache is fresh and was verified within the last 15 seconds
+  if (!forceReload && memoryCache && memoryCache.length > 0 && now - lastCacheCheck < 15000) {
     return memoryCache;
   }
+  lastCacheCheck = now;
 
   try {
     const dir = path.dirname(DATA_FILE);
@@ -41,6 +46,12 @@ function ensureDataFile(): Job[] {
       return memoryCache;
     }
 
+    const stat = fs.statSync(DATA_FILE);
+    if (!forceReload && memoryCache && memoryCache.length > 0 && stat.mtimeMs === lastCacheMtime) {
+      return memoryCache;
+    }
+
+    lastCacheMtime = stat.mtimeMs;
     const content = fs.readFileSync(DATA_FILE, "utf8");
     const parsed = JSON.parse(content);
     if (Array.isArray(parsed) && parsed.length > 0) {
@@ -52,12 +63,15 @@ function ensureDataFile(): Job[] {
     return memoryCache;
   } catch (error) {
     console.warn("Notice: Using in-memory fallback for jobs data:", error);
-    memoryCache = [...INITIAL_JOBS];
+    if (!memoryCache || memoryCache.length === 0) {
+      memoryCache = [...INITIAL_JOBS];
+    }
     return memoryCache;
   }
 }
 
 function saveJobs(jobs: Job[]) {
+
   // Always update in-memory cache immediately
   memoryCache = [...jobs];
 
@@ -165,9 +179,10 @@ async function syncJobsBatchToSupabase(jobs: Job[]) {
   }
 }
 
-export function getAllJobs(): Job[] {
-  return ensureDataFile();
+export function getAllJobs(forceReload: boolean = false): Job[] {
+  return ensureDataFile(forceReload);
 }
+
 
 export function getJobById(id: string): Job | undefined {
   const jobs = getAllJobs();

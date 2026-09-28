@@ -4,7 +4,7 @@ import React from "react";
 import Image from "next/image";
 import { Job } from "@/lib/types";
 import { formatSalary, timeAgo } from "@/lib/utils";
-import { CheckCircle, Globe, MapPin, DollarSign, Pin, ExternalLink } from "lucide-react";
+import { CheckCircle, Globe, MapPin, DollarSign, Pin, ExternalLink, Sparkles } from "lucide-react";
 
 interface JobRowProps {
   job: Job;
@@ -15,6 +15,10 @@ interface JobRowProps {
 
 export function JobRow({ job, isSelected, onToggleSelect, onTagClick }: JobRowProps) {
   const salaryText = formatSalary(job.salaryMin, job.salaryMax, job.salaryCurrency);
+  const isNewToday = job.postedAt
+    ? Date.now() - new Date(job.postedAt).getTime() < 24 * 3600 * 1000
+    : false;
+
 
   return (
     <div
@@ -80,6 +84,12 @@ export function JobRow({ job, isSelected, onToggleSelect, onTagClick }: JobRowPr
                 <span>🏢 Direct ATS</span>
               </span>
             )}
+            {isNewToday && (
+              <span className="inline-flex items-center gap-0.5 text-[10px] font-extrabold uppercase px-1.5 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800/70">
+                <Sparkles className="w-2.5 h-2.5" />
+                <span>Today</span>
+              </span>
+            )}
           </div>
 
           <h3 className="font-bold text-sm sm:text-base text-neutral-900 dark:text-white group-hover:text-[#FF4742] transition-colors line-clamp-1 leading-snug">
@@ -129,9 +139,14 @@ export function JobRow({ job, isSelected, onToggleSelect, onTagClick }: JobRowPr
 
         {/* Posted time & apply button */}
         <div className="flex items-center gap-3 shrink-0 ml-auto md:ml-2">
-          <span className="text-xs text-neutral-400 font-mono">
+          <span className={`text-xs font-mono font-medium ${
+            isNewToday
+              ? "text-emerald-600 dark:text-emerald-400 font-semibold"
+              : "text-neutral-400"
+          }`}>
             {timeAgo(job.postedAt)}
           </span>
+
 
           <button
             onClick={(e) => {

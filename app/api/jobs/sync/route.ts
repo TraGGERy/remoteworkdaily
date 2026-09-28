@@ -88,7 +88,9 @@ async function handleSync(request: Request) {
       totalJobs: result.totalInDatabase,
       sources: result.sources,
       durationMs: result.durationMs,
+      jobs: getAllJobs(true),
     });
+
   } catch (error) {
     console.error("Daily job sync failed:", error);
     return NextResponse.json(

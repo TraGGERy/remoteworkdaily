@@ -95,16 +95,15 @@ export function JobBoardClient({
   const handleRefreshJobs = async () => {
     setIsSyncing(true);
     try {
-      const res = await fetch("/api/jobs/sync", { method: "POST" });
-      const data = await res.json();
-      if (res.ok && data.jobs && Array.isArray(data.jobs)) {
-        setJobs(data.jobs);
-      } else if (data.error) {
-        alert(data.error);
+      const res = await fetch(`/api/jobs?refresh=true&_t=${Date.now()}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.jobs && Array.isArray(data.jobs)) {
+          setJobs(data.jobs);
+        }
       }
     } catch (err) {
       console.error("Job feed refresh failed:", err);
-      alert("Failed to refresh remote job feed. Please check your network connection.");
     } finally {
       setIsSyncing(false);
     }

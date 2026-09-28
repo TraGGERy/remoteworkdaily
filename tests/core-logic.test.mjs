@@ -331,4 +331,38 @@ test("CareerHound Paywall: Partitions exactly 5 free preview jobs for non-subscr
   assert.equal(subscriber.blurred.length, 0);
 });
 
+test("Date formatting: timeAgo produces clean, human-readable relative times", () => {
+  function timeAgo(dateString) {
+    if (!dateString) return "recently";
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return "recently";
+
+    const now = new Date();
+    const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+    if (seconds < 60) return "just now";
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return `${minutes}m ago`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours}h ago`;
+    const days = Math.floor(hours / 24);
+    if (days === 1) return "yesterday";
+    if (days < 7) return `${days}d ago`;
+    if (days < 30) return `${Math.floor(days / 7)}w ago`;
+    const months = Math.floor(days / 30);
+    if (months < 12) return `${months}mo ago`;
+    return `${Math.floor(months / 12)}y ago`;
+  }
+
+  const now = Date.now();
+  assert.equal(timeAgo(new Date(now - 10 * 1000)), "just now");
+  assert.equal(timeAgo(new Date(now - 15 * 60 * 1000)), "15m ago");
+  assert.equal(timeAgo(new Date(now - 4 * 3600 * 1000)), "4h ago");
+  assert.equal(timeAgo(new Date(now - 28 * 3600 * 1000)), "yesterday");
+  assert.equal(timeAgo(new Date(now - 3 * 24 * 3600 * 1000)), "3d ago");
+  assert.equal(timeAgo(new Date(now - 14 * 24 * 3600 * 1000)), "2w ago");
+  assert.equal(timeAgo(""), "recently");
+});
+
+
 

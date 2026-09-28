@@ -4,6 +4,9 @@ import { JobBoardClient } from "@/components/job-board/job-board-client";
 import { generateJobPostingSchema } from "@/lib/seo";
 import { AiSeoKnowledgeSection } from "@/components/seo/ai-seo-knowledge-section";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 60;
+
 export default function Home() {
   const allJobs = getAllJobs();
   const topSchemas = allJobs.slice(0, 10).map((job) => generateJobPostingSchema(job));
