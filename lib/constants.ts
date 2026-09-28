@@ -159,10 +159,10 @@ export const JOB_POSTING_PRICING = {
       badge: "VIRAL REACH",
     },
     verifiedBadge: {
-      price: 39,
+      price: 0,
       title: "Verified Company Badge",
-      description: "Displays a blue verified checkmark next to your company logo & name",
-      badge: "TRUSTED",
+      description: "Complimentary verified trust checkmark next to your company logo & name",
+      badge: "INCLUDED",
     },
   },
   bundles: [

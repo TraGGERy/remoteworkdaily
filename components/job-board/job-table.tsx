@@ -4,7 +4,8 @@ import React, { useState } from "react";
 import { Job } from "@/lib/types";
 import { JobRow } from "./job-row";
 import { JobDetailDrawer } from "./job-detail-drawer";
-import { Sparkles, RefreshCw, AlertCircle } from "lucide-react";
+import { Sparkles, RefreshCw, AlertCircle, Lock, Zap, CheckCircle2, ArrowRight } from "lucide-react";
+import { useSubscription } from "@/components/auth/subscription-context";
 
 interface JobTableProps {
   jobs: Job[];
@@ -21,6 +22,7 @@ export function JobTable({
   onRefreshJobs,
   isSyncing,
 }: JobTableProps) {
+  const { hasActiveSubscription, openUpgradeModal } = useSubscription();
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
   const [visibleCount, setVisibleCount] = useState<number>(40);
 
@@ -58,6 +60,13 @@ export function JobTable({
     }
   };
 
+  // Freemium preview threshold: first 5 jobs are fully visible
+  const FREE_PREVIEW_LIMIT = 5;
+  const isPaywallActive = !hasActiveSubscription && jobs.length > FREE_PREVIEW_LIMIT;
+  
+  const previewJobs = isPaywallActive ? displayedJobs.slice(0, FREE_PREVIEW_LIMIT) : displayedJobs;
+  const blurredPaywalledJobs = isPaywallActive ? displayedJobs.slice(FREE_PREVIEW_LIMIT) : [];
+
   return (
     <div className="w-full max-w-7xl mx-auto px-3 sm:px-6 py-4">
       {/* Top Table Summary Bar */}
@@ -74,6 +83,11 @@ export function JobTable({
           <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
           <span className="hidden md:inline-block text-neutral-300 dark:text-neutral-700">•</span>
           <span className="hidden md:inline text-emerald-600 dark:text-emerald-400 font-bold">100% #OpenSalaries</span>
+          {isPaywallActive && (
+            <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300 border border-amber-300/40">
+              5 Free Preview Jobs
+            </span>
+          )}
         </div>
 
         <div className="flex items-center justify-between sm:justify-end gap-3 w-full sm:w-auto">
@@ -116,7 +130,8 @@ export function JobTable({
       ) : (
         /* Jobs List */
         <div className="space-y-2 sm:space-y-2.5" id="jobsboard">
-          {displayedJobs.map((job) => {
+          {/* 1. Visible Free Preview Jobs (Top 5) */}
+          {previewJobs.map((job) => {
             const isSelected = selectedJobId === job.id;
             return (
               <React.Fragment key={job.id}>
@@ -140,8 +155,137 @@ export function JobTable({
             );
           })}
 
-          {/* Progressive Load More Footer */}
-          {hasMore && (
+          {/* 2. CareerHound-Style Paywall Offer Card (Rendered immediately after Job 5) */}
+          {isPaywallActive && (
+            <div className="my-6 p-6 sm:p-8 rounded-3xl border-2 border-amber-400/80 dark:border-amber-700/60 bg-gradient-to-br from-amber-50 via-white to-red-50/40 dark:from-neutral-900 dark:via-neutral-900 dark:to-neutral-900 shadow-2xl space-y-5 animate-in fade-in duration-200">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="space-y-1.5 text-left">
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 border border-amber-300/40">
+                    <Lock className="w-3.5 h-3.5" />
+                    <span>You Have Viewed 5 Free Preview Jobs</span>
+                  </div>
+                  <h3 className="text-xl sm:text-2xl font-black text-neutral-900 dark:text-white">
+                    Unlock 2,000+ Direct ATS Jobs (Greenhouse, Lever, Ashby)
+                  </h3>
+                  <p className="text-xs sm:text-sm text-neutral-600 dark:text-neutral-400 max-w-xl leading-relaxed">
+                    Stop competing against 200+ applicants in 1 hour on LinkedIn and Indeed. Our members apply directly to internal hiring systems at GitLab, Supabase, Linear, Docker, Automattic, and 1,000+ companies.
+                  </p>
+                </div>
+
+                <div className="shrink-0 flex flex-col items-start md:items-end gap-2">
+                  <button
+                    type="button"
+                    onClick={openUpgradeModal}
+                    className="w-full sm:w-auto px-7 py-4 rounded-2xl text-sm font-black bg-[#FF4742] hover:bg-[#e03a35] text-white shadow-xl shadow-red-500/25 active:scale-95 transition-all flex items-center justify-center gap-2"
+                  >
+                    <Zap className="w-4 h-4 fill-current" />
+                    <span>Unlock Full Feed (From $6.99/wk)</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </button>
+                  <span className="text-[11px] text-neutral-500 dark:text-neutral-400 font-medium">
+                    7-Day Money-Back Guarantee • Cancel Anytime
+                  </span>
+                </div>
+              </div>
+
+              {/* 3-Tier Value Cards Preview */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
+                <div 
+                  onClick={openUpgradeModal}
+                  className="p-3.5 rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white/80 dark:bg-neutral-800/50 cursor-pointer hover:border-neutral-300 transition-all text-left"
+                >
+                  <span className="text-[10px] font-black uppercase text-neutral-500 block">Weekly Sprint</span>
+                  <div className="mt-1">
+                    <span className="text-xl font-black text-neutral-900 dark:text-white">$6.99</span>
+                    <span className="text-xs text-neutral-500"> / week</span>
+                  </div>
+                  <p className="text-[11px] text-neutral-500 dark:text-neutral-400 mt-1">
+                    Direct ATS links unlocked. Cancel anytime.
+                  </p>
+                </div>
+
+                <div 
+                  onClick={openUpgradeModal}
+                  className="p-3.5 rounded-2xl border-2 border-[#FF4742] bg-red-50/30 dark:bg-red-950/20 cursor-pointer shadow-md relative text-left"
+                >
+                  <span className="absolute -top-2.5 right-3 px-2 py-0.5 rounded-full bg-[#FF4742] text-[9px] font-black uppercase text-white">
+                    Most Popular
+                  </span>
+                  <span className="text-[10px] font-black uppercase text-[#FF4742] block">Monthly Pro</span>
+                  <div className="mt-1">
+                    <span className="text-xl font-black text-neutral-900 dark:text-white">$17.99</span>
+                    <span className="text-xs text-neutral-500"> / month</span>
+                  </div>
+                  <p className="text-[11px] text-neutral-500 dark:text-neutral-400 mt-1">
+                    Full active search + Salary Negotiation Playbook.
+                  </p>
+                </div>
+
+                <div 
+                  onClick={openUpgradeModal}
+                  className="p-3.5 rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white/80 dark:bg-neutral-800/50 cursor-pointer hover:border-neutral-300 transition-all text-left"
+                >
+                  <span className="text-[10px] font-black uppercase text-emerald-600 dark:text-emerald-400 block">Lifetime Access</span>
+                  <div className="mt-1">
+                    <span className="text-xl font-black text-neutral-900 dark:text-white">$49.99</span>
+                    <span className="text-xs text-neutral-500"> one-time</span>
+                  </div>
+                  <p className="text-[11px] text-neutral-500 dark:text-neutral-400 mt-1">
+                    Pay once. Perpetual access for your career.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* 3. Blurred Paywalled Jobs (Jobs 6 onwards) - Preserves SEO in DOM while Gating for Humans */}
+          {isPaywallActive && blurredPaywalledJobs.length > 0 && (
+            <div className="relative mt-2">
+              {/* Click Interceptor Overlay */}
+              <div 
+                onClick={openUpgradeModal}
+                className="absolute inset-0 z-20 cursor-pointer flex flex-col items-center justify-center p-6 bg-gradient-to-b from-transparent via-white/70 dark:via-neutral-950/70 to-white dark:to-neutral-950 transition-opacity hover:opacity-95"
+              >
+                <div className="p-6 rounded-3xl border border-amber-300/80 dark:border-amber-800/80 bg-white/95 dark:bg-neutral-900/95 shadow-2xl backdrop-blur-md max-w-sm text-center space-y-3 pointer-events-auto">
+                  <div className="w-12 h-12 mx-auto rounded-2xl bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center">
+                    <Lock className="w-6 h-6" />
+                  </div>
+                  <h4 className="text-base font-black text-neutral-900 dark:text-white">
+                    {jobs.length - FREE_PREVIEW_LIMIT}+ Direct Company Roles
+                  </h4>
+                  <p className="text-xs text-neutral-600 dark:text-neutral-400">
+                    Click anywhere to unlock all unadvertised remote jobs with direct application links.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={openUpgradeModal}
+                    className="w-full py-3 px-4 rounded-xl text-xs font-black bg-[#FF4742] text-white hover:bg-[#e03a35] shadow-lg shadow-red-500/25 active:scale-95 transition-all"
+                  >
+                    Unlock Feed (From $6.99/wk)
+                  </button>
+                </div>
+              </div>
+
+              {/* Blurred Job Feed (Crawled by Googlebot for SEO, blurred for visitor) */}
+              <div 
+                className="paywall-blurred-jobs space-y-2 filter blur-[5px] select-none pointer-events-none opacity-30 max-h-[700px] overflow-hidden"
+                aria-hidden="true"
+              >
+                {blurredPaywalledJobs.map((job) => (
+                  <JobRow
+                    key={job.id}
+                    job={job}
+                    isSelected={false}
+                    onToggleSelect={() => {}}
+                    onTagClick={() => {}}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Progressive Load More Footer (Only for paid subscribers or when viewing all) */}
+          {!isPaywallActive && hasMore && (
             <div className="pt-6 pb-4 flex flex-col sm:flex-row items-center justify-center gap-3">
               <button
                 onClick={handleLoadMore}

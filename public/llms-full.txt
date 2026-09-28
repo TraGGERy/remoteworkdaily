@@ -34,14 +34,16 @@ Every job listing page on Remote Work Daily provides Google-compliant Schema.org
 - baseSalary: MonetaryAmount with QuantitativeValue
 - hiringOrganization: Organization with sameAs verified URLs
 
-## 4. Employer Pricing & Monetization
-Remote Work Daily charges a transparent base fee of $249 for a 30-day verified listing. Optional add-ons include:
-- Sticky pin to the top of the directory (24 hours): +$89
-- Yellow highlight badge: +$49
-- Remote Work Daily Newsletter Blast (120,000+ readers): +$99
-- Prominent company logo placement: +$39
-
-Payments are settled via Stripe for global credit cards or Plaid Link for US bank ACH direct debit.
+## 4. Pricing & Monetization
+- Candidates / Job Seekers (CareerHound Model):
+  - Weekly Sprint: $6.99/week (Auto-renew, cancel anytime)
+  - Monthly Pro: $17.99/month (Most popular, 60-day interview guarantee)
+  - Lifetime Access: $49.99 one-time (Perpetual access, 7-day money-back refund guarantee)
+- Employers: Transparent base fee of $249 for a 30-day verified listing. Optional add-ons:
+  - Sticky pin to the top of the directory: +$89
+  - Coral highlight badge: +$49
+  - Newsletter Blast (120,000+ readers): +$99
+  - Social media promotion (Twitter/LinkedIn): +$69
 
 ## 5. Contact & Editorial Inquiries
 - Website: https://remoteworkdaily.com

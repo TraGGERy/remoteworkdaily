@@ -8,6 +8,8 @@ import { SuggestedFilters } from "./suggested-filters";
 import { FilterBar } from "./filter-bar";
 import { JobTable } from "./job-table";
 import { CandidateHunterPass } from "./candidate-hunter-pass";
+import { CandidateOnboardingModal } from "./candidate-onboarding-modal";
+import { useSubscription } from "@/components/auth/subscription-context";
 
 interface JobBoardClientProps {
   initialJobs: Job[];
@@ -25,6 +27,7 @@ export function JobBoardClient({
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
+  const { openUpgradeModal } = useSubscription();
 
   const [jobs, setJobs] = useState<Job[]>(initialJobs);
   const [isSyncing, setIsSyncing] = useState(false);
@@ -113,6 +116,12 @@ export function JobBoardClient({
 
   return (
     <div className="w-full">
+      {/* First-Time Visitor CRO Onboarding Experience */}
+      <CandidateOnboardingModal
+        onSelectCategory={(cat) => updateFilters({ category: cat })}
+        onOpenUpgradeModal={openUpgradeModal}
+      />
+
       {/* Category Pills Bar */}
       <div className="max-w-7xl mx-auto px-3 sm:px-6 pt-4 pb-2">
         <SuggestedFilters

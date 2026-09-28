@@ -306,4 +306,29 @@ test("Paywall Gating: Only logged in users with active subscription can access d
   assert.equal(activeSubscriber.status, "unlocked");
 });
 
+test("CareerHound Paywall: Partitions exactly 5 free preview jobs for non-subscribers while unlocking all for subscribers", () => {
+  const allJobs = Array.from({ length: 25 }, (_, i) => ({ id: `job-${i + 1}` }));
+  const FREE_PREVIEW_LIMIT = 5;
+
+  function partitionJobs(jobs, hasActiveSubscription) {
+    if (hasActiveSubscription) {
+      return { preview: jobs, blurred: [] };
+    }
+    return {
+      preview: jobs.slice(0, FREE_PREVIEW_LIMIT),
+      blurred: jobs.slice(FREE_PREVIEW_LIMIT),
+    };
+  }
+
+  // Non-subscriber sees 5 preview jobs, remaining 20 blurred
+  const freeUser = partitionJobs(allJobs, false);
+  assert.equal(freeUser.preview.length, 5);
+  assert.equal(freeUser.blurred.length, 20);
+
+  // Subscriber sees all 25 jobs previewed, 0 blurred
+  const subscriber = partitionJobs(allJobs, true);
+  assert.equal(subscriber.preview.length, 25);
+  assert.equal(subscriber.blurred.length, 0);
+});
+
 

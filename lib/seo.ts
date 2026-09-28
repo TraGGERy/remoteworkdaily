@@ -68,6 +68,18 @@ export function generateWebsiteSchema() {
     },
     {
       "@context": "https://schema.org",
+      "@type": "WebPage",
+      name: "Remote Work Daily — Verified Remote Jobs with #OpenSalaries",
+      url: SITE_URL,
+      isAccessibleForFree: false,
+      hasPart: {
+        "@type": "WebPageElement",
+        isAccessibleForFree: false,
+        "cssSelector": ".paywall-blurred-jobs",
+      },
+    },
+    {
+      "@context": "https://schema.org",
       "@type": "Organization",
       name: "Remote Work Daily",
       url: SITE_URL,

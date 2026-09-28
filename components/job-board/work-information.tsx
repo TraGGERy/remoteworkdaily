@@ -107,16 +107,16 @@ export function WorkInformation({
               className="w-full py-3 px-4 rounded-xl text-xs sm:text-sm font-black bg-[#FF4742] hover:bg-[#e03a35] text-white shadow-lg shadow-red-500/20 active:scale-95 transition-all flex items-center justify-center gap-2"
             >
               <Lock className="w-4 h-4" />
-              <span>Unlock with Remote Hunter Pass ($39 One-Time)</span>
+              <span>Unlock Direct ATS Application (From $6.99/wk)</span>
             </button>
 
             <div className="flex items-center justify-center gap-3 text-[11px] text-neutral-500 dark:text-neutral-400 font-medium">
               <span className="flex items-center gap-1">
                 <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
-                <span>60-Day Guarantee</span>
+                <span>7-Day 100% Refund Policy</span>
               </span>
               <span>•</span>
-              <span>Never Auto-Renews</span>
+              <span>Weekly & Monthly Plans • Cancel Anytime</span>
             </div>
           </div>
         </div>
