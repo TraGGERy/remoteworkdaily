@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createCandidateSubscriptionCheckoutSession } from "@/lib/stripe";
 import { CANDIDATE_PRICING, CandidatePlanId } from "@/lib/constants";
-import { getSupabaseClient, isSupabaseConfigured } from "@/lib/supabase";
+import { saveCandidatePass } from "@/lib/candidate-passes-repository";
 
 const CandidateCheckoutSchema = z.object({
   email: z.string().email("A valid email is required for early alerts"),
@@ -50,20 +50,15 @@ export async function POST(request: Request) {
       );
     }
 
-    // Development fallback: Record in Supabase if configured or return simulated success
+    // Development fallback: Record in persistent repository or return simulated success
     const selectedPlan = CANDIDATE_PRICING.plans[planId as CandidatePlanId] || CANDIDATE_PRICING.plans.monthly;
-    if (isSupabaseConfigured()) {
-      const supabase = getSupabaseClient();
-      if (supabase) {
-        await supabase.from("candidate_passes").insert({
-          email,
-          amount: selectedPlan.price,
-          currency: "USD",
-          status: "active",
-          plan: planId,
-        });
-      }
-    }
+    await saveCandidatePass({
+      email,
+      amount: selectedPlan.price,
+      currency: "USD",
+      status: "active",
+      plan: planId,
+    });
 
     return NextResponse.json({ success: true, mode: "dev_simulated", plan: planId });
   } catch (error) {

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { getSupabaseClient, isSupabaseConfigured } from "@/lib/supabase";
+import { saveSubscriber } from "@/lib/subscribers-repository";
 import { sendJobAlertWelcomeEmail } from "@/lib/email/resend";
 
 export const dynamic = "force-dynamic";
@@ -22,29 +22,14 @@ export async function POST(request: Request) {
       );
     }
 
-
     const { email, category } = result.data;
     const normalizedEmail = email.toLowerCase().trim();
 
-    // 1. Persist to Supabase if configured
-    if (isSupabaseConfigured()) {
-      const supabase = getSupabaseClient();
-      if (supabase) {
-        try {
-          await supabase.from("subscribers").upsert(
-            {
-              email: normalizedEmail,
-              category,
-              status: "active",
-              updated_at: new Date().toISOString(),
-            },
-            { onConflict: "email" }
-          );
-        } catch (dbErr) {
-          console.warn("[Newsletter DB Warning]:", dbErr);
-        }
-      }
-    }
+    // 1. Persist to local JSON database and sync to Supabase
+    await saveSubscriber({
+      email: normalizedEmail,
+      category,
+    });
 
     // 2. Dispatch Welcome Email via Resend
     const emailResult = await sendJobAlertWelcomeEmail({

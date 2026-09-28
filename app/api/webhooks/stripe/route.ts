@@ -4,6 +4,7 @@ import Stripe from "stripe";
 import { stripe } from "@/lib/stripe";
 import { getJobById, insertJob } from "@/lib/jobs-repository";
 import { getSupabaseClient, isSupabaseConfigured } from "@/lib/supabase";
+import { saveCandidatePass, expireCandidatePass } from "@/lib/candidate-passes-repository";
 import {
   sendCandidatePaymentConfirmationEmail,
   sendEmployerJobConfirmationEmail,
@@ -43,23 +44,17 @@ export async function POST(req: Request) {
     if (metadata.type === "candidate_subscription" || metadata.type === "candidate_pass" || (metadata.email && !metadata.jobId)) {
       const email = metadata.email || session.customer_email || session.customer_details?.email;
       const planId = metadata.planId || "monthly";
-      if (email && isSupabaseConfigured()) {
-        const supabase = getSupabaseClient();
-        if (supabase) {
-          await supabase.from("candidate_passes").upsert(
-            {
-              email,
-              amount: (session.amount_total ?? 1799) / 100,
-              currency: (session.currency ?? "usd").toUpperCase(),
-              stripe_session_id: session.id,
-              stripe_payment_intent: typeof session.payment_intent === "string" ? session.payment_intent : null,
-              status: "active",
-              plan: planId,
-            },
-            { onConflict: "stripe_session_id" }
-          );
-          console.log(`[STRIPE WEBHOOK] Candidate subscription activated for ${email} (${planId})`);
-        }
+      if (email) {
+        await saveCandidatePass({
+          email,
+          amount: (session.amount_total ?? 1799) / 100,
+          currency: (session.currency ?? "usd").toUpperCase(),
+          stripe_session_id: session.id,
+          stripe_payment_intent: typeof session.payment_intent === "string" ? session.payment_intent : null,
+          status: "active",
+          plan: planId,
+        });
+        console.log(`[STRIPE WEBHOOK] Candidate subscription activated for ${email} (${planId})`);
       }
 
       // Send Candidate Order Confirmation & Access Welcome Email
@@ -111,24 +106,18 @@ export async function POST(req: Request) {
   } else if (event.type === "invoice.payment_succeeded") {
     const invoice = event.data.object as any;
     const email = (invoice.customer_email || invoice.customer_details?.email) as string | undefined;
-    if (email && isSupabaseConfigured()) {
-      const supabase = getSupabaseClient();
-      if (supabase) {
-        const paymentIntent = typeof invoice.payment_intent === "string" ? invoice.payment_intent : null;
-        await supabase.from("candidate_passes").upsert(
-          {
-            email: email.toLowerCase().trim(),
-            amount: (invoice.amount_paid ?? 0) / 100,
-            currency: (invoice.currency ?? "usd").toUpperCase(),
-            stripe_session_id: invoice.id,
-            stripe_payment_intent: paymentIntent,
-            status: "active",
-            plan: invoice.subscription ? "subscription_renewal" : "candidate_pass",
-          },
-          { onConflict: "stripe_session_id" }
-        );
-        console.log(`[STRIPE WEBHOOK] Recurring subscription invoice payment succeeded for ${email}`);
-      }
+    if (email) {
+      const paymentIntent = typeof invoice.payment_intent === "string" ? invoice.payment_intent : null;
+      await saveCandidatePass({
+        email: email.toLowerCase().trim(),
+        amount: (invoice.amount_paid ?? 0) / 100,
+        currency: (invoice.currency ?? "usd").toUpperCase(),
+        stripe_session_id: invoice.id,
+        stripe_payment_intent: paymentIntent,
+        status: "active",
+        plan: invoice.subscription ? "subscription_renewal" : "candidate_pass",
+      });
+      console.log(`[STRIPE WEBHOOK] Recurring subscription invoice payment succeeded for ${email}`);
     }
 
     if (email) {
@@ -149,15 +138,9 @@ export async function POST(req: Request) {
     if (customerId) {
       try {
         const customer = await stripe.customers.retrieve(customerId);
-        if (customer && !customer.deleted && "email" in customer && customer.email && isSupabaseConfigured()) {
-          const supabase = getSupabaseClient();
-          if (supabase) {
-            await supabase
-              .from("candidate_passes")
-              .update({ status: "expired" })
-              .ilike("email", customer.email.toLowerCase().trim());
-            console.log(`[STRIPE WEBHOOK] Subscription canceled for ${customer.email}, marked expired.`);
-          }
+        if (customer && !customer.deleted && "email" in customer && customer.email) {
+          await expireCandidatePass(customer.email.toLowerCase().trim());
+          console.log(`[STRIPE WEBHOOK] Subscription canceled for ${customer.email}, marked expired.`);
         }
       } catch (err) {
         console.warn("[STRIPE WEBHOOK] Error handling subscription cancellation:", err);

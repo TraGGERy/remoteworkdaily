@@ -388,6 +388,14 @@ test("Email & Marketing System: newsletter schema validates valid emails and rej
   assert.equal(standardJobPrice + stickyPrice + highlightPrice + newsletterPrice, 396);
 });
 
+test("Persistence Layer: Data directory and storage integrity check", async () => {
+  const fs = await import("fs");
+  const path = await import("path");
 
+  const dataDir = path.join(process.cwd(), "data");
+  assert.ok(fs.existsSync(dataDir), "data directory must exist");
+  assert.ok(fs.existsSync(path.join(dataDir, "jobs.json")), "data/jobs.json must exist");
 
-
+  const jobsData = JSON.parse(fs.readFileSync(path.join(dataDir, "jobs.json"), "utf8"));
+  assert.ok(Array.isArray(jobsData) && jobsData.length > 0, "data/jobs.json must be a non-empty array");
+});

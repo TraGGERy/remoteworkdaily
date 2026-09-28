@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getSupabaseClient, isSupabaseConfigured } from "@/lib/supabase";
+import { getActiveCandidatePass } from "@/lib/candidate-passes-repository";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -12,24 +12,9 @@ export async function GET(request: Request) {
   const normalizedEmail = email.toLowerCase().trim();
 
   try {
-    if (isSupabaseConfigured()) {
-      const supabase = getSupabaseClient();
-      if (supabase) {
-        const { data, error } = await supabase
-          .from("candidate_passes")
-          .select("id, email, status, created_at, plan")
-          .ilike("email", normalizedEmail)
-          .eq("status", "active")
-          .order("created_at", { ascending: false })
-          .limit(1)
-          .maybeSingle();
-
-        if (error) {
-          console.error("Supabase candidate pass check error:", error);
-        } else if (data) {
-          return NextResponse.json({ active: true, pass: data });
-        }
-      }
+    const pass = await getActiveCandidatePass(normalizedEmail);
+    if (pass && pass.status === "active") {
+      return NextResponse.json({ active: true, pass });
     }
 
     return NextResponse.json({ active: false, pass: null });
