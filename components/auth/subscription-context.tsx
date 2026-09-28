@@ -94,6 +94,17 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
 
   // Sync state on mount and when user changes
   useEffect(() => {
+    // Check if user just returned from successful Stripe checkout
+    if (typeof window !== "undefined") {
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get("subscription") === "success") {
+        localStorage.setItem("rwd_onboarding_completed", "true");
+        localStorage.setItem("remotework_active_subscription", "true");
+        setSimulatedSub(true);
+        setHasServerSub(true);
+      }
+    }
+
     // Check local storage for simulation or cached pass
     const cached = localStorage.getItem("remotework_active_subscription");
     if (cached !== null) {

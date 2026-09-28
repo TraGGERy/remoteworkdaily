@@ -19,9 +19,10 @@ export function CandidateOnboardingModal({
   const [jobCountFound, setJobCountFound] = useState(142);
 
   useEffect(() => {
-    // Check if candidate already completed or dismissed onboarding
+    // Check if candidate already completed or dismissed onboarding, or has active subscription
     const seen = localStorage.getItem("rwd_onboarding_completed");
-    if (!seen) {
+    const hasSub = localStorage.getItem("remotework_active_subscription") === "true";
+    if (!seen && !hasSub) {
       // Show onboarding 1.2s after arrival
       const timer = setTimeout(() => setIsOpen(true), 1200);
       return () => clearTimeout(timer);

@@ -356,3 +356,112 @@ export async function sendJobAlertWelcomeEmail(params: {
     return { success: false, error: error.message || String(error) };
   }
 }
+
+/**
+ * Sends a daily automated remote job digest to newsletter subscribers.
+ */
+export async function sendDailyDigestEmail(params: {
+  email: string;
+  jobs: Array<{
+    title: string;
+    company: string;
+    location?: string;
+    salary?: string;
+    url: string;
+    category?: string;
+  }>;
+  totalFreshJobsCount?: number;
+}): Promise<{ success: boolean; id?: string; error?: string }> {
+  const resend = getResendClient();
+  if (!resend) {
+    console.log(`[Resend Email Skipped - No API Key] Daily digest for ${params.email}`);
+    return { success: false, error: "RESEND_API_KEY not configured" };
+  }
+
+  const dateStr = new Date().toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  const totalCount = params.totalFreshJobsCount || 500;
+  const subject = `🔥 Today's Top Remote Jobs (${dateStr}) — ${params.jobs[0]?.title || "Fresh Openings"}`;
+
+  const jobRowsHtml = params.jobs.map((job) => `
+    <div style="border-bottom: 1px solid #e2e8f0; padding: 16px 0;">
+      <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+        <div>
+          <span style="font-size: 11px; font-weight: 800; color: #ff4742; text-transform: uppercase; letter-spacing: 0.5px;">${job.company}</span>
+          <h3 style="font-size: 16px; font-weight: 700; color: #0f172a; margin: 4px 0 6px 0;">
+            <a href="${job.url}" style="color: #0f172a; text-decoration: none;">${job.title}</a>
+          </h3>
+          <div style="font-size: 12px; color: #64748b;">
+            <span>📍 ${job.location || "Worldwide"}</span>
+            ${job.salary ? `<span style="margin-left: 8px; color: #059669; font-weight: 600;">💰 ${job.salary}</span>` : ""}
+          </div>
+        </div>
+      </div>
+      <div style="margin-top: 10px;">
+        <a href="${job.url}" style="display: inline-block; font-size: 12px; font-weight: 700; background: #f1f5f9; color: #0f172a; padding: 6px 14px; border-radius: 6px; text-decoration: none;">
+          Apply Direct &rarr;
+        </a>
+      </div>
+    </div>
+  `).join("");
+
+  const html = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${subject}</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f8fafc; margin: 0; padding: 24px; color: #1e293b; }
+    .card { max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 16px; border: 1px solid #e2e8f0; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); }
+    .header { background: #0f172a; padding: 28px 24px; text-align: center; }
+    .logo { color: #ffffff; font-size: 22px; font-weight: 900; letter-spacing: -0.5px; text-decoration: none; }
+    .logo span { color: #ff4742; }
+    .content { padding: 28px 24px; }
+    .btn { display: block; text-align: center; background: #ff4742; color: #ffffff !important; font-weight: 700; font-size: 15px; padding: 14px 24px; border-radius: 10px; text-decoration: none; margin: 28px 0 16px; }
+    .footer { background: #f1f5f9; padding: 20px 24px; text-align: center; font-size: 12px; color: #64748b; border-top: 1px solid #e2e8f0; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="header">
+      <a href="https://remoteworkdaily.com" class="logo">RemoteWork<span>Daily</span></a>
+    </div>
+    <div class="content">
+      <h1 style="font-size: 20px; font-weight: 800; color: #0f172a; margin: 0 0 8px;">Morning Remote Digest • ${dateStr}</h1>
+      <p style="font-size: 14px; color: #64748b; margin: 0 0 20px;">
+        Here are today's top direct-apply positions with verified salaries. ${totalCount}+ additional positions added today.
+      </p>
+
+      <div style="border-top: 1px solid #e2e8f0;">
+        ${jobRowsHtml}
+      </div>
+
+      <a href="https://remoteworkdaily.com" class="btn">
+        View All ${totalCount}+ Jobs on Remote Work Daily &rarr;
+      </a>
+    </div>
+    <div class="footer">
+      <p>© ${new Date().getFullYear()} Remote Work Daily • Daily Remote Ingestion Engine</p>
+      <p>You received this because you are an active subscriber to Remote Work Daily job alerts.</p>
+    </div>
+  </div>
+</body>
+</html>
+`;
+
+  try {
+    const data = await resend.emails.send({
+      from: getFromEmail(),
+      to: params.email,
+      subject,
+      html,
+    });
+    console.log(`[Resend Email Sent] Daily digest to ${params.email}:`, data);
+    return { success: true, id: data.data?.id };
+  } catch (error: any) {
+    console.error(`[Resend Email Error] Failed sending daily digest to ${params.email}:`, error);
+    return { success: false, error: error.message || String(error) };
+  }
+}
+

@@ -1,4 +1,4 @@
-﻿import fs from "fs";
+import fs from "fs";
 import path from "path";
 import { getSupabaseClient, isSupabaseConfigured } from "./supabase";
 
@@ -116,4 +116,12 @@ export function getSubscribersCount(): number {
     if (sub.status === "active") count++;
   }
   return count;
+}
+
+/**
+ * Returns all active subscribers from the persistent database.
+ */
+export function getAllActiveSubscribers(): SubscriberRecord[] {
+  const cache = ensureCache();
+  return Array.from(cache.values()).filter((s) => s.status === "active");
 }
