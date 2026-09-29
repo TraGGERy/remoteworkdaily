@@ -1,16 +1,16 @@
 {
-  "lastSyncDate": "2026-09-28",
-  "lastSyncTimestamp": 1790627982686,
-  "syncedCount": 2719,
+  "lastSyncDate": "2026-09-29",
+  "lastSyncTimestamp": 1790674728840,
+  "syncedCount": 2530,
   "source": "hybrid-multi-source",
-  "targetCount": 2000,
+  "targetCount": 50,
   "sources": {
-    "arbeitnow": 1451,
-    "wwr": 168,
+    "arbeitnow": 1251,
+    "wwr": 170,
     "jobicy": 250,
     "remoteok": 99,
     "remotive": 16,
     "himalayas": 0,
-    "ats": 798
+    "ats": 805
   }
 }

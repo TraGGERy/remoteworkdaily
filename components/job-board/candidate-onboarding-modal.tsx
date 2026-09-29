@@ -100,7 +100,7 @@ export function CandidateOnboardingModal({
             </div>
 
             <div className="pt-2 flex items-center justify-between text-xs text-neutral-500">
-              <span>5 free preview jobs included</span>
+              <span>25 free preview jobs included</span>
               <button
                 type="button"
                 onClick={handleDismiss}
@@ -141,7 +141,7 @@ export function CandidateOnboardingModal({
                 Your Curated Job Stream is Ready
               </h3>
               <p className="text-xs text-neutral-600 dark:text-neutral-400 max-w-md mx-auto">
-                You have <strong>5 free preview jobs</strong> unlocked right now. Members unlock the full 2,000+ daily stream with direct application links.
+                You have <strong>25 free preview jobs</strong> unlocked right now. Members unlock the full 2,000+ daily stream with direct application links.
               </p>
             </div>
 
@@ -182,7 +182,7 @@ export function CandidateOnboardingModal({
                 onClick={handleCompleteAndBrowse}
                 className="w-full py-2.5 px-4 rounded-xl text-xs font-bold text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
               >
-                View My 5 Free Preview Jobs First &rarr;
+                View My 25 Free Preview Jobs First &rarr;
               </button>
             </div>
 

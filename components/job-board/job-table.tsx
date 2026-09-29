@@ -60,8 +60,8 @@ export function JobTable({
     }
   };
 
-  // Freemium preview threshold: first 5 jobs are fully visible
-  const FREE_PREVIEW_LIMIT = 5;
+  // Freemium preview threshold: first 25 jobs are fully visible
+  const FREE_PREVIEW_LIMIT = 25;
   const isPaywallActive = !hasActiveSubscription && jobs.length > FREE_PREVIEW_LIMIT;
   
   const previewJobs = isPaywallActive ? displayedJobs.slice(0, FREE_PREVIEW_LIMIT) : displayedJobs;
@@ -85,7 +85,7 @@ export function JobTable({
           <span className="hidden md:inline text-emerald-600 dark:text-emerald-400 font-bold">100% Transparent Pay</span>
           {isPaywallActive && (
             <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300 border border-amber-300/40">
-              5 Free Preview Jobs
+              25 Free Preview Jobs
             </span>
           )}
         </div>
@@ -130,7 +130,7 @@ export function JobTable({
       ) : (
         /* Jobs List */
         <div className="space-y-2 sm:space-y-2.5" id="jobsboard">
-          {/* 1. Visible Free Preview Jobs (Top 5) */}
+          {/* 1. Visible Free Preview Jobs (Top 25) */}
           {previewJobs.map((job) => {
             const isSelected = selectedJobId === job.id;
             return (
@@ -155,14 +155,14 @@ export function JobTable({
             );
           })}
 
-          {/* 2. CareerHound-Style Paywall Offer Card (Rendered immediately after Job 5) */}
+          {/* 2. CareerHound-Style Paywall Offer Card (Rendered immediately after Job 25) */}
           {isPaywallActive && (
             <div className="my-6 p-6 sm:p-8 rounded-3xl border-2 border-amber-400/80 dark:border-amber-700/60 bg-gradient-to-br from-amber-50 via-white to-red-50/40 dark:from-neutral-900 dark:via-neutral-900 dark:to-neutral-900 shadow-2xl space-y-5 animate-in fade-in duration-200">
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="space-y-1.5 text-left">
                   <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 border border-amber-300/40">
                     <Lock className="w-3.5 h-3.5" />
-                    <span>You Have Viewed 5 Free Preview Jobs</span>
+                    <span>You Have Viewed 25 Free Preview Jobs</span>
                   </div>
                   <h3 className="text-xl sm:text-2xl font-black text-neutral-900 dark:text-white">
                     Unlock 2,000+ Direct ATS Jobs (Greenhouse, Lever, Ashby)

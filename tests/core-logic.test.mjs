@@ -306,9 +306,9 @@ test("Paywall Gating: Only logged in users with active subscription can access d
   assert.equal(activeSubscriber.status, "unlocked");
 });
 
-test("CareerHound Paywall: Partitions exactly 5 free preview jobs for non-subscribers while unlocking all for subscribers", () => {
-  const allJobs = Array.from({ length: 25 }, (_, i) => ({ id: `job-${i + 1}` }));
-  const FREE_PREVIEW_LIMIT = 5;
+test("CareerHound Paywall: Partitions exactly 25 free preview jobs for non-subscribers while unlocking all for subscribers", () => {
+  const allJobs = Array.from({ length: 60 }, (_, i) => ({ id: `job-${i + 1}` }));
+  const FREE_PREVIEW_LIMIT = 25;
 
   function partitionJobs(jobs, hasActiveSubscription) {
     if (hasActiveSubscription) {
@@ -320,14 +320,14 @@ test("CareerHound Paywall: Partitions exactly 5 free preview jobs for non-subscr
     };
   }
 
-  // Non-subscriber sees 5 preview jobs, remaining 20 blurred
+  // Non-subscriber sees 25 preview jobs, remaining 35 blurred
   const freeUser = partitionJobs(allJobs, false);
-  assert.equal(freeUser.preview.length, 5);
-  assert.equal(freeUser.blurred.length, 20);
+  assert.equal(freeUser.preview.length, 25);
+  assert.equal(freeUser.blurred.length, 35);
 
-  // Subscriber sees all 25 jobs previewed, 0 blurred
+  // Subscriber sees all 60 jobs previewed, 0 blurred
   const subscriber = partitionJobs(allJobs, true);
-  assert.equal(subscriber.preview.length, 25);
+  assert.equal(subscriber.preview.length, 60);
   assert.equal(subscriber.blurred.length, 0);
 });
 
