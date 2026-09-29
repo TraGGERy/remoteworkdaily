@@ -82,7 +82,7 @@ export function JobTable({
           </span>
           <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
           <span className="hidden md:inline-block text-neutral-300 dark:text-neutral-700">•</span>
-          <span className="hidden md:inline text-emerald-600 dark:text-emerald-400 font-bold">100% #OpenSalaries</span>
+          <span className="hidden md:inline text-emerald-600 dark:text-emerald-400 font-bold">100% Transparent Pay</span>
           {isPaywallActive && (
             <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300 border border-amber-300/40">
               5 Free Preview Jobs

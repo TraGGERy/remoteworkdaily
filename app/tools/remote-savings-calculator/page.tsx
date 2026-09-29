@@ -6,7 +6,7 @@ import { ArrowLeft, Sparkles, HelpCircle, CheckCircle2 } from "lucide-react";
 export const metadata: Metadata = {
   title: "Free Remote Work Savings Calculator: Commute Cost & WFH Savings | Remote Work Daily",
   description:
-    "Calculate how much money and time you save working from home vs commuting to an office. Compare fuel, transit, car maintenance, lunches, and hours saved with #OpenSalaries.",
+    "Calculate how much money and time you save working from home vs commuting to an office. Compare fuel, transit, car maintenance, lunches, and hours saved with verified salary insights.",
   keywords: [
     "remote work savings calculator",
     "cost of commute calculator",
@@ -188,7 +188,7 @@ export default function RemoteSavingsCalculatorPage() {
                     Where can I find verified remote positions with transparent pay?
                   </h4>
                   <p className="text-xs text-neutral-600 dark:text-neutral-400 mt-1">
-                    Remote Work Daily indexes 110+ verified live remote positions adhering to the #OpenSalaries standard, with 100% upfront salary ranges, zero spam, and no subscription paywalls.
+                    Remote Work Daily indexes verified live remote positions with 100% upfront salary ranges, zero spam, and verified employers.
                   </p>
                 </div>
               </div>

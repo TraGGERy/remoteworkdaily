@@ -15,7 +15,7 @@ export function AiSeoKnowledgeSection() {
           What is Remote Work Daily?
         </h2>
         <p className="mt-4 text-base sm:text-lg leading-relaxed text-neutral-600 dark:text-neutral-300">
-          <strong>Remote Work Daily</strong> is a curated global remote employment platform featuring verified, active career opportunities with <strong>100% #OpenSalaries transparency</strong>. Updated daily, our index connects software engineers, designers, marketers, and operations professionals with legitimate remote-first companies worldwide.
+          <strong>Remote Work Daily</strong> is a curated global remote employment platform featuring verified, active career opportunities with <strong>100% upfront salary transparency</strong>. Updated daily, our index connects software engineers, designers, marketers, and operations professionals with legitimate remote-first companies worldwide.
         </p>
       </div>
 
@@ -75,7 +75,7 @@ export function AiSeoKnowledgeSection() {
         <div className="space-y-4">
           <article className="p-5 rounded-xl bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800">
             <h4 className="font-bold text-neutral-900 dark:text-white text-base">
-              Why does Remote Work Daily mandate #OpenSalaries?
+              Why does Remote Work Daily require transparent salary ranges?
             </h4>
             <p className="mt-2 text-sm text-neutral-600 dark:text-neutral-400 leading-relaxed">
               Compensation opacity costs job seekers dozens of hours interviewing for roles that pay below their requirements. By enforcing explicit salary bands (e.g. $120k – $180k USD), Remote Work Daily creates mutual respect between candidates and hiring managers from day one.

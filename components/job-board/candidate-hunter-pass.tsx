@@ -255,7 +255,7 @@ export function CandidateHunterPass() {
                     </div>
                     <div className="flex items-center gap-1.5 text-neutral-700 dark:text-neutral-300">
                       <Check className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-                      <span>100% #OpenSalaries benchmarked</span>
+                      <span>100% Verified pay benchmarked</span>
                     </div>
                   </div>
                 </div>

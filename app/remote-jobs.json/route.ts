@@ -7,7 +7,7 @@ export async function GET() {
   // Replicate RemoteOK JSON format
   const formatted = [
     {
-      legal: "Remote Work Daily JSON API - Machine-readable syndication feed for remote professionals, AI agents, and search crawlers with #OpenSalaries metadata.",
+      legal: "Remote Work Daily JSON API - Machine-readable syndication feed for remote professionals, AI agents, and search crawlers with verified salary metadata.",
       updated_at: new Date().toISOString(),
       count: jobs.length,
     },

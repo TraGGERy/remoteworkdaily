@@ -118,7 +118,7 @@ export async function sendCandidatePaymentConfirmationEmail(params: {
       <h3 style="font-size: 16px; font-weight: 700; color: #0f172a; margin-top: 24px; margin-bottom: 12px;">What's included in your pass:</h3>
       <ul class="perks-list">
         <li><span>✓</span> Direct Company ATS Links (bypass aggregator queues on Greenhouse, Lever, Ashby)</li>
-        <li><span>✓</span> 3,500+ Verified 100% Remote Listings with #OpenSalaries</li>
+        <li><span>✓</span> 3,500+ Verified 100% Remote Listings with Transparent Pay</li>
         <li><span>✓</span> 2-Hour Early-Bird Alerts before roles reach LinkedIn/Indeed</li>
         <li><span>✓</span> Remote Salary Negotiation Playbook & Email Scripts ($97 value)</li>
       </ul>
@@ -130,7 +130,7 @@ export async function sendCandidatePaymentConfirmationEmail(params: {
       </p>
     </div>
     <div class="footer">
-      <p>© ${new Date().getFullYear()} Remote Work Daily • High-Impact Remote Jobs with #OpenSalaries</p>
+      <p>© ${new Date().getFullYear()} Remote Work Daily • High-Impact Remote Jobs with Transparent Pay</p>
       <p><a href="https://remoteworkdaily.com">Browse Jobs</a> • <a href="https://remoteworkdaily.com/privacy">Privacy Policy</a> • <a href="https://remoteworkdaily.com/terms">Terms</a></p>
     </div>
   </div>
@@ -323,7 +323,7 @@ export async function sendJobAlertWelcomeEmail(params: {
     </div>
     <div class="content">
       <h1>You're on the list for verified remote alerts! 🚀</h1>
-      <p>Welcome to <strong>Remote Work Daily</strong>. You'll receive our morning digest of verified remote positions with #OpenSalaries and direct company ATS links before they get crowded on LinkedIn or Indeed.</p>
+      <p>Welcome to <strong>Remote Work Daily</strong>. You'll receive our morning digest of verified remote positions with transparent salaries and direct company ATS links before they get crowded on LinkedIn or Indeed.</p>
       
       <p>Over <strong>500+ fresh remote positions</strong> were ingested and verified today from top tech companies including GitLab, Zapier, Automattic, Supabase, Linear, and Cursor.</p>
 

@@ -5,10 +5,10 @@ export async function GET() {
 
 URL: ${baseUrl}
 Brand: Remote Work Daily
-Tagline: The Daily Remote Job Platform with #OpenSalaries
+Tagline: The Daily Remote Job Platform with Transparent Salaries
 
 ## 1. Platform Overview
-Remote Work Daily is an independent digital job board and publication connecting global technology talent with remote-first companies. The platform is designed around radical compensation transparency (#OpenSalaries), eliminating "salary negotiable" and hidden pay bands.
+Remote Work Daily is an independent digital job board and publication connecting global technology talent with remote-first companies. The platform is designed around radical compensation transparency, eliminating "salary negotiable" and hidden pay bands.
 
 ## 2. API Endpoints
 ### GET /remote-jobs.json

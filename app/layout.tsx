@@ -25,18 +25,19 @@ const SITE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://remoteworkdaily.com
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: "Remote Work Daily — Verified Remote Jobs with #OpenSalaries",
+    default: "Remote Work Daily — Verified Remote Jobs & Transparent Pay",
     template: "%s | Remote Work Daily",
   },
   description:
-    "Looking for a verified remote job? Remote Work Daily indexes hand-curated remote careers in Software Engineering, Design, Product, Marketing, Sales, and Ops with 100% transparent #OpenSalaries. Work from anywhere.",
+    "Looking for a verified remote job? Remote Work Daily indexes hand-curated remote careers in Software Engineering, Design, Product, Marketing, Sales, and Ops with 100% transparent salary ranges. Work from anywhere.",
   keywords: [
     "remote work daily",
     "remote jobs",
     "work from home",
     "remote software engineer",
     "remote developer",
-    "open salaries",
+    "transparent salaries",
+    "salary transparency",
     "digital nomad jobs",
     "verified remote work",
     "high paying remote jobs",
@@ -44,6 +45,17 @@ export const metadata: Metadata = {
   authors: [{ name: "Remote Work Daily Editorial Team", url: SITE_URL }],
   creator: "Remote Work Daily",
   publisher: "Remote Work Daily",
+  icons: {
+    icon: [
+      { url: "/icon.svg", type: "image/svg+xml" },
+      { url: "/icon.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: [
+      { url: "/apple-icon.png", sizes: "180x180", type: "image/png" },
+    ],
+    shortcut: "/favicon.ico",
+  },
+  manifest: "/manifest.webmanifest",
   formatDetection: {
     email: false,
     address: false,
@@ -53,18 +65,27 @@ export const metadata: Metadata = {
     canonical: "/",
   },
   openGraph: {
-    title: "Remote Work Daily — Verified Remote Jobs with #OpenSalaries",
+    title: "Remote Work Daily — Verified Remote Jobs with Transparent Pay",
     description: "Looking for a verified remote job? Discover high-paying remote roles updated daily with 100% transparent compensation.",
     url: SITE_URL,
     siteName: "Remote Work Daily",
     locale: "en_US",
     type: "website",
+    images: [
+      {
+        url: `${SITE_URL}/api/og`,
+        width: 1200,
+        height: 630,
+        alt: "Remote Work Daily — Verified Remote Jobs with Transparent Pay",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Remote Work Daily — Verified Remote Jobs with #OpenSalaries",
+    title: "Remote Work Daily — Verified Remote Jobs with Transparent Pay",
     description: "Browse verified remote jobs with transparent pay. Real salaries, no spam, updated daily.",
     creator: "@remoteworkdaily",
+    images: [`${SITE_URL}/api/og`],
   },
 };
 

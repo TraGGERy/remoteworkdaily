@@ -20,6 +20,8 @@ export function generateJobPostingSchema(job: Job) {
     datePosted: job.postedAt,
     validThrough: validThroughDate,
     employmentType: "FULL_TIME",
+    directApply: true,
+    image: [`${SITE_URL}/api/og/job?id=${job.id}`],
     hiringOrganization: {
       "@type": "Organization",
       name: job.company,
@@ -49,6 +51,38 @@ export function generateJobPostingSchema(job: Job) {
   return schema;
 }
 
+export function generateJobBreadcrumbSchema(job: Job) {
+  const categorySlug = job.category ? `/remote-${job.category}-jobs` : "/";
+  const categoryName = job.category
+    ? job.category.charAt(0).toUpperCase() + job.category.slice(1) + " Jobs"
+    : "Jobs";
+
+  return {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      {
+        "@type": "ListItem",
+        position: 1,
+        name: "Remote Work Daily",
+        item: SITE_URL,
+      },
+      {
+        "@type": "ListItem",
+        position: 2,
+        name: categoryName,
+        item: `${SITE_URL}${categorySlug}`,
+      },
+      {
+        "@type": "ListItem",
+        position: 3,
+        name: job.title,
+        item: `${SITE_URL}/jobs/${job.id}/${job.slug}`,
+      },
+    ],
+  };
+}
+
 export function generateWebsiteSchema() {
   return [
     {
@@ -56,7 +90,7 @@ export function generateWebsiteSchema() {
       "@type": "WebSite",
       name: "Remote Work Daily",
       url: SITE_URL,
-      description: "The #1 verified remote job board with 100% #OpenSalaries. Discover high-paying remote roles updated daily.",
+      description: "The #1 verified remote job board with 100% transparent pay. Discover high-paying remote roles updated daily.",
       potentialAction: {
         "@type": "SearchAction",
         target: {
@@ -69,7 +103,7 @@ export function generateWebsiteSchema() {
     {
       "@context": "https://schema.org",
       "@type": "WebPage",
-      name: "Remote Work Daily — Verified Remote Jobs with #OpenSalaries",
+      name: "Remote Work Daily — Verified Remote Jobs with Transparent Pay",
       url: SITE_URL,
       isAccessibleForFree: false,
       hasPart: {
@@ -84,7 +118,7 @@ export function generateWebsiteSchema() {
       name: "Remote Work Daily",
       url: SITE_URL,
       logo: `${SITE_URL}/icon.png`,
-      description: "Remote Work Daily is the trusted global platform for remote-first careers, transparent compensation (#OpenSalaries), and verified employer postings.",
+      description: "Remote Work Daily is the trusted global platform for remote-first careers, transparent compensation, and verified employer postings.",
       sameAs: [
         "https://twitter.com/remoteworkdaily",
         "https://www.linkedin.com/company/remoteworkdaily",
@@ -104,15 +138,15 @@ export function generateFAQSchema() {
         name: "What is Remote Work Daily?",
         acceptedAnswer: {
           "@type": "Answer",
-          text: "Remote Work Daily is a verified remote job platform featuring daily updated remote careers in software engineering, design, marketing, product, and operations, with a strict #OpenSalaries transparency requirement.",
+          text: "Remote Work Daily is a verified remote job platform featuring daily updated remote careers in software engineering, design, marketing, product, and operations, with 100% upfront salary transparency.",
         },
       },
       {
         "@type": "Question",
-        name: "What does the #OpenSalaries standard mean?",
+        name: "How does salary transparency work on Remote Work Daily?",
         acceptedAnswer: {
           "@type": "Answer",
-          text: "The #OpenSalaries standard requires or highlights explicit salary ranges on every job listing, ensuring candidates know the compensation before spending time applying.",
+          text: "Every listing requires or highlights explicit salary ranges, ensuring candidates know the compensation before spending time applying.",
         },
       },
       {

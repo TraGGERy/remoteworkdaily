@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ThemeToggle } from "../theme/theme-toggle";
 import { AuthButtons } from "../auth/auth-buttons";
 import { Briefcase, Menu, X, Sparkles, ShieldCheck } from "lucide-react";
+import { BrandIcon } from "./brand-icon";
 
 export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -15,15 +16,12 @@ export function Header() {
         {/* Left: Brand Logo */}
         <div className="flex items-center gap-3">
           <Link href="/" className="flex items-center gap-2.5 group">
-            <div className="w-10 h-10 rounded-full bg-[#FF4742] text-white flex items-center justify-center font-black text-sm tracking-tighter shadow-md group-hover:scale-105 transition-transform">
-              RWD
+            <div className="group-hover:scale-105 transition-transform shrink-0">
+              <BrandIcon size={38} className="w-9 h-9 sm:w-10 sm:h-10" />
             </div>
             <div className="flex flex-col">
               <span className="font-extrabold text-lg sm:text-xl tracking-tight text-neutral-900 dark:text-white flex items-center gap-1.5">
                 Remote Work <span className="text-[#FF4742]">Daily</span>
-                <span className="text-[10px] font-bold uppercase tracking-wider bg-red-100 dark:bg-red-950/50 text-[#FF4742] px-1.5 py-0.5 rounded-full border border-red-200 dark:border-red-900/40">
-                  #OpenSalaries
-                </span>
               </span>
               <span className="text-[11px] text-neutral-500 dark:text-neutral-400 font-medium hidden sm:inline">
                 Verified Remote Jobs Updated Daily

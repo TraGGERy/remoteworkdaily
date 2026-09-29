@@ -1,0 +1,42 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FF524D"/>
+      <stop offset="50%" stop-color="#FF4742"/>
+      <stop offset="100%" stop-color="#D92D28"/>
+    </linearGradient>
+    <linearGradient id="shineGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="innerGlow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFE4E3" stop-opacity="0.25"/>
+      <stop offset="100%" stop-color="#000000" stop-opacity="0.2"/>
+    </linearGradient>
+    <filter id="shadowFilter" x="-10%" y="-10%" width="120%" height="125%" filterUnits="userSpaceOnUse">
+      <feDropShadow dx="0" dy="16" stdDeviation="24" flood-color="#D92D28" flood-opacity="0.45"/>
+    </filter>
+  </defs>
+
+  <!-- Base Rounded Squircle with shadow -->
+  <rect x="32" y="32" width="448" height="448" rx="112" fill="url(#bgGrad)" filter="url(#shadowFilter)"/>
+  <rect x="32" y="32" width="448" height="448" rx="112" fill="url(#shineGrad)"/>
+  <rect x="32" y="32" width="448" height="448" rx="112" stroke="rgba(255,255,255,0.2)" stroke-width="4"/>
+
+  <!-- Globe Outer Meridian Sphere -->
+  <circle cx="256" cy="256" r="144" stroke="#FFFFFF" stroke-width="26" stroke-linecap="round"/>
+
+  <!-- Globe Inner Vertical Ellipse (Longitude) -->
+  <ellipse cx="256" cy="256" rx="72" ry="144" stroke="#FFFFFF" stroke-width="20" stroke-linecap="round" stroke-opacity="0.9"/>
+
+  <!-- Equator Line (Latitude) -->
+  <line x1="112" y1="256" x2="400" y2="256" stroke="#FFFFFF" stroke-width="20" stroke-linecap="round" stroke-opacity="0.9"/>
+
+  <!-- Center Core Signal Beacon -->
+  <circle cx="256" cy="256" r="32" fill="#FFFFFF"/>
+  <circle cx="256" cy="256" r="18" fill="#FF4742"/>
+
+  <!-- Top-Right Live Remote Verified Status Indicator -->
+  <circle cx="376" cy="136" r="34" fill="#10B981" stroke="#FFFFFF" stroke-width="12"/>
+  <circle cx="376" cy="136" r="14" fill="#FFFFFF" fill-opacity="0.4"/>
+</svg>

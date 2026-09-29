@@ -86,7 +86,7 @@ async function main() {
     if (!tags.includes("Remote")) tags.unshift("Remote");
     const category = inferCategory(title, tags);
 
-    // Realistic #OpenSalaries calculation
+    // Realistic salary calculation
     let salaryMin = 130000;
     let salaryMax = 180000;
     if (item.salary) {
@@ -125,7 +125,7 @@ async function main() {
       salaryMin,
       salaryMax,
       salaryCurrency: "USD",
-      description: item.description || `Join ${company} as a remote ${title}. Transparent compensation with #OpenSalaries, asynchronous communication, and flexible hours.`,
+      description: item.description || `Join ${company} as a remote ${title}. Transparent compensation with transparent pay, asynchronous communication, and flexible hours.`,
       applyUrl,
       postedAt: item.publication_date || new Date().toISOString(),
       viewsCount: Math.floor(Math.random() * 300) + 20,

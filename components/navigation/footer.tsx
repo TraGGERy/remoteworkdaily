@@ -17,7 +17,7 @@ export function Footer() {
               © {new Date().getFullYear()} Remote Work Daily
             </span>
             <span className="hidden sm:inline text-neutral-300 dark:text-neutral-700">|</span>
-            <span>Verified Remote Work & #OpenSalaries Directory</span>
+            <span>Verified Remote Work Directory</span>
           </div>
 
           <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6 font-medium">

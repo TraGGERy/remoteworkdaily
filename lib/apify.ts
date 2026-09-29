@@ -141,7 +141,7 @@ export function normalizeScrapedJob(raw: RawScrapedJob): Job {
   if (salaryMin && salaryMin < 1000) salaryMin = salaryMin * 1000;
   if (salaryMax && salaryMax < 1000) salaryMax = salaryMax * 1000;
 
-  // Default realistic salary range for #OpenSalaries standard
+  // Default realistic salary range for salary transparency standard
   if (!salaryMin && !salaryMax) {
     if (category === "dev") {
       salaryMin = 135000;
@@ -192,7 +192,7 @@ export function normalizeScrapedJob(raw: RawScrapedJob): Job {
     salaryMin,
     salaryMax,
     salaryCurrency: "USD",
-    description: raw.description || `Join ${company} as ${title} (${workplaceType}). We offer competitive compensation with #OpenSalaries, generous benefits, and strong career progression.`,
+    description: raw.description || `Join ${company} as ${title} (${workplaceType}). We offer competitive compensation with transparent pay, generous benefits, and strong career progression.`,
     applyUrl,
     postedAt,
     viewsCount: Math.floor(Math.random() * 400) + 15,
@@ -210,7 +210,7 @@ export function normalizeScrapedJob(raw: RawScrapedJob): Job {
  *
  * 1. Checks Apify Client if APIFY_TOKEN is configured.
  * 2. In fallback/resilient mode: Fetches real live remote jobs (Remotive) AND on-site/hybrid jobs (Arbeitnow).
- * 3. Prioritizes the latest jobs, normalizes to #OpenSalaries standard with workplaceType (remote, on-site, hybrid).
+ * 3. Prioritizes the latest jobs, normalizes to transparent salary standard with workplaceType (remote, on-site, hybrid).
  * 4. Persists jobs to PostgreSQL (Supabase) and local store.
  * 5. Records completion timestamp to enforce the strictly once-per-day rule.
  */

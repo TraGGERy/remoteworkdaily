@@ -452,7 +452,7 @@ export function RemoteSavingsCalculator() {
                 href="/?workplace=remote"
                 className="w-full py-3 px-4 rounded-xl text-center text-xs sm:text-sm font-black bg-[#FF4742] hover:bg-[#e03a35] text-white shadow-lg flex items-center justify-center gap-2 transition-all active:scale-98"
               >
-                <span>Browse Verified Remote Jobs with #OpenSalaries</span>
+                <span>Browse Verified Remote Jobs with Transparent Pay</span>
                 <ArrowRight className="w-4 h-4" />
               </Link>
 

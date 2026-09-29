@@ -52,7 +52,7 @@ export function CatchEmailsBanner() {
           </div>
           <div>
             <h2 className="font-bold text-sm sm:text-base leading-snug">
-              Get notified of high-paying remote jobs with #OpenSalaries
+              Get notified of high-paying remote jobs with verified salaries
             </h2>
             <p className="text-xs text-neutral-400">
               Join 120,000+ remote workers getting hand-picked jobs delivered daily.

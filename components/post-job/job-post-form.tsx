@@ -395,11 +395,11 @@ export function JobPostForm() {
               </div>
             </div>
 
-            {/* Salary Range #OpenSalaries */}
+            {/* Salary Range */}
             <div>
               <div className="flex items-center justify-between mb-1">
                 <label className="block text-xs font-bold text-neutral-700 dark:text-neutral-300">
-                  Annual Salary Range (USD) #OpenSalaries
+                  Annual Salary Range (USD)
                 </label>
                 <span className="text-xs font-bold text-[#FF4742] tabular-nums">
                   ${salaryMin / 1000}k - ${salaryMax / 1000}k USD

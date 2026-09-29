@@ -144,7 +144,7 @@ test("AI-SEO: public/llms.txt exists and references remoteworkdaily.com", () => 
 
   const content = fs.readFileSync(llmsPath, "utf-8");
   assert.ok(content.includes("remoteworkdaily.com"), "llms.txt must reference remoteworkdaily.com");
-  assert.ok(content.includes("#OpenSalaries"), "llms.txt must reference #OpenSalaries");
+  assert.ok(content.includes("transparent salary"), "llms.txt must reference transparent salary standards");
   assert.ok(content.includes("/remote-jobs.json"), "llms.txt must reference /remote-jobs.json API feed");
 });
 

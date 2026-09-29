@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { getJobById, getAllJobs } from "@/lib/jobs-repository";
 import { formatSalary, timeAgo } from "@/lib/utils";
-import { generateJobPostingSchema } from "@/lib/seo";
+import { generateJobPostingSchema, generateJobBreadcrumbSchema } from "@/lib/seo";
 import { BENEFITS_LIST } from "@/lib/constants";
 import {
   ExternalLink,
@@ -17,24 +17,49 @@ import {
 import { WorkInformation } from "@/components/job-board/work-information";
 import { GatedApplyAction } from "@/components/job-board/gated-apply-action";
 
+const SITE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://remoteworkdaily.com";
+
 interface PageProps {
   params: Promise<{ id: string; slug: string }>;
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const { id } = await params;
+  const { id, slug } = await params;
   const job = getJobById(id);
   if (!job) return { title: "Job Not Found | Remote Work Daily" };
 
   const salary = formatSalary(job.salaryMin, job.salaryMax, job.salaryCurrency);
+  const jobUrl = `${SITE_URL}/jobs/${job.id}/${job.slug || slug}`;
+  const ogImageUrl = `${SITE_URL}/api/og/job?id=${job.id}`;
 
   return {
     title: `${job.title} at ${job.company} (${salary}) | Remote Work Daily`,
-    description: `Apply for ${job.title} at ${job.company}. Salary: ${salary}. Location: ${job.location}. Verified remote opportunity on Remote Work Daily.`,
+    description: `Apply for ${job.title} at ${job.company}. Salary: ${salary}. Location: ${job.location}. Verified 100% remote opportunity on Remote Work Daily.`,
+    alternates: {
+      canonical: jobUrl,
+    },
     openGraph: {
-      title: `${job.title} at ${job.company}`,
-      description: `Remote salary: ${salary} • Location: ${job.location}`,
-      images: job.companyLogo ? [{ url: job.companyLogo }] : [],
+      title: `${job.title} at ${job.company} (${salary})`,
+      description: `Verified remote role with ${job.company}. Salary: ${salary} • Location: ${job.location}. Apply directly via company ATS.`,
+      url: jobUrl,
+      siteName: "Remote Work Daily",
+      type: "article",
+      images: [
+        {
+          url: ogImageUrl,
+          width: 1200,
+          height: 630,
+          alt: `${job.title} at ${job.company} - Remote Work Daily`,
+          type: "image/png",
+        },
+      ],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: `${job.title} at ${job.company} (${salary})`,
+      description: `Verified remote position with ${job.company}. Salary: ${salary}. Apply directly.`,
+      images: [ogImageUrl],
+      creator: "@remoteworkdaily",
     },
   };
 }
@@ -48,6 +73,7 @@ export default async function JobDetailPage({ params }: PageProps) {
   }
 
   const schema = generateJobPostingSchema(job);
+  const breadcrumbSchema = generateJobBreadcrumbSchema(job);
   const salaryText = formatSalary(job.salaryMin, job.salaryMax, job.salaryCurrency);
 
   return (
@@ -55,6 +81,10 @@ export default async function JobDetailPage({ params }: PageProps) {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
       />
 
       <div className="max-w-4xl mx-auto space-y-6">

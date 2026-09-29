@@ -27,7 +27,7 @@ export default function TermsPage() {
           1. Job Postings & Employers
         </h2>
         <p>
-          Employers agree that all posted jobs must be legitimate remote opportunities with accurate compensation (#OpenSalaries). Postings remain active for 30 days unless renewed.
+          Employers agree that all posted jobs must be legitimate remote opportunities with accurate compensation and transparent salary ranges. Postings remain active for 30 days unless renewed.
         </p>
         <h2 className="text-lg font-bold text-neutral-900 dark:text-white mt-6">
           2. Job Seekers

@@ -148,7 +148,7 @@ function normalizeRawJob(raw) {
     salaryMin,
     salaryMax,
     salaryCurrency: "USD",
-    description: cleanHtmlDescription(raw.description) || `Join ${company} as ${title}. We offer competitive compensation with #OpenSalaries, generous benefits, and strong career progression.`,
+    description: cleanHtmlDescription(raw.description) || `Join ${company} as ${title}. We offer competitive compensation with transparent salaries, generous benefits, and strong career progression.`,
     applyUrl,
     postedAt: raw.posted_at || new Date().toISOString(),
     viewsCount: Math.floor(Math.random() * 300) + 20,

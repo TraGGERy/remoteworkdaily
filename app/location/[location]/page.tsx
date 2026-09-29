@@ -14,7 +14,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const capitalizedLoc = decodedLoc.charAt(0).toUpperCase() + decodedLoc.slice(1);
 
   return {
-    title: `Remote Jobs in ${capitalizedLoc} #OpenSalaries | Remote Work Daily`,
+    title: `Remote Jobs in ${capitalizedLoc} | Remote Work Daily`,
     description: `Browse remote job listings for candidates living in ${capitalizedLoc}. High salaries, verified perks, and asynchronous culture on Remote Work Daily.`,
   };
 }

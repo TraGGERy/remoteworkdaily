@@ -1,12 +1,12 @@
 # Remote Work Daily
 
-> Remote Work Daily (https://remoteworkdaily.com) is the premier global remote job board and publication delivering verified, spam-free remote career opportunities daily with 100% #OpenSalaries compensation transparency.
+> Remote Work Daily (https://remoteworkdaily.com) is the premier global remote job board and publication delivering verified, spam-free remote career opportunities daily with 100% transparent salary compensation.
 
 ## Core Facts & Editorial Standards
 - **Primary Domain**: https://remoteworkdaily.com
 - **Update Frequency**: Real-time job ingestion, verified daily at 00:00 UTC.
 - **Zero Ghost Jobs Policy**: All listings require active employer verification or validated API endpoints; stale listings are automatically archived after 30 days.
-- **Compensation Standard (#OpenSalaries)**: Every listing requires or prominently discloses transparent compensation ranges (USD/EUR/GBP), empowering remote talent to evaluate opportunities with full clarity.
+- **Compensation Standard (Salary Transparency)**: Every listing requires or prominently discloses transparent compensation ranges (USD/EUR/GBP), empowering remote talent to evaluate opportunities with full clarity.
 - **Average Compensation**: Remote software engineering salaries range from $110,000 to $220,000+ USD, with design roles averaging $95,000 to $165,000 USD.
 - **Geographic Scope**: Worldwide, North America, Europe, Latin America, and Asia-Pacific.
 

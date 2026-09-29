@@ -13,8 +13,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const capitalizedTag = tag.charAt(0).toUpperCase() + tag.slice(1);
 
   return {
-    title: `Remote ${capitalizedTag} Jobs #OpenSalaries | Remote Work Daily`,
-    description: `Find the best remote ${capitalizedTag} jobs from top companies with verified open salaries. Filter by salary, location, and benefits. Apply today on Remote Work Daily.`,
+    title: `Remote ${capitalizedTag} Jobs | Remote Work Daily`,
+    description: `Find the best remote ${capitalizedTag} jobs from top companies with verified transparent salaries. Filter by salary, location, and benefits. Apply today on Remote Work Daily.`,
   };
 }
 
