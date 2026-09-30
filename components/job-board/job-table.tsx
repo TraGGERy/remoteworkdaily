@@ -90,24 +90,19 @@ export function JobTable({
           )}
         </div>
 
-        <div className="flex items-center justify-between sm:justify-end gap-3 w-full sm:w-auto">
-          <div className="flex items-center gap-1.5 text-[11px] text-neutral-500 dark:text-neutral-400">
-            <span className="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            <span>Job Scraper Active</span>
-          </div>
-
-          {onRefreshJobs && (
+        {onRefreshJobs && (
+          <div className="flex items-center justify-end gap-3 w-full sm:w-auto">
             <button
               onClick={onRefreshJobs}
               disabled={isSyncing}
-              aria-label="Check for newly scraped remote jobs"
+              aria-label="Check for newly posted remote jobs"
               className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg border border-neutral-200 dark:border-neutral-800 hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-700 dark:text-neutral-300 transition-colors disabled:opacity-50 text-xs font-semibold"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? "animate-spin text-[#FF4742]" : ""}`} />
-              <span>{isSyncing ? "Scanning remote feeds..." : "Check for New Jobs"}</span>
+              <span>{isSyncing ? "Checking for new roles..." : "Check for New Jobs"}</span>
             </button>
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
       {/* Empty State */}
