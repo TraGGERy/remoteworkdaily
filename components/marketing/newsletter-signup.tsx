@@ -51,9 +51,9 @@ export function NewsletterSignup({ variant = "card", className = "" }: Newslette
         <div className="w-12 h-12 rounded-full bg-emerald-100 dark:bg-emerald-900/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mx-auto mb-3">
           <CheckCircle2 className="w-6 h-6" />
         </div>
-        <h3 className="text-lg font-bold text-neutral-900 dark:text-white">You're Subscribed! 🚀</h3>
+        <h3 className="text-lg font-bold text-neutral-900 dark:text-white">You&apos;re Subscribed! 🚀</h3>
         <p className="text-xs sm:text-sm text-neutral-600 dark:text-neutral-300 mt-1 max-w-md mx-auto">
-          We sent a confirmation to <span className="font-semibold text-neutral-900 dark:text-white">{email}</span>. You'll receive tomorrow morning's fresh verified remote jobs before they get crowded.
+          We sent a confirmation to <span className="font-semibold text-neutral-900 dark:text-white">{email}</span>. You&apos;ll receive tomorrow morning&apos;s fresh verified remote jobs before they get crowded.
         </p>
       </div>
     );
