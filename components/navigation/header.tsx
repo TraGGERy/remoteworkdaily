@@ -24,7 +24,7 @@ export function Header() {
                 Remote Work <span className="text-[#FF4742]">Daily</span>
               </span>
               <span className="text-[11px] text-neutral-500 dark:text-neutral-400 font-medium hidden sm:inline">
-                Verified Remote Jobs Updated Daily
+                Verified Remote, Hybrid & On-site Jobs Updated Daily
               </span>
             </div>
           </Link>

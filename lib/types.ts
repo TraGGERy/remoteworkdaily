@@ -12,7 +12,7 @@ export interface Job {
   location: string;   // e.g. "Worldwide", "North America", "Europe", "US Only", "Berlin, Germany"
   locationCode?: string; // e.g. "WW", "US", "EU"
   workplaceType?: "remote" | "hybrid" | "on-site"; // e.g. "remote", "hybrid", "on-site"
-  category: "dev" | "design" | "marketing" | "sales" | "ops" | "exec" | "support" | "finance" | "medical" | "other";
+  category: "dev" | "design" | "marketing" | "sales" | "ops" | "exec" | "support" | "finance" | "medical" | "education" | "farming" | "trades" | "hospitality" | "other";
   tags: string[];     // e.g. ["React", "TypeScript", "Next.js", "Full Stack"]
   benefits: string[]; // e.g. ["401k", "async", "unlimited_vacation", "health_insurance"]
   salaryMin?: number;

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useRef, useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { REGIONS_AND_COUNTRIES } from "@/lib/constants";
 import { Globe, X, Search, Check } from "lucide-react";
 
@@ -19,6 +20,16 @@ export function LocationPopup({
 }: LocationPopupProps) {
   const popupRef = useRef<HTMLDivElement>(null);
   const [search, setSearch] = useState("");
+  const [isMobile, setIsMobile] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+    const checkMobile = () => setIsMobile(window.innerWidth < 640);
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -26,21 +37,23 @@ export function LocationPopup({
         onClose();
       }
     }
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") onClose();
+    }
     if (isOpen) {
       document.addEventListener("mousedown", handleClickOutside);
+      window.addEventListener("keydown", handleKeyDown);
     }
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
+      window.removeEventListener("keydown", handleKeyDown);
     };
   }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
-  return (
-    <div
-      ref={popupRef}
-      className="absolute top-full mt-2 left-0 z-50 w-72 sm:w-80 max-h-96 overflow-y-auto p-4 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow-2xl"
-    >
+  const content = (
+    <>
       <div className="flex items-center justify-between pb-2 mb-3 border-b border-neutral-100 dark:border-neutral-800 sticky top-0 bg-white dark:bg-neutral-900 z-10">
         <div className="font-bold text-sm text-neutral-900 dark:text-white flex items-center gap-1.5">
           <Globe className="w-4 h-4 text-[#FF4742]" />
@@ -49,6 +62,7 @@ export function LocationPopup({
         <button
           onClick={onClose}
           className="text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 p-1"
+          aria-label="Close location picker"
         >
           <X className="w-4 h-4" />
         </button>
@@ -62,7 +76,7 @@ export function LocationPopup({
           placeholder="Search country or region..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="w-full pl-8 pr-3 py-1.5 text-xs rounded-lg border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-800 text-neutral-900 dark:text-white focus:outline-none focus:border-[#FF4742]"
+          className="w-full pl-8 pr-3 py-2 sm:py-1.5 text-xs rounded-lg border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-800 text-neutral-900 dark:text-white focus:outline-none focus:border-[#FF4742]"
         />
       </div>
 
@@ -73,13 +87,13 @@ export function LocationPopup({
             onSelectLocation("");
             onClose();
           }}
-          className={`w-full flex items-center justify-between p-2 rounded-lg text-left font-medium transition-colors ${
+          className={`w-full flex items-center justify-between p-2.5 sm:p-2 rounded-lg text-left font-medium transition-colors ${
             !selectedLocation
               ? "bg-red-50 dark:bg-red-950/40 text-[#FF4742] font-bold"
               : "hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-700 dark:text-neutral-300"
           }`}
         >
-          <span>🌏 All Remote Locations</span>
+          <span>🌏 All Locations (Remote, Hybrid & On-site)</span>
           {!selectedLocation && <Check className="w-3.5 h-3.5 text-[#FF4742]" />}
         </button>
 
@@ -103,7 +117,7 @@ export function LocationPopup({
                       onSelectLocation(item.name);
                       onClose();
                     }}
-                    className={`w-full flex items-center justify-between p-2 rounded-lg text-left font-medium transition-colors ${
+                    className={`w-full flex items-center justify-between p-2.5 sm:p-2 rounded-lg text-left font-medium transition-colors ${
                       isSelected
                         ? "bg-red-50 dark:bg-red-950/40 text-[#FF4742] font-bold"
                         : "hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-700 dark:text-neutral-300"
@@ -121,6 +135,29 @@ export function LocationPopup({
           );
         })}
       </div>
+    </>
+  );
+
+  if (isMobile && mounted) {
+    return createPortal(
+      <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-xs p-0">
+        <div
+          ref={popupRef}
+          className="w-full max-h-[80vh] overflow-y-auto p-4 pb-8 rounded-t-2xl border-t border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow-2xl"
+        >
+          {content}
+        </div>
+      </div>,
+      document.body
+    );
+  }
+
+  return (
+    <div
+      ref={popupRef}
+      className="absolute top-full mt-2 left-0 z-50 w-72 sm:w-80 max-h-96 overflow-y-auto p-4 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow-2xl"
+    >
+      {content}
     </div>
   );
 }

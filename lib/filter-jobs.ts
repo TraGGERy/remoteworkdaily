@@ -25,7 +25,13 @@ export function filterJobs(jobs: Job[], filters: Partial<FilterState>): Job[] {
   // 2.5 Workplace Type (remote, on-site, hybrid)
   if (filters.workplaceType && filters.workplaceType !== "all") {
     result = result.filter((job) => {
-      const type = job.workplaceType || "remote";
+      let type = job.workplaceType;
+      if (!type) {
+        const loc = (job.location || "").toLowerCase();
+        if (loc.includes("hybrid")) type = "hybrid";
+        else if (loc.includes("remote") || loc.includes("worldwide") || loc.includes("anywhere")) type = "remote";
+        else type = "on-site";
+      }
       return type === filters.workplaceType;
     });
   }
@@ -37,7 +43,7 @@ export function filterJobs(jobs: Job[], filters: Partial<FilterState>): Job[] {
       (job) =>
         job.location.toLowerCase().includes(loc) ||
         (job.locationCode && job.locationCode.toLowerCase().includes(loc)) ||
-        (loc === "worldwide" && job.location.toLowerCase().includes("worldwide"))
+        (loc === "worldwide" && (job.location.toLowerCase().includes("worldwide") || job.workplaceType === "remote"))
     );
   }
 

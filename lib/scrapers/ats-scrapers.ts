@@ -7,6 +7,20 @@ const USER_AGENT = "RemoteWorkDailyScraper/2.0 (+https://remoteworkdaily.com; su
  * using public Greenhouse boards.
  */
 const GREENHOUSE_COMPANIES: Array<{ token: string; name: string; logo?: string }> = [
+  // Agriculture, Agroforestry & Food Systems
+  { token: "oneacrefund", name: "One Acre Fund", logo: "https://images.unsplash.com/photo-1500937386664-56d1dfef3854?w=128&h=128&fit=crop&q=80" },
+  { token: "soundagriculture", name: "Sound Agriculture", logo: "https://images.unsplash.com/photo-1592417817098-8f3d6910985c?w=128&h=128&fit=crop&q=80" },
+  { token: "pivotbio", name: "Pivot Bio", logo: "https://images.unsplash.com/photo-1500937386664-56d1dfef3854?w=128&h=128&fit=crop&q=80" },
+  { token: "carbonrobotics", name: "Carbon Robotics", logo: "https://images.unsplash.com/photo-1592417817098-8f3d6910985c?w=128&h=128&fit=crop&q=80" },
+  { token: "hellofresh", name: "HelloFresh", logo: "https://images.unsplash.com/photo-1498837167922-ddd27525d352?w=128&h=128&fit=crop&q=80" },
+  { token: "sweetgreen", name: "Sweetgreen", logo: "https://images.unsplash.com/photo-1540420773420-3366772f4999?w=128&h=128&fit=crop&q=80" },
+  { token: "toast", name: "Toast", logo: "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=128&h=128&fit=crop&q=80" },
+  { token: "samsara", name: "Samsara", logo: "https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=128&h=128&fit=crop&q=80" },
+  { token: "instacart", name: "Instacart", logo: "https://images.unsplash.com/photo-1542838132-92c53300491e?w=128&h=128&fit=crop&q=80" },
+  // High-Volume Verified Employers
+  { token: "stripe", name: "Stripe", logo: "https://images.unsplash.com/photo-1559526324-4b87b5e36e44?w=128&h=128&fit=crop&q=80" },
+  { token: "gusto", name: "Gusto", logo: "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=128&h=128&fit=crop&q=80" },
+  { token: "reddit", name: "Reddit", logo: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=128&h=128&fit=crop&q=80" },
   { token: "gitlab", name: "GitLab", logo: "https://about.gitlab.com/images/press/logo/png/gitlab-icon-rgb.png" },
   { token: "zapier", name: "Zapier", logo: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=128&h=128&fit=crop&q=80" },
   { token: "automattic", name: "Automattic", logo: "https://images.unsplash.com/photo-1572044162444-ad60f128bdea?w=128&h=128&fit=crop&q=80" },
@@ -24,13 +38,17 @@ const LEVER_COMPANIES: Array<{ slug: string; name: string; logo?: string }> = [
   { slug: "kinsta", name: "Kinsta", logo: "https://images.unsplash.com/photo-1572044162444-ad60f128bdea?w=128&h=128&fit=crop&q=80" },
   { slug: "postman", name: "Postman", logo: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=128&h=128&fit=crop&q=80" },
   { slug: "sourcegraph", name: "Sourcegraph", logo: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=128&h=128&fit=crop&q=80" },
+  { slug: "rover", name: "Rover", logo: "https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=128&h=128&fit=crop&q=80" },
 ];
 
 /**
- * Curated list of high-growth remote tech companies
+ * Curated list of high-growth companies
  * using public Ashby posting APIs.
  */
 const ASHBY_COMPANIES: Array<{ slug: string; name: string; logo?: string }> = [
+  { slug: "openai", name: "OpenAI", logo: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=128&h=128&fit=crop&q=80" },
+  { slug: "ramp", name: "Ramp", logo: "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=128&h=128&fit=crop&q=80" },
+  { slug: "notion", name: "Notion", logo: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=128&h=128&fit=crop&q=80" },
   { slug: "supabase", name: "Supabase", logo: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=128&h=128&fit=crop&q=80" },
   { slug: "linear", name: "Linear", logo: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=128&h=128&fit=crop&q=80" },
   { slug: "cursor", name: "Cursor", logo: "https://images.unsplash.com/photo-1605379399642-870262d3d051?w=128&h=128&fit=crop&q=80" },
@@ -71,10 +89,18 @@ export async function fetchGreenhouseAtsJobs(): Promise<RawScrapedJob[]> {
 
       return data.jobs.map((item: any): RawScrapedJob => {
         const locationName = item.location?.name || "Worldwide";
-        const isRemote =
-          locationName.toLowerCase().includes("remote") ||
-          item.title?.toLowerCase().includes("remote") ||
-          true; // Companies in this list are remote-friendly
+        const locationLower = locationName.toLowerCase();
+        const titleLower = (item.title || "").toLowerCase();
+
+        let workplaceType: "remote" | "hybrid" | "on-site" = "on-site";
+        if (locationLower.includes("remote") || titleLower.includes("remote") || locationLower.includes("anywhere") || locationLower.includes("worldwide")) {
+          workplaceType = "remote";
+        } else if (locationLower.includes("hybrid") || titleLower.includes("hybrid")) {
+          workplaceType = "hybrid";
+        } else {
+          workplaceType = "on-site";
+        }
+        const isRemote = workplaceType === "remote";
 
         return {
           title: item.title,
@@ -87,7 +113,7 @@ export async function fetchGreenhouseAtsJobs(): Promise<RawScrapedJob[]> {
           description: cleanHtml(item.content),
           posted_at: item.updated_at ? new Date(item.updated_at).toISOString() : new Date().toISOString(),
           remote: isRemote,
-          workplace_type: isRemote ? "remote" : "hybrid",
+          workplace_type: workplaceType,
           tags: ["Direct ATS", "Company Careers", company.name],
           source: "ats",
           ats_provider: "greenhouse",
@@ -127,11 +153,19 @@ export async function fetchLeverAtsJobs(): Promise<RawScrapedJob[]> {
 
       return data.map((item: any): RawScrapedJob => {
         const locationName = item.categories?.location || "Worldwide";
-        const isRemote =
-          locationName.toLowerCase().includes("remote") ||
-          item.text?.toLowerCase().includes("remote") ||
-          item.categories?.workplaceType === "remote" ||
-          true;
+        const locationLower = locationName.toLowerCase();
+        const textLower = (item.text || "").toLowerCase();
+        const typeLower = (item.categories?.workplaceType || "").toLowerCase();
+
+        let workplaceType: "remote" | "hybrid" | "on-site" = "on-site";
+        if (typeLower === "remote" || locationLower.includes("remote") || textLower.includes("remote")) {
+          workplaceType = "remote";
+        } else if (typeLower === "hybrid" || locationLower.includes("hybrid") || textLower.includes("hybrid")) {
+          workplaceType = "hybrid";
+        } else {
+          workplaceType = "on-site";
+        }
+        const isRemote = workplaceType === "remote";
 
         const team = item.categories?.team ? [item.categories.team] : [];
 
@@ -146,7 +180,7 @@ export async function fetchLeverAtsJobs(): Promise<RawScrapedJob[]> {
           description: cleanHtml(item.descriptionPlain || item.description),
           posted_at: item.createdAt ? new Date(item.createdAt).toISOString() : new Date().toISOString(),
           remote: isRemote,
-          workplace_type: isRemote ? "remote" : "hybrid",
+          workplace_type: workplaceType,
           tags: ["Direct ATS", "Company Careers", ...team],
           source: "ats",
           ats_provider: "lever",
@@ -185,8 +219,15 @@ export async function fetchAshbyAtsJobs(): Promise<RawScrapedJob[]> {
       if (!Array.isArray(data.jobs)) return [];
 
       return data.jobs.map((item: any): RawScrapedJob => {
-        const isRemote = item.isRemote ?? true;
+        const isRemote = Boolean(item.isRemote);
         const locationName = item.location || (isRemote ? "Worldwide" : "On-site");
+        const locationLower = locationName.toLowerCase();
+        const titleLower = (item.title || "").toLowerCase();
+
+        let workplaceType: "remote" | "hybrid" | "on-site" = isRemote ? "remote" : "on-site";
+        if (locationLower.includes("hybrid") || titleLower.includes("hybrid")) {
+          workplaceType = "hybrid";
+        }
 
         return {
           title: item.title,
@@ -199,7 +240,7 @@ export async function fetchAshbyAtsJobs(): Promise<RawScrapedJob[]> {
           description: cleanHtml(item.descriptionHtml),
           posted_at: item.publishedAt ? new Date(item.publishedAt).toISOString() : new Date().toISOString(),
           remote: isRemote,
-          workplace_type: isRemote ? "remote" : "hybrid",
+          workplace_type: workplaceType,
           tags: ["Direct ATS", "Company Careers", item.department].filter(Boolean),
           source: "ats",
           ats_provider: "ashby",

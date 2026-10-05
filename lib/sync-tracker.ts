@@ -36,26 +36,47 @@ export function getSyncState(): SyncState | null {
 }
 
 /**
- * Checks whether the daily job sync can run today.
- * Strictly enforces a once-per-day rate limit unless explicitly forced.
+ * Checks whether the automated job sync can run.
+ * Enforces a 2-hour interval cadence (default 100-minute buffer to avoid overlap)
+ * unless explicitly forced.
  */
-export function canSyncToday(force: boolean = false): { allowed: boolean; reason?: string; lastSyncDate?: string } {
+export function canSyncInterval(
+  force: boolean = false,
+  minIntervalMinutes: number = 100
+): { allowed: boolean; reason?: string; lastSyncTimestamp?: number; nextAllowedAt?: number } {
   if (force) {
     return { allowed: true };
   }
 
-  const today = getTodayUTC();
   const state = getSyncState();
-
-  if (state && state.lastSyncDate === today) {
-    return {
-      allowed: false,
-      lastSyncDate: state.lastSyncDate,
-      reason: `Job feed sync has already completed today (${today}). Configured to execute strictly once per day.`,
-    };
+  if (state && state.lastSyncTimestamp) {
+    const elapsedMs = Date.now() - state.lastSyncTimestamp;
+    const minIntervalMs = minIntervalMinutes * 60 * 1000;
+    if (elapsedMs < minIntervalMs) {
+      const remainingMin = Math.ceil((minIntervalMs - elapsedMs) / 60000);
+      return {
+        allowed: false,
+        lastSyncTimestamp: state.lastSyncTimestamp,
+        nextAllowedAt: state.lastSyncTimestamp + minIntervalMs,
+        reason: `Job feed sync executed ${Math.round(elapsedMs / 60000)}m ago. Configured for a 2-hour schedule (next run permitted in ${remainingMin}m).`,
+      };
+    }
   }
 
   return { allowed: true };
+}
+
+/**
+ * Backward compatible export.
+ * Delegates to the 2-hour interval check.
+ */
+export function canSyncToday(force: boolean = false): { allowed: boolean; reason?: string; lastSyncDate?: string } {
+  const result = canSyncInterval(force);
+  return {
+    allowed: result.allowed,
+    reason: result.reason,
+    lastSyncDate: getSyncState()?.lastSyncDate,
+  };
 }
 
 /**

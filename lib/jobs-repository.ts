@@ -258,8 +258,8 @@ export function insertJobsBatch(newJobs: Job[]): { added: number; updated: numbe
   // Prepend new jobs to keep newest on top
   const merged = [...toPrepend, ...existingJobs];
 
-  // Keep sliding window of latest 3,500 active jobs locally to prevent file bloat
-  const MAX_LOCAL_JOBS = 3500;
+  // Keep sliding window of latest 12,000 active jobs to maximize job diversity and capacity
+  const MAX_LOCAL_JOBS = 12000;
   const pruned = merged.length > MAX_LOCAL_JOBS ? merged.slice(0, MAX_LOCAL_JOBS) : merged;
 
   saveJobs(pruned);

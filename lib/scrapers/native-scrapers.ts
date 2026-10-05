@@ -3,10 +3,10 @@ import { RawScrapedJob } from "../apify";
 const USER_AGENT = "RemoteWorkDailyScraper/2.0 (+https://remoteworkdaily.com; support@remoteworkdaily.com)";
 
 /**
- * 1. Arbeitnow Multi-Page Fetcher
- * Paginates through up to 8 pages (250 items/page) to fetch up to 2,000 listings.
+ * 1. Arbeitnow Multi-Page High-Capacity Fetcher
+ * Paginates through up to 25 pages (100-325 items/page) to fetch ~3,000 listings across all industries.
  */
-export async function fetchArbeitnowJobs(pagesToFetch: number = 10): Promise<RawScrapedJob[]> {
+export async function fetchArbeitnowJobs(pagesToFetch: number = 20): Promise<RawScrapedJob[]> {
   const allJobs: RawScrapedJob[] = [];
   const pagePromises = Array.from({ length: pagesToFetch }, (_, i) => i + 1).map(async (page) => {
     try {
@@ -46,7 +46,7 @@ export async function fetchArbeitnowJobs(pagesToFetch: number = 10): Promise<Raw
 
 /**
  * 2. We Work Remotely (WWR) Multi-Category RSS Fetcher
- * Pulls and parses verified RSS feeds across 6 core remote disciplines.
+ * Pulls and parses verified RSS feeds across 8 core remote disciplines including all-other-remote-jobs.
  */
 export async function fetchWeWorkRemotelyJobs(): Promise<RawScrapedJob[]> {
   const categories = [
@@ -56,6 +56,8 @@ export async function fetchWeWorkRemotelyJobs(): Promise<RawScrapedJob[]> {
     "remote-product-jobs",
     "remote-management-and-finance-jobs",
     "remote-customer-support-jobs",
+    "remote-devops-sysadmin-jobs",
+    "all-other-remote-jobs",
   ];
 
   const jobs: RawScrapedJob[] = [];
@@ -113,10 +115,21 @@ export async function fetchWeWorkRemotelyJobs(): Promise<RawScrapedJob[]> {
 }
 
 /**
- * 3. Jobicy Multi-Industry Remote Fetcher
+ * 3. Jobicy Multi-Industry Remote Fetcher (9 broad sectors)
  */
 export async function fetchJobicyJobs(): Promise<RawScrapedJob[]> {
-  const industries = ["engineering", "marketing", "design-multimedia", "business", "supporting"];
+  const industries = [
+    "engineering",
+    "dev",
+    "marketing",
+    "design-multimedia",
+    "business",
+    "supporting",
+    "seller",
+    "hr",
+    "education",
+    "copywriting",
+  ];
   const jobs: RawScrapedJob[] = [];
 
   const promises = industries.map(async (industry) => {
@@ -265,3 +278,66 @@ export async function fetchHimalayasJobs(): Promise<RawScrapedJob[]> {
     return [];
   }
 }
+
+/**
+ * 7. ReliefWeb Agriculture, Food Security & Humanitarian RSS Fetcher
+ * Pulls international development, agroforestry, food supply, and field operations roles.
+ */
+export async function fetchReliefWebJobs(): Promise<RawScrapedJob[]> {
+  try {
+    const res = await fetch("https://reliefweb.int/jobs/rss.xml", {
+      headers: { "User-Agent": USER_AGENT },
+      next: { revalidate: 0 },
+    });
+    if (!res.ok) return [];
+    const text = await res.text();
+    const items = text.match(/<item>([\s\S]*?)<\/item>/g) || [];
+
+    return items.map((itemStr): RawScrapedJob | null => {
+      const rawTitle = (itemStr.match(/<title><!\[CDATA\[(.*?)\]\]><\/title>/) || itemStr.match(/<title>(.*?)<\/title>/))?.[1] || "";
+      const link = (itemStr.match(/<link><!\[CDATA\[(.*?)\]\]><\/link>/) || itemStr.match(/<link>(.*?)<\/link>/))?.[1] || "";
+      const pubDate = (itemStr.match(/<pubDate>(.*?)<\/pubDate>/))?.[1];
+      const descMatch = (itemStr.match(/<description><!\[CDATA\[([\s\S]*?)\]\]><\/description>/) || itemStr.match(/<description>([\s\S]*?)<\/description>/))?.[1] || "";
+      const sourceMatch = (itemStr.match(/<source[^>]*>(.*?)<\/source>/) || itemStr.match(/<dc:creator>(.*?)<\/dc:creator>/))?.[1];
+
+      if (!rawTitle || !link) return null;
+
+      let company = sourceMatch || "ReliefWeb Global Organization";
+      let title = rawTitle;
+      if (rawTitle.includes(" - ")) {
+        const parts = rawTitle.split(" - ");
+        title = parts[0].trim();
+        company = parts.slice(1).join(" - ").trim() || company;
+      }
+
+      const textForTags = `${title} ${descMatch}`.toLowerCase();
+      const tags = ["ReliefWeb", "International"];
+      if (/\b(agri|agriculture|agricultural|agronom|food|crop|crops|nutrition|farming|livestock|agroforestry)\b/i.test(textForTags)) {
+        tags.push("Agriculture & Food");
+      }
+      if (/\b(operation|field|logistics|supply chain|distribution)\b/i.test(textForTags)) {
+        tags.push("Operations");
+      }
+      if (/\b(health|medical|nurse|doctor|epidemiol)\b/i.test(textForTags)) {
+        tags.push("Medical & Health");
+      }
+
+      return {
+        title,
+        company_name: company,
+        url: link,
+        apply_url: link,
+        description: descMatch,
+        posted_at: pubDate ? new Date(pubDate).toISOString() : new Date().toISOString(),
+        remote: true,
+        workplace_type: "remote",
+        location: "Worldwide",
+        tags,
+      };
+    }).filter((j): j is RawScrapedJob => j !== null);
+  } catch (err) {
+    console.warn("[Native Scraper] ReliefWeb RSS error:", err);
+    return [];
+  }
+}
+

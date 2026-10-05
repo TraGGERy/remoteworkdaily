@@ -78,7 +78,7 @@ export function JobTable({
               {displayedJobs.length}
             </strong>
             {hasMore ? ` of ${jobs.length.toLocaleString()}` : ""}{" "}
-            verified remote jobs
+            verified jobs
           </span>
           <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
           <span className="hidden md:inline-block text-neutral-300 dark:text-neutral-700">•</span>

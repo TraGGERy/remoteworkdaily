@@ -1,8 +1,8 @@
 {
   "crons": [
     {
-      "path": "/api/jobs/sync?target=2000&force=true",
-      "schedule": "0 1 * * *"
+      "path": "/api/jobs/sync?target=5000&force=true",
+      "schedule": "0 */2 * * *"
     }
   ]
 }

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { runDailyJobIngestionPipeline } from "@/lib/scrapers/orchestrator";
 import { getAllJobs } from "@/lib/jobs-repository";
-import { canSyncToday } from "@/lib/sync-tracker";
+import { canSyncInterval } from "@/lib/sync-tracker";
 
 const ALLOWED_ACTORS = new Set([
   "apify/web-scraper",
@@ -17,7 +17,7 @@ async function handleSync(request: Request) {
     const url = new URL(request.url);
     const isForced = url.searchParams.get("force") === "true";
     const targetParam = url.searchParams.get("target");
-    const targetCount = targetParam ? Math.min(Math.max(parseInt(targetParam, 10) || 2000, 50), 5000) : 2000;
+    const targetCount = targetParam ? Math.min(Math.max(parseInt(targetParam, 10) || 5000, 50), 12000) : 5000;
 
     // 1. Production Cron / Admin Authorization Check
     const cronSecret = process.env.CRON_SECRET;
@@ -35,14 +35,15 @@ async function handleSync(request: Request) {
       }
     }
 
-    // 2. Strictly Once-Per-Day Rate Limit Enforcement
-    const syncCheck = canSyncToday(isForced);
+    // 2. 2-Hour Interval Rate Limit Enforcement
+    const syncCheck = canSyncInterval(isForced);
     if (!syncCheck.allowed) {
       return NextResponse.json({
         success: true,
-        alreadySyncedToday: true,
+        alreadySyncedRecently: true,
         message: syncCheck.reason,
-        lastSyncDate: syncCheck.lastSyncDate,
+        lastSyncTimestamp: syncCheck.lastSyncTimestamp,
+        nextAllowedAt: syncCheck.nextAllowedAt,
         totalJobs: getAllJobs().length,
       });
     }

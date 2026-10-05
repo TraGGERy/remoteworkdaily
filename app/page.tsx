@@ -22,10 +22,10 @@ export default function Home() {
       {/* Hero Headline */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-6 pb-2 text-center">
         <h1 className="text-2xl sm:text-4xl md:text-5xl font-black text-neutral-900 dark:text-white tracking-tight leading-tight">
-          Find your dream <span className="text-[#FF4742]">remote job</span>
+          Find your dream <span className="text-[#FF4742]">job</span>
         </h1>
         <p className="text-xs sm:text-base text-neutral-500 dark:text-neutral-400 mt-2 max-w-2xl mx-auto">
-          Browse verified remote positions at top tech companies. Real transparent salaries, no spam, 100% remote.
+          Browse verified remote, hybrid, and on-site positions at top companies. Real transparent salaries, direct ATS applications, all kinds of roles.
         </p>
       </div>
 
@@ -34,7 +34,7 @@ export default function Home() {
         fallback={
           <div className="max-w-7xl mx-auto px-4 py-16 text-center text-sm text-neutral-400">
             <div className="w-8 h-8 border-2 border-[#FF4742] border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-            <span>Loading remote jobs...</span>
+            <span>Loading jobs...</span>
           </div>
         }
       >

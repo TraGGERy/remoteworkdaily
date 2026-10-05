@@ -79,21 +79,50 @@ function normalizeRawJob(raw) {
     tags.unshift(workplaceTag);
   }
 
-  let category = "dev";
-  if (titleLower.includes("design") || tagsLower.includes("design") || titleLower.includes("ux") || titleLower.includes("ui")) {
-    category = "design";
-  } else if (titleLower.includes("marketing") || tagsLower.includes("marketing") || titleLower.includes("seo") || titleLower.includes("growth")) {
-    category = "marketing";
-  } else if (titleLower.includes("support") || tagsLower.includes("support") || titleLower.includes("customer")) {
-    category = "support";
-  } else if (titleLower.includes("sales") || titleLower.includes("account exec") || titleLower.includes("business dev")) {
-    category = "sales";
-  } else if (titleLower.includes("ops") || titleLower.includes("devops") || titleLower.includes("sre") || titleLower.includes("cloud")) {
-    category = "ops";
-  } else if (titleLower.includes("finance") || titleLower.includes("accounting") || titleLower.includes("payroll")) {
+  let category = "other";
+
+  const farmingRegex = /\b(farm|farmer|farmers|farming|agri|agriculture|agricultural|agronomist|agronomy|crops?|livestock|horticulture|ranch|rancher|ranchers|ranching|grower|growers|harvest|harvester|harvesting|soil|forestry|agroforestry|agtech)\b/i;
+  const tradesRegex = /\b(driver|technician|electrician|mechanic|plumber|warehouse|operator|welder|carpenter|assembly|maintenance|logistics|installer|forklift)\b/i;
+  const hospitalityRegex = /\b(cook|chef|barista|restaurant|kitchen|server|food|dining|baker|bakery|hospitality|catering|culinary|bartender)\b/i;
+  const medicalRegex = /\b(nurse|doctor|physician|medical|clinical|pharmacy|pharmacist|therapist|dental|dentist|healthcare|caregiver)\b/i;
+  const educationRegex = /\b(teacher|tutor|instructor|professor|education|curriculum|academic|faculty|school)\b/i;
+  const execRegex = /\b(cto|ceo|cfo|coo|vp|vice president|head of|director|executive|leiter|bereichsleitung)\b/i;
+  const opsRegex = /\b(devops|sre|sysadmin|systemadministrator|cloud engineer|infrastructure)\b/i;
+  const financeRegex = /\b(finance|financial|accounting|accountant|tax|steuer|payroll|auditor|bookkeeper|bank|banking|finanzberater)\b/i;
+  const designRegex = /\b(design|designer|ux|ui|graphic|illustrator|animator)\b/i;
+  const marketingRegex = /\b(marketing|seo|growth|social media|content creator|copywriter|copywriting|brand)\b/i;
+  const supportRegex = /\b(support|customer success|customer service|kundendienst|call center|client care)\b/i;
+  const salesRegex = /\b(sales|account executive|business development|buyer|seller|sdr|bdr)\b/i;
+  const devRegex = /\b(developer|software|programmer|full stack|fullstack|backend|frontend|golang|python|react|typescript|rust|engineer)\b/i;
+
+  const combinedSearch = `${title} ${tags.join(" ")}`;
+
+  if (farmingRegex.test(combinedSearch)) {
+    category = "farming";
+  } else if (tradesRegex.test(combinedSearch)) {
+    category = "trades";
+  } else if (hospitalityRegex.test(combinedSearch)) {
+    category = "hospitality";
+  } else if (medicalRegex.test(combinedSearch)) {
+    category = "medical";
+  } else if (educationRegex.test(combinedSearch)) {
+    category = "education";
+  } else if (financeRegex.test(combinedSearch)) {
     category = "finance";
-  } else if (titleLower.includes("cto") || titleLower.includes("vp") || titleLower.includes("head of") || titleLower.includes("director")) {
+  } else if (execRegex.test(combinedSearch)) {
     category = "exec";
+  } else if (opsRegex.test(combinedSearch)) {
+    category = "ops";
+  } else if (designRegex.test(combinedSearch)) {
+    category = "design";
+  } else if (marketingRegex.test(combinedSearch)) {
+    category = "marketing";
+  } else if (supportRegex.test(combinedSearch)) {
+    category = "support";
+  } else if (salesRegex.test(combinedSearch)) {
+    category = "sales";
+  } else if (devRegex.test(combinedSearch)) {
+    category = "dev";
   }
 
   let salaryMin = raw.salary_min ? Number(raw.salary_min) : undefined;
@@ -117,7 +146,15 @@ function normalizeRawJob(raw) {
     else if (category === "design") { salaryMin = 115000; salaryMax = 160000; }
     else if (category === "marketing") { salaryMin = 100000; salaryMax = 145000; }
     else if (category === "exec") { salaryMin = 180000; salaryMax = 275000; }
-    else { salaryMin = 90000; salaryMax = 130000; }
+    else if (category === "ops") { salaryMin = 120000; salaryMax = 170000; }
+    else if (category === "finance") { salaryMin = 95000; salaryMax = 145000; }
+    else if (category === "medical") { salaryMin = 85000; salaryMax = 140000; }
+    else if (category === "farming") { salaryMin = 55000; salaryMax = 90000; }
+    else if (category === "trades") { salaryMin = 55000; salaryMax = 85000; }
+    else if (category === "hospitality") { salaryMin = 45000; salaryMax = 75000; }
+    else if (category === "education") { salaryMin = 60000; salaryMax = 95000; }
+    else if (category === "support") { salaryMin = 60000; salaryMax = 85000; }
+    else { salaryMin = 70000; salaryMax = 110000; }
   }
 
   const id = `job-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`;
@@ -168,14 +205,14 @@ async function runScrape() {
   console.log(`========================================================\n`);
 
   const startTime = Date.now();
-  const pagesNeeded = Math.min(Math.max(Math.ceil(TARGET_COUNT / 200), 8), 12);
+  const pagesNeeded = Math.min(Math.max(Math.ceil(TARGET_COUNT / 200), 12), 25);
 
-  console.log(`[1/4] Harvesting live remote job streams (Arbeitnow 1..${pagesNeeded}, WWR RSS, Jobicy, RemoteOK, Remotive)...`);
+  console.log(`[1/4] Harvesting live multi-sector job streams (Arbeitnow 1..${pagesNeeded}, ReliefWeb RSS, WWR 8 feeds, Jobicy 10 industries, RemoteOK, Remotive, Greenhouse, Ashby)...`);
 
   const rawJobs = [];
-  const sources = { arbeitnow: 0, wwr: 0, jobicy: 0, remoteok: 0, remotive: 0, himalayas: 0, ats: 0 };
+  const sources = { arbeitnow: 0, wwr: 0, jobicy: 0, remoteok: 0, remotive: 0, himalayas: 0, reliefweb: 0, ats: 0 };
 
-  // 1. Arbeitnow Multi-Page
+  // 1. Arbeitnow Multi-Page High-Capacity
   const pagePromises = Array.from({ length: pagesNeeded }, (_, i) => i + 1).map(async (p) => {
     try {
       const res = await fetch(`https://arbeitnow.com/api/job-board-api?page=${p}`, {
@@ -199,9 +236,18 @@ async function runScrape() {
     }
   });
 
-  // 2. WeWorkRemotely RSS
+  // 2. WeWorkRemotely RSS (8 categories)
   const wwrPromise = (async () => {
-    const cats = ["remote-programming-jobs", "remote-design-jobs", "remote-sales-and-marketing-jobs", "remote-product-jobs", "remote-management-and-finance-jobs", "remote-customer-support-jobs"];
+    const cats = [
+      "remote-programming-jobs",
+      "remote-design-jobs",
+      "remote-sales-and-marketing-jobs",
+      "remote-product-jobs",
+      "remote-management-and-finance-jobs",
+      "remote-customer-support-jobs",
+      "remote-devops-sysadmin-jobs",
+      "all-other-remote-jobs",
+    ];
     const out = [];
     for (const c of cats) {
       try {
@@ -237,9 +283,20 @@ async function runScrape() {
     return out;
   })();
 
-  // 3. Jobicy
+  // 3. Jobicy (10 industries)
   const jobicyPromise = (async () => {
-    const ind = ["engineering", "marketing", "design-multimedia", "business", "supporting"];
+    const ind = [
+      "engineering",
+      "dev",
+      "marketing",
+      "design-multimedia",
+      "business",
+      "supporting",
+      "seller",
+      "hr",
+      "education",
+      "copywriting",
+    ];
     const out = [];
     for (const i of ind) {
       try {
@@ -313,10 +370,62 @@ async function runScrape() {
     }
   })();
 
-  // 6. Direct Company ATS (Greenhouse, Lever, Ashby)
+  // 6. ReliefWeb Agriculture & Humanitarian RSS
+  const reliefWebPromise = (async () => {
+    try {
+      const res = await fetch("https://reliefweb.int/jobs/rss.xml", { headers: { "User-Agent": USER_AGENT } });
+      if (!res.ok) return [];
+      const text = await res.text();
+      const items = text.match(/<item>([\s\S]*?)<\/item>/g) || [];
+      const out = [];
+      for (const itemStr of items) {
+        const rawTitle = (itemStr.match(/<title><!\[CDATA\[(.*?)\]\]><\/title>/) || itemStr.match(/<title>(.*?)<\/title>/))?.[1] || "";
+        const link = (itemStr.match(/<link><!\[CDATA\[(.*?)\]\]><\/link>/) || itemStr.match(/<link>(.*?)<\/link>/))?.[1] || "";
+        const pubDate = (itemStr.match(/<pubDate>(.*?)<\/pubDate>/))?.[1];
+        const descMatch = (itemStr.match(/<description><!\[CDATA\[([\s\S]*?)\]\]><\/description>/) || itemStr.match(/<description>([\s\S]*?)<\/description>/))?.[1] || "";
+        const sourceMatch = (itemStr.match(/<source[^>]*>(.*?)<\/source>/) || itemStr.match(/<dc:creator>(.*?)<\/dc:creator>/))?.[1];
+
+        if (!rawTitle || !link) continue;
+
+        let company = sourceMatch || "ReliefWeb Global Organization";
+        let title = rawTitle;
+        if (rawTitle.includes(" - ")) {
+          const parts = rawTitle.split(" - ");
+          title = parts[0].trim();
+          company = parts.slice(1).join(" - ").trim() || company;
+        }
+
+        out.push({
+          title,
+          company_name: company,
+          url: link,
+          apply_url: link,
+          description: descMatch,
+          posted_at: pubDate ? new Date(pubDate).toISOString() : undefined,
+          remote: true,
+          tags: ["Agriculture & Food", "Field Operations", "ReliefWeb"],
+        });
+      }
+      return out;
+    } catch {
+      return [];
+    }
+  })();
+
+  // 7. Direct Company ATS (Greenhouse & Ashby)
   const atsPromise = (async () => {
     const out = [];
     const ghCompanies = [
+      { token: "oneacrefund", name: "One Acre Fund" },
+      { token: "soundagriculture", name: "Sound Agriculture" },
+      { token: "hellofresh", name: "HelloFresh" },
+      { token: "sweetgreen", name: "Sweetgreen" },
+      { token: "toast", name: "Toast" },
+      { token: "samsara", name: "Samsara" },
+      { token: "instacart", name: "Instacart" },
+      { token: "gusto", name: "Gusto" },
+      { token: "stripe", name: "Stripe" },
+      { token: "reddit", name: "Reddit" },
       { token: "gitlab", name: "GitLab" },
       { token: "zapier", name: "Zapier" },
       { token: "automattic", name: "Automattic" },
@@ -347,36 +456,10 @@ async function runScrape() {
       } catch {}
     }
 
-    const leverCompanies = [
-      { slug: "buffer", name: "Buffer" },
-      { slug: "kinsta", name: "Kinsta" },
-      { slug: "postman", name: "Postman" },
-    ];
-    for (const c of leverCompanies) {
-      try {
-        const res = await fetch(`https://api.lever.co/v0/postings/${c.slug}?mode=json`, { headers: { "User-Agent": USER_AGENT } });
-        if (!res.ok) continue;
-        const json = await res.json();
-        for (const it of (json || [])) {
-          out.push({
-            title: it.text,
-            company_name: c.name,
-            url: it.hostedUrl || it.applyUrl,
-            apply_url: it.applyUrl || it.hostedUrl,
-            location: it.categories?.location || "Worldwide",
-            description: cleanHtmlDescription(it.descriptionPlain || it.description),
-            posted_at: it.createdAt ? new Date(it.createdAt).toISOString() : new Date().toISOString(),
-            remote: true,
-            source: "ats",
-            ats_provider: "lever",
-            is_direct_company_post: true,
-            tags: ["Direct ATS", "Company Careers", c.name],
-          });
-        }
-      } catch {}
-    }
-
     const ashbyCompanies = [
+      { slug: "openai", name: "OpenAI" },
+      { slug: "ramp", name: "Ramp" },
+      { slug: "notion", name: "Notion" },
       { slug: "supabase", name: "Supabase" },
       { slug: "linear", name: "Linear" },
       { slug: "cursor", name: "Cursor" },
@@ -408,12 +491,13 @@ async function runScrape() {
   })();
 
   // Run all in parallel
-  const [arbeitnowResults, wwrList, jobicyList, remoteokList, remotiveList, atsList] = await Promise.all([
+  const [arbeitnowResults, wwrList, jobicyList, remoteokList, remotiveList, reliefWebList, atsList] = await Promise.all([
     Promise.all(pagePromises),
     wwrPromise,
     jobicyPromise,
     remoteokPromise,
     remotivePromise,
+    reliefWebPromise,
     atsPromise,
   ]);
 
@@ -433,16 +517,20 @@ async function runScrape() {
   sources.remotive = remotiveList.length;
   for (const it of remotiveList) rawJobs.push(it);
 
+  sources.reliefweb = reliefWebList.length;
+  for (const it of reliefWebList) rawJobs.push(it);
+
   sources.ats = atsList.length;
   for (const it of atsList) rawJobs.push(it);
 
   console.log(`[2/4] Harvested ${rawJobs.length} raw listings across feeds:`);
   console.log(`      • Arbeitnow: ${sources.arbeitnow}`);
+  console.log(`      • ReliefWeb (Agriculture & Ops): ${sources.reliefweb}`);
   console.log(`      • WeWorkRemotely RSS: ${sources.wwr}`);
   console.log(`      • Jobicy: ${sources.jobicy}`);
   console.log(`      • RemoteOK: ${sources.remoteok}`);
   console.log(`      • Remotive: ${sources.remotive}`);
-  console.log(`      • Direct ATS (Greenhouse/Lever/Ashby): ${sources.ats}`);
+  console.log(`      • Direct ATS (Greenhouse/Ashby): ${sources.ats}`);
 
   console.log(`[3/4] Normalizing data and deduplicating via SHA-256 canonicalHash...`);
   const seenHashes = new Set();
@@ -487,8 +575,8 @@ async function runScrape() {
   }
 
   const merged = [...toPrepend, ...existingJobs];
-  // Sliding window of latest 3,500 active listings
-  const MAX_JOBS = 3500;
+  // Sliding window of latest 12,000 active listings
+  const MAX_JOBS = 12000;
   const pruned = merged.length > MAX_JOBS ? merged.slice(0, MAX_JOBS) : merged;
 
   fs.writeFileSync(DATA_FILE, JSON.stringify(pruned, null, 2), "utf8");
@@ -498,7 +586,7 @@ async function runScrape() {
     lastSyncDate: new Date().toISOString().split("T")[0],
     lastSyncTimestamp: Date.now(),
     syncedCount: normalizedJobs.length,
-    source: "hybrid-multi-source",
+    source: "universal-multi-source",
     targetCount: TARGET_COUNT,
     sources,
   };

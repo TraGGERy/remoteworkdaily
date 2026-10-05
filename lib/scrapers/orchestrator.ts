@@ -9,6 +9,7 @@ import {
   fetchRemoteOKJobs,
   fetchRemotiveJobs,
   fetchHimalayasJobs,
+  fetchReliefWebJobs,
 } from "./native-scrapers";
 import { fetchDirectAtsJobs } from "./ats-scrapers";
 import { fetchApifyJobs } from "./apify-scraper";
@@ -32,19 +33,19 @@ export interface PipelineResult {
 }
 
 /**
- * High-Capacity Ingestion Orchestrator
- * Coordinates Apify Actors + Native High-Volume Scrapers to harvest ~2,000 jobs daily.
+ * High-Capacity Universal Ingestion Orchestrator
+ * Coordinates Multi-Sector Native Scrapers + Direct ATS Boards + ReliefWeb RSS.
  */
 export async function runDailyJobIngestionPipeline(
   options: PipelineOptions = {}
 ): Promise<PipelineResult> {
   const startTime = Date.now();
-  const targetCount = options.targetCount || 2000;
+  const targetCount = options.targetCount || 5000;
 
-  // Calculate Arbeitnow pages needed to satisfy volume target (250 jobs/page)
-  const pagesNeeded = Math.min(Math.max(Math.ceil(targetCount / 200), 8), 12);
+  // Calculate Arbeitnow pages needed to satisfy volume target (100-325 jobs/page)
+  const pagesNeeded = Math.min(Math.max(Math.ceil(targetCount / 200), 12), 25);
 
-  console.log(`[Ingestion Pipeline] Initiating daily multi-source scrape (Target: ${targetCount} jobs, Arbeitnow pages: ${pagesNeeded})...`);
+  console.log(`[Ingestion Pipeline] Initiating universal multi-source scrape (Target: ${targetCount} jobs, Arbeitnow pages: ${pagesNeeded})...`);
 
   // Parallel multi-stream harvesting
   const [
@@ -55,6 +56,7 @@ export async function runDailyJobIngestionPipeline(
     remotiveRes,
     himalayasRes,
     directAtsRes,
+    reliefWebRes,
     apifyRes,
   ] = await Promise.allSettled([
     fetchArbeitnowJobs(pagesNeeded),
@@ -64,6 +66,7 @@ export async function runDailyJobIngestionPipeline(
     fetchRemotiveJobs(),
     fetchHimalayasJobs(),
     fetchDirectAtsJobs(),
+    fetchReliefWebJobs(),
     fetchApifyJobs(options.apifyActorId, options.apifyConfig),
   ]);
 
@@ -76,6 +79,7 @@ export async function runDailyJobIngestionPipeline(
     remotive: 0,
     himalayas: 0,
     ats: 0,
+    reliefweb: 0,
     apify: 0,
   };
 
@@ -112,6 +116,11 @@ export async function runDailyJobIngestionPipeline(
   if (directAtsRes.status === "fulfilled" && directAtsRes.value.length > 0) {
     sourcesBreakdown.ats = directAtsRes.value.length;
     for (const j of directAtsRes.value) rawJobs.push({ job: j, source: "ats" });
+  }
+
+  if (reliefWebRes.status === "fulfilled" && reliefWebRes.value.length > 0) {
+    sourcesBreakdown.reliefweb = reliefWebRes.value.length;
+    for (const j of reliefWebRes.value) rawJobs.push({ job: j, source: "reliefweb" });
   }
 
   if (apifyRes.status === "fulfilled" && apifyRes.value.length > 0) {

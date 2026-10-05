@@ -2,6 +2,8 @@ import { BenefitOption, TagCategory } from "./types";
 
 export const ROLE_CATEGORIES: TagCategory[] = [
   { id: "all", label: "All Jobs", icon: "🌐", tag: "" },
+  { id: "farming", label: "Farming & Agriculture", icon: "🚜", tag: "farming" },
+  { id: "trades", label: "Trades & Operations", icon: "🔨", tag: "trades" },
   { id: "dev", label: "Developer", icon: "🤓", tag: "dev" },
   { id: "design", label: "Design", icon: "🎨", tag: "design" },
   { id: "exec", label: "Executive", icon: "💼", tag: "exec" },
@@ -11,9 +13,14 @@ export const ROLE_CATEGORIES: TagCategory[] = [
   { id: "finance", label: "Finance", icon: "💰", tag: "finance" },
   { id: "education", label: "Education", icon: "👨‍🏫", tag: "education" },
   { id: "medical", label: "Medical & Health", icon: "🚑", tag: "medical" },
+  { id: "hospitality", label: "Hospitality & Food", icon: "🍽️", tag: "hospitality" },
 ];
 
 export const POPULAR_TAGS = [
+  "Agriculture",
+  "Farming",
+  "Agronomy",
+  "Food Production",
   "React",
   "TypeScript",
   "Python",
@@ -36,6 +43,8 @@ export const POPULAR_TAGS = [
   "Senior",
   "Staff Engineer",
   "Lead",
+  "Supply Chain",
+  "Logistics",
 ];
 
 export const BENEFITS_LIST: BenefitOption[] = [

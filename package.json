@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "test": "node --test tests/*.test.mjs",
-    "sync:jobs": "node scripts/sync-jobs.mjs"
+    "sync:jobs": "node scripts/sync-jobs.mjs",
+    "sync:daemon": "node scripts/sync-daemon.mjs"
   },
   "dependencies": {
     "@clerk/nextjs": "^7.9.2",

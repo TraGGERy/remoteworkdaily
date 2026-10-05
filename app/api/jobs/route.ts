@@ -17,12 +17,14 @@ export async function GET(request: Request) {
   const sortBy = (searchParams.get("sort") as FilterState["sortBy"]) || "default";
   const freshness = (searchParams.get("freshness") as FilterState["freshness"]) || "all";
   const directAtsOnly = searchParams.get("directAtsOnly") === "true";
+  const workplace = (searchParams.get("workplace") as FilterState["workplaceType"]) || undefined;
 
   const allJobs = getAllJobs(shouldRefresh);
   const filtered = filterJobs(allJobs, {
     query,
     location,
     category,
+    workplaceType: workplace,
     minSalary,
     benefits,
     tags,

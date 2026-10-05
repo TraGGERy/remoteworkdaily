@@ -79,10 +79,10 @@ export function CandidateOnboardingModal({
                 <span>Personalize Your Direct ATS Feed</span>
               </div>
               <h3 className="text-2xl font-black text-neutral-900 dark:text-white">
-                What remote role are you targeting?
+                What role are you targeting?
               </h3>
               <p className="text-xs text-neutral-600 dark:text-neutral-400">
-                We scrape direct company ATS boards (Greenhouse, Lever, Ashby) so you bypass 200+ applicants on LinkedIn.
+                We scrape direct company ATS boards (Greenhouse, Lever, Ashby) across remote, hybrid, and on-site roles so you bypass 200+ applicants on LinkedIn.
               </p>
             </div>
 

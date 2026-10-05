@@ -28,11 +28,34 @@ export function generateJobPostingSchema(job: Job) {
       sameAs: job.companyWebsite || `${SITE_URL}`,
       logo: job.companyLogo || `${SITE_URL}/icon.png`,
     },
-    jobLocationType: "TELECOMMUTE",
-    applicantLocationRequirements: {
-      "@type": locationObj.isWorldwide ? "Country" : "AdministrativeArea",
-      name: job.location || "Worldwide",
-    },
+    ...(job.workplaceType === "on-site"
+      ? {
+          jobLocation: {
+            "@type": "Place",
+            address: {
+              "@type": "PostalAddress",
+              addressLocality: job.location || "Office",
+            },
+          },
+        }
+      : job.workplaceType === "hybrid"
+      ? {
+          jobLocationType: "TELECOMMUTE",
+          jobLocation: {
+            "@type": "Place",
+            address: {
+              "@type": "PostalAddress",
+              addressLocality: job.location || "Office / Hybrid",
+            },
+          },
+        }
+      : {
+          jobLocationType: "TELECOMMUTE",
+          applicantLocationRequirements: {
+            "@type": locationObj.isWorldwide ? "Country" : "AdministrativeArea",
+            name: job.location || "Worldwide",
+          },
+        }),
   };
 
   if (job.salaryMin || job.salaryMax) {

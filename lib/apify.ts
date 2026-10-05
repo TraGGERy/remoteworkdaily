@@ -106,22 +106,51 @@ export function normalizeScrapedJob(raw: RawScrapedJob): Job {
     tags.unshift(workplaceTag);
   }
 
-  // Infer Category
-  let category: Job["category"] = "dev";
-  if (titleLower.includes("design") || tagsLower.includes("design") || titleLower.includes("ux") || titleLower.includes("ui")) {
-    category = "design";
-  } else if (titleLower.includes("marketing") || tagsLower.includes("marketing") || titleLower.includes("seo") || titleLower.includes("growth")) {
-    category = "marketing";
-  } else if (titleLower.includes("support") || tagsLower.includes("support") || titleLower.includes("customer success")) {
-    category = "support";
-  } else if (titleLower.includes("sales") || titleLower.includes("account executive") || titleLower.includes("business development") || titleLower.includes("buyer")) {
-    category = "sales";
-  } else if (titleLower.includes("ops") || titleLower.includes("devops") || titleLower.includes("sre") || titleLower.includes("cloud") || titleLower.includes("sysadmin")) {
-    category = "ops";
-  } else if (titleLower.includes("finance") || titleLower.includes("accounting") || titleLower.includes("payroll")) {
+  // Infer Category with multi-sector domain classifier
+  let category: Job["category"] = "other";
+
+  const farmingRegex = /\b(farm|farmer|farmers|farming|agri|agriculture|agricultural|agronomist|agronomy|crops?|livestock|horticulture|ranch|rancher|ranchers|ranching|grower|growers|harvest|harvester|harvesting|soil|forestry|agroforestry|agtech)\b/i;
+  const tradesRegex = /\b(driver|technician|electrician|mechanic|plumber|warehouse|operator|welder|carpenter|assembly|maintenance|logistics|installer|forklift)\b/i;
+  const hospitalityRegex = /\b(cook|chef|barista|restaurant|kitchen|server|food|dining|baker|bakery|hospitality|catering|culinary|bartender)\b/i;
+  const medicalRegex = /\b(nurse|doctor|physician|medical|clinical|pharmacy|pharmacist|therapist|dental|dentist|healthcare|caregiver)\b/i;
+  const educationRegex = /\b(teacher|tutor|instructor|professor|education|curriculum|academic|faculty|school)\b/i;
+  const execRegex = /\b(cto|ceo|cfo|coo|vp|vice president|head of|director|executive|leiter|bereichsleitung)\b/i;
+  const opsRegex = /\b(devops|sre|sysadmin|systemadministrator|cloud engineer|infrastructure)\b/i;
+  const financeRegex = /\b(finance|financial|accounting|accountant|tax|steuer|payroll|auditor|bookkeeper|bank|banking|finanzberater)\b/i;
+  const designRegex = /\b(design|designer|ux|ui|graphic|illustrator|animator)\b/i;
+  const marketingRegex = /\b(marketing|seo|growth|social media|content creator|copywriter|copywriting|brand)\b/i;
+  const supportRegex = /\b(support|customer success|customer service|kundendienst|call center|client care)\b/i;
+  const salesRegex = /\b(sales|account executive|business development|buyer|seller|sdr|bdr)\b/i;
+  const devRegex = /\b(developer|software|programmer|full stack|fullstack|backend|frontend|golang|python|react|typescript|rust|engineer)\b/i;
+
+  const combinedSearch = `${title} ${tags.join(" ")}`;
+
+  if (farmingRegex.test(combinedSearch)) {
+    category = "farming";
+  } else if (tradesRegex.test(combinedSearch)) {
+    category = "trades";
+  } else if (hospitalityRegex.test(combinedSearch)) {
+    category = "hospitality";
+  } else if (medicalRegex.test(combinedSearch)) {
+    category = "medical";
+  } else if (educationRegex.test(combinedSearch)) {
+    category = "education";
+  } else if (financeRegex.test(combinedSearch)) {
     category = "finance";
-  } else if (titleLower.includes("cto") || titleLower.includes("vp") || titleLower.includes("head of") || titleLower.includes("director") || titleLower.includes("executive")) {
+  } else if (execRegex.test(combinedSearch)) {
     category = "exec";
+  } else if (opsRegex.test(combinedSearch)) {
+    category = "ops";
+  } else if (designRegex.test(combinedSearch)) {
+    category = "design";
+  } else if (marketingRegex.test(combinedSearch)) {
+    category = "marketing";
+  } else if (supportRegex.test(combinedSearch)) {
+    category = "support";
+  } else if (salesRegex.test(combinedSearch)) {
+    category = "sales";
+  } else if (devRegex.test(combinedSearch)) {
+    category = "dev";
   }
 
   // Parse salary
@@ -155,9 +184,33 @@ export function normalizeScrapedJob(raw: RawScrapedJob): Job {
     } else if (category === "exec") {
       salaryMin = 180000;
       salaryMax = 275000;
+    } else if (category === "ops") {
+      salaryMin = 120000;
+      salaryMax = 170000;
+    } else if (category === "finance") {
+      salaryMin = 95000;
+      salaryMax = 145000;
+    } else if (category === "medical") {
+      salaryMin = 85000;
+      salaryMax = 140000;
+    } else if (category === "farming") {
+      salaryMin = 55000;
+      salaryMax = 90000;
+    } else if (category === "trades") {
+      salaryMin = 55000;
+      salaryMax = 85000;
+    } else if (category === "hospitality") {
+      salaryMin = 45000;
+      salaryMax = 75000;
+    } else if (category === "education") {
+      salaryMin = 60000;
+      salaryMax = 95000;
+    } else if (category === "support") {
+      salaryMin = 60000;
+      salaryMax = 85000;
     } else {
-      salaryMin = 90000;
-      salaryMax = 130000;
+      salaryMin = 70000;
+      salaryMax = 110000;
     }
   }
 
