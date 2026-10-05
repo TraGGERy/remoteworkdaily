@@ -8,6 +8,7 @@ import { Header } from "@/components/navigation/header";
 import { NoticeBanner } from "@/components/navigation/notice-banner";
 import { CatchEmailsBanner } from "@/components/navigation/catch-emails-banner";
 import { Footer } from "@/components/navigation/footer";
+import { SiteChrome } from "@/components/navigation/site-chrome";
 import { generateWebsiteSchema, generateFAQSchema } from "@/lib/seo";
 
 const geistSans = Geist({
@@ -115,11 +116,7 @@ export default function RootLayout({
         <ClerkProvider>
           <AppAuthProvider>
             <ThemeProvider>
-              <Header />
-              <NoticeBanner />
-              <div className="flex-1 pb-16">{children}</div>
-              <CatchEmailsBanner />
-              <Footer />
+              <SiteChrome>{children}</SiteChrome>
             </ThemeProvider>
           </AppAuthProvider>
         </ClerkProvider>

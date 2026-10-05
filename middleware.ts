@@ -26,6 +26,7 @@ const isPublicRoute = createRouteMatcher([
   "/llms-full.txt",
   "/terms",
   "/privacy",
+  "/onboarding(.*)",
 ]);
 
 const middleware = isClerkConfigured

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import Link from "next/link";
 import { Sparkles, ArrowRight, X, CheckCircle2, ShieldCheck, Zap, Search } from "lucide-react";
 import { ROLE_CATEGORIES, CANDIDATE_PRICING } from "@/lib/constants";
 
@@ -100,7 +101,13 @@ export function CandidateOnboardingModal({
             </div>
 
             <div className="pt-2 flex items-center justify-between text-xs text-neutral-500">
-              <span>25 free preview jobs included</span>
+              <Link
+                href="/onboarding"
+                onClick={handleDismiss}
+                className="font-bold text-blue-600 hover:underline flex items-center gap-1"
+              >
+                <span>Full Career Hound Setup &rarr;</span>
+              </Link>
               <button
                 type="button"
                 onClick={handleDismiss}
