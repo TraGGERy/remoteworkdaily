@@ -36,9 +36,6 @@ export function CandidateOnboardingModal({
 
     // If onboarding is already completed, user has active subscription, or user is signed in:
     if (isOnboardingCompleted || hasActiveSubscription || isSignedIn) {
-      if (isSignedIn && !isOnboardingCompleted) {
-        markOnboardingCompleted();
-      }
       return;
     }
 

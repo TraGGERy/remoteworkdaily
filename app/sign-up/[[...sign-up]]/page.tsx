@@ -20,7 +20,12 @@ export default function SignUpPage() {
 
       <div className="w-full max-w-md">
         {isConfigured ? (
-          <SignUp routing="path" path="/sign-up" />
+          <SignUp
+            routing="path"
+            path="/sign-up"
+            forceRedirectUrl="/onboarding"
+            fallbackRedirectUrl="/onboarding"
+          />
         ) : (
           <div className="p-8 rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 text-center shadow-xl space-y-4">
             <div className="w-12 h-12 rounded-full bg-[#FF4742] text-white flex items-center justify-center font-black text-sm tracking-tight mx-auto">

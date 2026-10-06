@@ -22,7 +22,7 @@ export function AuthButtons() {
               Log in
             </button>
           </SignInButton>
-          <SignUpButton mode="modal">
+          <SignUpButton mode="modal" forceRedirectUrl="/onboarding" fallbackRedirectUrl="/onboarding">
             <button className="hidden sm:inline-block px-3.5 py-1.5 text-sm font-semibold rounded-lg bg-[#FF4742] text-white hover:bg-[#e03a35] transition-colors shadow-sm">
               Sign up
             </button>
@@ -53,7 +53,7 @@ export function AuthButtons() {
         Log in
       </Link>
       <Link
-        href="/sign-up"
+        href="/onboarding"
         className="hidden sm:inline-block px-3.5 py-1.5 text-sm font-semibold rounded-lg bg-[#FF4742] text-white hover:bg-[#e03a35] transition-colors shadow-sm"
       >
         Join

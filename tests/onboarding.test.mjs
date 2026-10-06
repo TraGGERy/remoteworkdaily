@@ -110,3 +110,22 @@ test("Onboarding: Page route app/onboarding/page.tsx exists and renders componen
   const content = fs.readFileSync(pagePath, "utf-8");
   assert.ok(content.includes("CareerHoundOnboardingFlow"));
 });
+
+test("Onboarding: First-time sign up routes to /onboarding to complete 12 steps to paywall", () => {
+  const signUpPagePath = path.resolve("app/sign-up/[[...sign-up]]/page.tsx");
+  assert.ok(fs.existsSync(signUpPagePath));
+  const signUpContent = fs.readFileSync(signUpPagePath, "utf-8");
+  assert.ok(signUpContent.includes('forceRedirectUrl="/onboarding"'));
+  assert.ok(signUpContent.includes('fallbackRedirectUrl="/onboarding"'));
+
+  const authButtonsPath = path.resolve("components/auth/auth-buttons.tsx");
+  assert.ok(fs.existsSync(authButtonsPath));
+  const authButtonsContent = fs.readFileSync(authButtonsPath, "utf-8");
+  assert.ok(authButtonsContent.includes('forceRedirectUrl="/onboarding"'));
+
+  const envPath = path.resolve(".env");
+  if (fs.existsSync(envPath)) {
+    const envContent = fs.readFileSync(envPath, "utf-8");
+    assert.ok(envContent.includes("NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL=/onboarding"));
+  }
+});
