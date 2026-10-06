@@ -15,24 +15,24 @@ export function AuthButtons() {
 
   if (isConfigured) {
     return (
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-1.5 sm:gap-2">
         <Show when="signed-out">
           <SignInButton mode="modal">
-            <button className="px-3.5 py-1.5 text-sm font-medium rounded-md border border-neutral-300 dark:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors">
+            <button className="px-2.5 sm:px-3.5 py-1.5 text-xs sm:text-sm font-semibold rounded-lg border border-neutral-300 dark:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors">
               Log in
             </button>
           </SignInButton>
           <SignUpButton mode="modal">
-            <button className="px-3.5 py-1.5 text-sm font-medium rounded-md bg-[#FF4742] text-white hover:bg-[#e03a35] transition-colors shadow-sm">
+            <button className="hidden sm:inline-block px-3.5 py-1.5 text-sm font-semibold rounded-lg bg-[#FF4742] text-white hover:bg-[#e03a35] transition-colors shadow-sm">
               Sign up
             </button>
           </SignUpButton>
         </Show>
         <Show when="signed-in">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2">
             <Link
               href="/dashboard"
-              className="text-xs font-semibold px-2.5 py-1 rounded bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-800 dark:text-neutral-200"
+              className="hidden sm:inline-block text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-800 dark:text-neutral-200 transition-colors"
             >
               My Jobs
             </Link>
@@ -45,16 +45,16 @@ export function AuthButtons() {
 
   // Preview / development mode buttons
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-1.5 sm:gap-2">
       <Link
         href="/login"
-        className="px-3.5 py-1.5 text-sm font-medium rounded-md border border-neutral-300 dark:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+        className="px-2.5 sm:px-3.5 py-1.5 text-xs sm:text-sm font-semibold rounded-lg border border-neutral-300 dark:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
       >
         Log in
       </Link>
       <Link
         href="/sign-up"
-        className="px-3.5 py-1.5 text-sm font-medium rounded-md bg-[#FF4742] text-white hover:bg-[#e03a35] transition-colors shadow-sm"
+        className="hidden sm:inline-block px-3.5 py-1.5 text-sm font-semibold rounded-lg bg-[#FF4742] text-white hover:bg-[#e03a35] transition-colors shadow-sm"
       >
         Join
       </Link>

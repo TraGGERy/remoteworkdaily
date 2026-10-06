@@ -50,7 +50,7 @@ export function JobDetailDrawer({
     <div className="relative mt-2 mb-6 p-4 sm:p-7 rounded-2xl border-2 border-[#FF4742]/40 bg-white dark:bg-neutral-900 shadow-xl transition-all">
       {/* Top Banner / Company Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-6 border-b border-neutral-200 dark:border-neutral-800">
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3 sm:gap-4 min-w-0 flex-1">
           <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center shrink-0 overflow-hidden border border-neutral-200 dark:border-neutral-700 shadow-inner">
             {job.companyLogo ? (
               <img
@@ -65,16 +65,16 @@ export function JobDetailDrawer({
             )}
           </div>
 
-          <div>
+          <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
-              <span className="font-extrabold text-base sm:text-lg text-neutral-900 dark:text-white">
+              <span className="font-extrabold text-base sm:text-lg text-neutral-900 dark:text-white truncate">
                 {job.company}
               </span>
               {job.verified && (
-                <CheckCircle className="w-4 h-4 text-sky-500 fill-sky-500/20" />
+                <CheckCircle className="w-4 h-4 text-sky-500 fill-sky-500/20 shrink-0" />
               )}
             </div>
-            <h2 className="font-black text-lg sm:text-2xl text-neutral-900 dark:text-white tracking-tight">
+            <h2 className="font-black text-lg sm:text-2xl text-neutral-900 dark:text-white tracking-tight break-words">
               {job.title}
             </h2>
             <div className="flex flex-wrap items-center gap-2.5 mt-1.5 text-xs text-neutral-500 dark:text-neutral-400 font-medium">

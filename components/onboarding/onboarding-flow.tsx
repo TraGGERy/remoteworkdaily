@@ -26,11 +26,13 @@ import {
   TESTIMONIALS,
   PricingPlanId,
 } from "@/lib/onboarding/types";
+import { useSubscription } from "@/components/auth/subscription-context";
 
 const LOCAL_STORAGE_KEY = "careerhound_onboarding_draft";
 
 export function CareerHoundOnboardingFlow() {
   const router = useRouter();
+  const { markOnboardingCompleted } = useSubscription();
   const [state, setState] = useState<OnboardingState>(INITIAL_ONBOARDING_STATE);
   const [currentTitleInput, setCurrentTitleInput] = useState("");
   const [isProcessingCheckout, setIsProcessingCheckout] = useState(false);
@@ -210,8 +212,10 @@ export function CareerHoundOnboardingFlow() {
 
       const data = await res.json();
       if (data.url) {
+        markOnboardingCompleted();
         window.location.href = data.url;
       } else if (data.success) {
+        markOnboardingCompleted();
         localStorage.setItem("remotework_active_subscription", "true");
         localStorage.setItem("remotework_user_email", email.trim().toLowerCase());
         setCheckoutSuccess(true);
@@ -945,7 +949,10 @@ export function CareerHoundOnboardingFlow() {
                     <div className="pt-2">
                       <button
                         type="button"
-                        onClick={() => router.push("/")}
+                        onClick={() => {
+                          markOnboardingCompleted();
+                          router.push("/");
+                        }}
                         className="text-xs text-slate-400 hover:text-slate-700 hover:underline"
                       >
                         Skip for now and browse free preview jobs &rarr;

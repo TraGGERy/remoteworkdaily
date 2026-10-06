@@ -45,7 +45,7 @@ export function CatchEmailsBanner() {
 
   return (
     <aside aria-label="Job alerts subscription" className="fixed bottom-0 left-0 right-0 z-30 p-3 sm:p-4 bg-neutral-900/95 dark:bg-neutral-950/95 text-white border-t border-neutral-800 backdrop-blur-md shadow-2xl transition-all">
-      <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-3 sm:gap-4">
+      <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-3 sm:gap-4 pr-10 md:pr-0">
         <div className="flex items-center gap-3 text-center md:text-left">
           <div className="hidden sm:flex w-10 h-10 rounded-full bg-[#FF4742] items-center justify-center shrink-0">
             <Mail className="w-5 h-5 text-white" />
@@ -77,7 +77,7 @@ export function CatchEmailsBanner() {
             />
             <button
               type="submit"
-              className="px-4 py-2 text-xs sm:text-sm font-bold rounded-lg bg-[#FF4742] hover:bg-[#e03a35] text-white shrink-0 shadow transition-colors"
+              className="px-4 py-2 text-xs sm:text-sm font-bold rounded-lg bg-[#FF4742] hover:bg-[#e03a35] text-white shrink-0 shadow transition-colors min-h-[38px]"
             >
               Get alerts
             </button>
@@ -93,7 +93,7 @@ export function CatchEmailsBanner() {
         <button
           onClick={handleClose}
           aria-label="Close notification"
-          className="absolute top-2 right-2 md:static md:top-auto md:right-auto text-neutral-400 hover:text-white p-1"
+          className="absolute top-2 right-2 md:static md:top-auto md:right-auto text-neutral-400 hover:text-white p-2 min-w-[36px] min-h-[36px] flex items-center justify-center rounded-lg hover:bg-neutral-800/60 transition-colors"
         >
           <X className="w-4 h-4" />
         </button>

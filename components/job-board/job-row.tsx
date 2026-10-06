@@ -96,17 +96,17 @@ export function JobRow({ job, isSelected, onToggleSelect, onTagClick }: JobRowPr
             {job.title}
           </h3>
 
-          <div className="flex items-center gap-2 mt-0.5 text-xs text-neutral-500 dark:text-neutral-400">
-            <span className="flex items-center gap-1">
+          <div className="flex items-center gap-2 mt-0.5 text-xs text-neutral-500 dark:text-neutral-400 min-w-0">
+            <span className="flex items-center gap-1 min-w-0">
               {job.workplaceType === "on-site" || job.workplaceType === "hybrid" ? (
-                <MapPin className="w-3 h-3 text-neutral-400" />
+                <MapPin className="w-3 h-3 text-neutral-400 shrink-0" />
               ) : (
-                <Globe className="w-3 h-3 text-neutral-400" />
+                <Globe className="w-3 h-3 text-neutral-400 shrink-0" />
               )}
-              <span>{job.location}</span>
+              <span className="truncate max-w-[120px] sm:max-w-none">{job.location}</span>
             </span>
-            <span>•</span>
-            <span className="font-medium text-emerald-600 dark:text-emerald-400 tabular-nums">
+            <span className="shrink-0">•</span>
+            <span className="font-medium text-emerald-600 dark:text-emerald-400 tabular-nums shrink-0">
               {salaryText}
             </span>
           </div>
@@ -114,9 +114,9 @@ export function JobRow({ job, isSelected, onToggleSelect, onTagClick }: JobRowPr
       </div>
 
       {/* Right: Tags + Salary + Posted Date + Action CTA */}
-      <div className="mt-3 md:mt-0 flex flex-wrap items-center justify-between md:justify-end gap-2 w-full md:w-auto pt-2 md:pt-0 border-t md:border-t-0 border-neutral-100 dark:border-neutral-800">
+      <div className="mt-3 md:mt-0 flex flex-wrap items-center justify-between md:justify-end gap-2 w-full md:w-auto pt-2 md:pt-0 border-t md:border-t-0 border-neutral-100 dark:border-neutral-800 min-w-0">
         {/* Tag pills */}
-        <div className="flex flex-wrap items-center gap-1.5">
+        <div className="flex flex-wrap items-center gap-1.5 min-w-0">
           {job.tags.slice(0, 4).map((tag) => (
             <button
               key={tag}
@@ -124,7 +124,7 @@ export function JobRow({ job, isSelected, onToggleSelect, onTagClick }: JobRowPr
                 e.stopPropagation();
                 onTagClick?.(tag);
               }}
-              className="px-2.5 py-0.5 text-[11px] font-semibold rounded-full bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-700 border border-neutral-200 dark:border-neutral-700 transition-colors"
+              className="px-2.5 py-1 text-[11px] font-semibold rounded-full bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-700 border border-neutral-200 dark:border-neutral-700 transition-colors"
             >
               {tag}
             </button>
@@ -132,7 +132,7 @@ export function JobRow({ job, isSelected, onToggleSelect, onTagClick }: JobRowPr
         </div>
 
         {/* Salary badge for mobile / desktop view */}
-        <div className="hidden lg:flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 text-xs font-bold tabular-nums">
+        <div className="hidden lg:flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 text-xs font-bold tabular-nums shrink-0">
           <DollarSign className="w-3 h-3" />
           <span>{salaryText}</span>
         </div>
@@ -147,13 +147,12 @@ export function JobRow({ job, isSelected, onToggleSelect, onTagClick }: JobRowPr
             {timeAgo(job.postedAt)}
           </span>
 
-
           <button
             onClick={(e) => {
               e.stopPropagation();
               onToggleSelect();
             }}
-            className="px-3.5 py-1.5 rounded-lg text-xs font-bold bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 hover:bg-[#FF4742] dark:hover:bg-[#FF4742] dark:hover:text-white transition-colors"
+            className="min-h-[40px] px-4 py-2 rounded-xl text-xs font-bold bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 hover:bg-[#FF4742] dark:hover:bg-[#FF4742] dark:hover:text-white transition-colors flex items-center justify-center active:scale-95"
           >
             {isSelected ? "Close" : "Apply"}
           </button>

@@ -167,15 +167,15 @@ export function JobTable({
                   </p>
                 </div>
 
-                <div className="shrink-0 flex flex-col items-start md:items-end gap-2">
+                <div className="shrink-0 flex flex-col items-start md:items-end gap-2 w-full sm:w-auto">
                   <button
                     type="button"
                     onClick={openUpgradeModal}
-                    className="w-full sm:w-auto px-7 py-4 rounded-2xl text-sm font-black bg-[#FF4742] hover:bg-[#e03a35] text-white shadow-xl shadow-red-500/25 active:scale-95 transition-all flex items-center justify-center gap-2"
+                    className="w-full sm:w-auto px-4 sm:px-7 py-3.5 sm:py-4 rounded-2xl text-xs sm:text-sm font-black bg-[#FF4742] hover:bg-[#e03a35] text-white shadow-xl shadow-red-500/25 active:scale-95 transition-all flex items-center justify-center gap-2 text-center"
                   >
-                    <Zap className="w-4 h-4 fill-current" />
+                    <Zap className="w-4 h-4 fill-current shrink-0" />
                     <span>Unlock Full Feed (From $6.99/wk)</span>
-                    <ArrowRight className="w-4 h-4" />
+                    <ArrowRight className="w-4 h-4 shrink-0" />
                   </button>
                   <span className="text-[11px] text-neutral-500 dark:text-neutral-400 font-medium">
                     7-Day Money-Back Guarantee • Cancel Anytime

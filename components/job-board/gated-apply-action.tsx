@@ -86,10 +86,10 @@ export function GatedApplyAction({
             target="_blank"
             rel="noopener noreferrer"
             onClick={handleApplyClick}
-            className="inline-flex items-center gap-2 px-8 py-4 rounded-xl text-base font-black bg-[#FF4742] hover:bg-[#e03a35] text-white shadow-xl shadow-red-500/25 active:scale-95 transition-all"
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 sm:px-8 py-3.5 sm:py-4 rounded-xl text-sm sm:text-base font-black bg-[#FF4742] hover:bg-[#e03a35] text-white shadow-xl shadow-red-500/25 active:scale-95 transition-all text-center"
           >
             <span>Apply now on {company} Careers</span>
-            <ExternalLink className="w-5 h-5" />
+            <ExternalLink className="w-5 h-5 shrink-0" />
           </a>
         </div>
       </div>
@@ -147,9 +147,9 @@ export function GatedApplyAction({
           <button
             type="button"
             onClick={openUpgradeModal}
-            className="inline-flex items-center gap-2 px-8 py-3.5 rounded-xl text-sm font-black bg-[#FF4742] hover:bg-[#e03a35] text-white shadow-xl shadow-red-500/25 active:scale-95 transition-all"
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 sm:px-8 py-3.5 rounded-xl text-xs sm:text-sm font-black bg-[#FF4742] hover:bg-[#e03a35] text-white shadow-xl shadow-red-500/25 active:scale-95 transition-all text-center"
           >
-            <Lock className="w-4 h-4" />
+            <Lock className="w-4 h-4 shrink-0" />
             <span>Unlock Direct ATS Application (From $6.99/wk)</span>
           </button>
         </div>
@@ -234,23 +234,23 @@ export function GatedApplyAction({
         </p>
       </div>
 
-      <div className="pt-2 flex justify-center gap-3">
+      <div className="pt-2 flex flex-col sm:flex-row justify-center gap-3">
         {isConfigured ? (
           <SignInButton mode="modal">
             <button
               type="button"
-              className="inline-flex items-center gap-2 px-8 py-3.5 rounded-xl text-sm font-black bg-[#FF4742] hover:bg-[#e03a35] text-white shadow-xl shadow-red-500/25 active:scale-95 transition-all"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 sm:px-8 py-3.5 rounded-xl text-sm font-black bg-[#FF4742] hover:bg-[#e03a35] text-white shadow-xl shadow-red-500/25 active:scale-95 transition-all text-center"
             >
-              <Lock className="w-4 h-4" />
+              <Lock className="w-4 h-4 shrink-0" />
               <span>Sign in to Apply</span>
             </button>
           </SignInButton>
         ) : (
           <Link
             href="/sign-in"
-            className="inline-flex items-center gap-2 px-8 py-3.5 rounded-xl text-sm font-black bg-[#FF4742] hover:bg-[#e03a35] text-white shadow-xl shadow-red-500/25 active:scale-95 transition-all"
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 sm:px-8 py-3.5 rounded-xl text-sm font-black bg-[#FF4742] hover:bg-[#e03a35] text-white shadow-xl shadow-red-500/25 active:scale-95 transition-all text-center"
           >
-            <Lock className="w-4 h-4" />
+            <Lock className="w-4 h-4 shrink-0" />
             <span>Sign in to Apply</span>
           </Link>
         )}

@@ -151,11 +151,11 @@ export function CandidateHunterPass() {
                 </div>
               </div>
 
-              <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+              <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end">
                 <button
                   type="button"
                   onClick={() => setIsOpen(true)}
-                  className="px-4 py-2 rounded-xl text-xs font-bold bg-[#FF4742] hover:bg-[#e03a35] text-white active:scale-95 transition-all flex items-center gap-1.5 shadow-sm"
+                  className="flex-1 sm:flex-initial min-h-[40px] px-4 py-2 rounded-xl text-xs font-bold bg-[#FF4742] hover:bg-[#e03a35] text-white active:scale-95 transition-all flex items-center justify-center gap-1.5 shadow-sm"
                 >
                   <span>Explore Direct ATS Plans</span>
                   <ArrowRight className="w-3.5 h-3.5" />
@@ -164,7 +164,7 @@ export function CandidateHunterPass() {
                   type="button"
                   onClick={handleDismiss}
                   aria-label="Dismiss offer"
-                  className="p-1.5 text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 rounded-lg"
+                  className="w-9 h-9 flex items-center justify-center text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -177,10 +177,10 @@ export function CandidateHunterPass() {
       {/* Comprehensive CareerHound-Style Subscription Modal */}
       {isOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-neutral-950/75 backdrop-blur-md animate-in fade-in duration-200 overflow-y-auto">
-          <div className="relative w-full max-w-2xl my-auto rounded-3xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 p-5 sm:p-7 shadow-2xl space-y-5">
+          <div className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto my-auto rounded-3xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 p-4 sm:p-7 shadow-2xl space-y-4 sm:space-y-5">
             <button
               onClick={handleCloseModal}
-              className="absolute top-5 right-5 text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 p-1"
+              className="absolute top-4 right-4 sm:top-5 sm:right-5 w-10 h-10 flex items-center justify-center text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 rounded-xl hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
               aria-label="Close modal"
             >
               <X className="w-5 h-5" />
@@ -432,7 +432,7 @@ export function CandidateHunterPass() {
                           placeholder="your-stripe-email@example.com"
                           value={restoreEmail}
                           onChange={(e) => setRestoreEmail(e.target.value)}
-                          className="flex-1 px-3 py-1.5 text-xs rounded-lg border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-neutral-900 dark:text-white focus:outline-none focus:border-[#FF4742]"
+                          className="min-w-0 flex-1 px-3 py-1.5 text-xs rounded-lg border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-neutral-900 dark:text-white focus:outline-none focus:border-[#FF4742]"
                         />
                         <button
                           type="submit"

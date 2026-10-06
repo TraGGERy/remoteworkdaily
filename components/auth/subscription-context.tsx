@@ -15,6 +15,8 @@ interface SubscriptionContextType {
   closeUpgradeModal: () => void;
   refreshSubscription: () => Promise<void>;
   simulateSubscription: (active: boolean) => void;
+  isOnboardingCompleted: boolean;
+  markOnboardingCompleted: () => Promise<void>;
 }
 
 const SubscriptionContext = createContext<SubscriptionContextType>({
@@ -28,6 +30,8 @@ const SubscriptionContext = createContext<SubscriptionContextType>({
   closeUpgradeModal: () => {},
   refreshSubscription: async () => {},
   simulateSubscription: () => {},
+  isOnboardingCompleted: false,
+  markOnboardingCompleted: async () => {},
 });
 
 export function useSubscription() {
@@ -40,6 +44,12 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
   const [simulatedSub, setSimulatedSub] = useState<boolean | null>(null);
   const [hasServerSub, setHasServerSub] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [isOnboardingCompleted, setIsOnboardingCompleted] = useState<boolean>(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("rwd_onboarding_completed") === "true";
+    }
+    return false;
+  });
 
   // Safely hook into Clerk if configured
   let clerkUser: ReturnType<typeof useUser>["user"] = null;
@@ -121,6 +131,50 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
     }
   }, [primaryEmail, checkSubscription]);
 
+  // Sync Clerk user onboarding metadata with localStorage
+  useEffect(() => {
+    if (clerkUser) {
+      const userCompleted = Boolean(clerkUser.unsafeMetadata?.onboarding_completed);
+      const localCompleted = typeof window !== "undefined" && localStorage.getItem("rwd_onboarding_completed") === "true";
+
+      if (userCompleted) {
+        if (typeof window !== "undefined") {
+          localStorage.setItem("rwd_onboarding_completed", "true");
+        }
+        setIsOnboardingCompleted(true);
+      } else if (localCompleted) {
+        // Sync local completion to Clerk metadata so it persists across other devices/browsers
+        clerkUser.update({
+          unsafeMetadata: {
+            ...clerkUser.unsafeMetadata,
+            onboarding_completed: true,
+          },
+        }).catch(() => {});
+        setIsOnboardingCompleted(true);
+      }
+    }
+  }, [clerkUser]);
+
+  const markOnboardingCompleted = useCallback(async () => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem("rwd_onboarding_completed", "true");
+    }
+    setIsOnboardingCompleted(true);
+
+    if (clerkUser) {
+      try {
+        await clerkUser.update({
+          unsafeMetadata: {
+            ...clerkUser.unsafeMetadata,
+            onboarding_completed: true,
+          },
+        });
+      } catch (err) {
+        console.warn("Failed to update Clerk user onboarding metadata:", err);
+      }
+    }
+  }, [clerkUser]);
+
   const openUpgradeModal = () => setUpgradeModalOpen(true);
   const closeUpgradeModal = () => setUpgradeModalOpen(false);
 
@@ -152,6 +206,8 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
         closeUpgradeModal,
         refreshSubscription,
         simulateSubscription,
+        isOnboardingCompleted,
+        markOnboardingCompleted,
       }}
     >
       {children}

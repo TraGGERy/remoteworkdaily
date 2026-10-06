@@ -66,7 +66,7 @@ export function WorkInformation({
     <div className="relative">
       {/* Rich Text Body */}
       <div
-        className={`prose dark:prose-invert max-w-none text-neutral-800 dark:text-neutral-200 text-sm sm:text-base leading-relaxed
+        className={`prose dark:prose-invert max-w-none text-neutral-800 dark:text-neutral-200 text-sm sm:text-base leading-relaxed break-words overflow-hidden [overflow-wrap:anywhere]
           prose-headings:font-black prose-headings:text-neutral-900 dark:prose-headings:text-white prose-headings:tracking-tight
           prose-h2:text-lg sm:prose-h2:text-xl prose-h2:mt-6 prose-h2:mb-3 prose-h2:border-b prose-h2:border-neutral-100 dark:prose-h2:border-neutral-800 prose-h2:pb-2
           prose-h3:text-base sm:prose-h3:text-lg prose-h3:mt-4 prose-h3:mb-2

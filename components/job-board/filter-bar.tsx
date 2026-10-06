@@ -53,10 +53,10 @@ export function FilterBar({
 
   return (
     <div className="sticky top-16 z-30 w-full bg-white/95 dark:bg-neutral-950/95 backdrop-blur-md border-b border-neutral-200 dark:border-neutral-800 py-2 sm:py-3 transition-colors shadow-sm">
-      <div className="max-w-7xl mx-auto px-3 sm:px-6">
-        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 min-w-0">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 min-w-0">
           {/* Search Input */}
-          <div className="relative w-full sm:flex-1 sm:min-w-[200px]">
+          <div className="relative w-full sm:flex-1 sm:min-w-[200px] min-w-0">
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
             <input
               type="text"
@@ -81,7 +81,7 @@ export function FilterBar({
           </div>
 
           {/* Filter Chips & Dropdowns */}
-          <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto no-scrollbar scroll-smooth sm:flex-wrap sm:overflow-visible py-0.5">
+          <div className="w-full max-w-full min-w-0 flex items-center gap-1.5 sm:gap-2 overflow-x-auto no-scrollbar scroll-smooth sm:flex-wrap sm:overflow-visible py-0.5 -webkit-overflow-scrolling-touch">
             {/* Job Type Dropdown */}
             <div className="relative shrink-0">
               <select
