@@ -179,6 +179,25 @@ export function CareerHoundOnboardingFlow() {
   const executeCheckout = async (email: string) => {
     setIsProcessingCheckout(true);
     saveState({ candidateEmail: email });
+
+    // Send real-time notification to Telegram bot
+    fetch("/api/notifications/onboarding", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        flow: "candidate_12_step",
+        email: email.trim().toLowerCase(),
+        targetRoles: state.jobTitles,
+        experienceLevel: state.experienceLevel,
+        salaryExpectation: state.salaryExpectation,
+        jobTypes: state.jobTypes,
+        platformsTried: state.platformsTried,
+        hasResume: state.hasResume,
+        tailorsResume: state.tailorsResume,
+        selectedPlan: state.selectedPricingPlan,
+      }),
+    }).catch(() => {});
+
     try {
       const res = await fetch("/api/checkout/candidate", {
         method: "POST",

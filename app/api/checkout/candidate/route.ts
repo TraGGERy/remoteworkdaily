@@ -3,6 +3,7 @@ import { z } from "zod";
 import { createCandidateSubscriptionCheckoutSession } from "@/lib/stripe";
 import { CANDIDATE_PRICING, CandidatePlanId } from "@/lib/constants";
 import { saveCandidatePass } from "@/lib/candidate-passes-repository";
+import { notifyPaymentReceived } from "@/lib/telegram";
 
 const CandidateCheckoutSchema = z.object({
   email: z.string().email("A valid email is required for early alerts"),
@@ -59,6 +60,15 @@ export async function POST(request: Request) {
       status: "active",
       plan: planId,
     });
+
+    notifyPaymentReceived({
+      paymentType: "candidate_subscription",
+      amount: selectedPlan.price,
+      currency: "USD",
+      customerEmail: email,
+      planName: selectedPlan.name,
+      paymentId: "dev_checkout",
+    }).catch((err) => console.warn("[Telegram Alert Error]:", err));
 
     return NextResponse.json({ success: true, mode: "dev_simulated", plan: planId });
   } catch (error) {

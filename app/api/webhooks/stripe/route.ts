@@ -9,6 +9,7 @@ import {
   sendCandidatePaymentConfirmationEmail,
   sendEmployerJobConfirmationEmail,
 } from "@/lib/email/resend";
+import { notifyPaymentReceived } from "@/lib/telegram";
 
 export async function POST(req: Request) {
 
@@ -66,6 +67,15 @@ export async function POST(req: Request) {
           currency: session.currency ?? "usd",
           sessionId: session.id,
         }).catch((err) => console.warn("[Resend Email Error - Candidate]:", err));
+
+        notifyPaymentReceived({
+          paymentType: "candidate_subscription",
+          amount: session.amount_total ?? 1799,
+          currency: session.currency ?? "usd",
+          customerEmail: email,
+          planName: planId || "Candidate Subscription",
+          paymentId: session.id,
+        }).catch((err) => console.warn("[Telegram Payment Alert Error]:", err));
       }
     }
 
@@ -100,6 +110,17 @@ export async function POST(req: Request) {
             social: metadata.social === "true",
             sessionId: session.id,
           }).catch((err) => console.warn("[Resend Email Error - Employer]:", err));
+
+          notifyPaymentReceived({
+            paymentType: "employer_job_post",
+            amount: session.amount_total ?? 19900,
+            currency: session.currency ?? "usd",
+            customerEmail: employerEmail,
+            companyName: job.company,
+            jobTitle: job.title,
+            planName: "Employer Job Posting",
+            paymentId: session.id,
+          }).catch((err) => console.warn("[Telegram Payment Alert Error]:", err));
         }
       }
     }
@@ -118,6 +139,15 @@ export async function POST(req: Request) {
         plan: invoice.subscription ? "subscription_renewal" : "candidate_pass",
       });
       console.log(`[STRIPE WEBHOOK] Recurring subscription invoice payment succeeded for ${email}`);
+
+      notifyPaymentReceived({
+        paymentType: "candidate_subscription",
+        amount: invoice.amount_paid ?? 0,
+        currency: invoice.currency ?? "usd",
+        customerEmail: email,
+        planName: invoice.subscription ? "Subscription Renewal" : "Candidate Pass",
+        paymentId: invoice.id,
+      }).catch((err) => console.warn("[Telegram Payment Alert Error]:", err));
     }
 
     if (email) {

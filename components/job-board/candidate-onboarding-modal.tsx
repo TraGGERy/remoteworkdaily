@@ -35,6 +35,15 @@ export function CandidateOnboardingModal({
     setStep("scanning");
     setJobCountFound(Math.floor(Math.random() * 80) + 120);
 
+    fetch("/api/notifications/onboarding", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        flow: "visitor_modal",
+        targetRoles: [roleId],
+      }),
+    }).catch(() => {});
+
     setTimeout(() => {
       setStep("offer");
     }, 1400);
