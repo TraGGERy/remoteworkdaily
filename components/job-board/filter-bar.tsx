@@ -3,9 +3,8 @@
 import React, { useState, useEffect } from "react";
 import { FilterState } from "@/lib/types";
 import { SalarySliderPopup } from "./salary-slider-popup";
-import { BenefitsPopup } from "./benefits-popup";
 import { LocationPopup } from "./location-popup";
-import { Search, Globe, DollarSign, Sparkles, X, ChevronDown } from "lucide-react";
+import { Search, X, ChevronDown } from "lucide-react";
 
 interface FilterBarProps {
   filters: FilterState;
@@ -21,7 +20,6 @@ export function FilterBar({
   totalResults,
 }: FilterBarProps) {
   const [isSalaryOpen, setIsSalaryOpen] = useState(false);
-  const [isBenefitsOpen, setIsBenefitsOpen] = useState(false);
   const [isLocationOpen, setIsLocationOpen] = useState(false);
 
   // Debounced search query
@@ -106,42 +104,6 @@ export function FilterBar({
               <ChevronDown className="w-3.5 h-3.5 text-neutral-400 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
             </div>
 
-            {/* Freshness Quick Filter */}
-            <button
-              type="button"
-              onClick={() =>
-                onUpdateFilters({
-                  freshness: filters.freshness === "24h" ? "all" : "24h",
-                })
-              }
-              className={`h-9 inline-flex items-center gap-1.5 px-3 rounded-xl text-xs sm:text-sm font-semibold border transition-all shrink-0 whitespace-nowrap ${
-                filters.freshness === "24h"
-                  ? "bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-400 font-bold shadow-sm"
-                  : "bg-white dark:bg-neutral-900 text-neutral-700 dark:text-neutral-300 border-neutral-200 dark:border-neutral-800 hover:border-neutral-400 dark:hover:border-neutral-700"
-              }`}
-            >
-              <span>⚡</span>
-              <span>Last 24h</span>
-            </button>
-
-            {/* Direct ATS Quick Filter */}
-            <button
-              type="button"
-              onClick={() =>
-                onUpdateFilters({
-                  directAtsOnly: !filters.directAtsOnly,
-                })
-              }
-              className={`h-9 inline-flex items-center gap-1.5 px-3 rounded-xl text-xs sm:text-sm font-semibold border transition-all shrink-0 whitespace-nowrap ${
-                filters.directAtsOnly
-                  ? "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-400 font-bold shadow-sm"
-                  : "bg-white dark:bg-neutral-900 text-neutral-700 dark:text-neutral-300 border-neutral-200 dark:border-neutral-800 hover:border-neutral-400 dark:hover:border-neutral-700"
-              }`}
-            >
-              <span>🏢</span>
-              <span>Direct ATS</span>
-            </button>
-
             {/* Location Filter Button */}
             <div className="relative shrink-0">
               <button
@@ -149,7 +111,6 @@ export function FilterBar({
                 onClick={() => {
                   setIsLocationOpen(!isLocationOpen);
                   setIsSalaryOpen(false);
-                  setIsBenefitsOpen(false);
                 }}
                 className={`h-9 inline-flex items-center gap-1.5 px-3 rounded-xl text-xs sm:text-sm font-semibold border transition-all whitespace-nowrap ${
                   filters.location
@@ -178,7 +139,6 @@ export function FilterBar({
                 onClick={() => {
                   setIsSalaryOpen(!isSalaryOpen);
                   setIsLocationOpen(false);
-                  setIsBenefitsOpen(false);
                 }}
                 className={`h-9 inline-flex items-center gap-1.5 px-3 rounded-xl text-xs sm:text-sm font-semibold border transition-all whitespace-nowrap ${
                   filters.minSalary > 0
@@ -197,42 +157,6 @@ export function FilterBar({
                 onClose={() => setIsSalaryOpen(false)}
                 minSalary={filters.minSalary}
                 onChangeSalary={(sal) => onUpdateFilters({ minSalary: sal })}
-              />
-            </div>
-
-            {/* Benefits Filter Button */}
-            <div className="relative shrink-0">
-              <button
-                type="button"
-                onClick={() => {
-                  setIsBenefitsOpen(!isBenefitsOpen);
-                  setIsSalaryOpen(false);
-                  setIsLocationOpen(false);
-                }}
-                className={`h-9 inline-flex items-center gap-1.5 px-3 rounded-xl text-xs sm:text-sm font-semibold border transition-all whitespace-nowrap ${
-                  filters.benefits.length > 0
-                    ? "bg-red-50 dark:bg-red-950/40 text-[#FF4742] border-[#FF4742] font-bold shadow-sm"
-                    : "bg-white dark:bg-neutral-900 text-neutral-700 dark:text-neutral-300 border-neutral-200 dark:border-neutral-800 hover:border-neutral-400 dark:hover:border-neutral-700"
-                }`}
-              >
-                <span>🎪</span>
-                <span>
-                  Benefits
-                  {filters.benefits.length > 0 && ` (${filters.benefits.length})`}
-                </span>
-                <ChevronDown className="w-3 h-3 text-neutral-400" />
-              </button>
-              <BenefitsPopup
-                isOpen={isBenefitsOpen}
-                onClose={() => setIsBenefitsOpen(false)}
-                selectedBenefits={filters.benefits}
-                onToggleBenefit={(bId) => {
-                  const next = filters.benefits.includes(bId)
-                    ? filters.benefits.filter((b) => b !== bId)
-                    : [...filters.benefits, bId];
-                  onUpdateFilters({ benefits: next });
-                }}
-                onClearBenefits={() => onUpdateFilters({ benefits: [] })}
               />
             </div>
 

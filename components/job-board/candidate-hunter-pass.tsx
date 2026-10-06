@@ -146,7 +146,7 @@ export function CandidateHunterPass() {
                     </span>
                   </div>
                   <p className="text-xs text-neutral-600 dark:text-neutral-400 mt-0.5">
-                    Unlock direct company ATS links (Greenhouse, Lever, Ashby), 24h freshness filter, and early-bird alerts.
+                    Unlock direct company ATS links (Greenhouse, Lever, Ashby), verified salary benchmarks, and early-bird alerts.
                   </p>
                 </div>
               </div>

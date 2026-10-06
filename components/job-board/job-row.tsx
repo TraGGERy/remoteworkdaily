@@ -79,11 +79,6 @@ export function JobRow({ job, isSelected, onToggleSelect, onTagClick }: JobRowPr
                 <span>Pinned</span>
               </span>
             )}
-            {(job.source === "ats" || job.atsProvider || job.isDirectCompanyPost) && (
-              <span className="inline-flex items-center gap-0.5 text-[10px] font-extrabold uppercase px-1.5 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800/70">
-                <span>🏢 Direct ATS</span>
-              </span>
-            )}
             {isNewToday && (
               <span className="inline-flex items-center gap-0.5 text-[10px] font-extrabold uppercase px-1.5 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800/70">
                 <Sparkles className="w-2.5 h-2.5" />
