@@ -204,3 +204,75 @@ export async function createCandidateSubscriptionCheckoutSession(params: Candida
 // Backward compatibility alias
 export const createCandidateHunterPassCheckoutSession = createCandidateSubscriptionCheckoutSession;
 
+/**
+ * Cancels any active Stripe subscription for the given email address.
+ */
+export async function cancelStripeSubscription(email: string): Promise<boolean> {
+  const stripeKey = process.env.STRIPE_SECRET_KEY;
+  if (!stripeKey || stripeKey.includes("placeholder")) {
+    return true; // Test/Mock mode succeeds immediately
+  }
+
+  try {
+    const customers = await stripe.customers.list({
+      email: email.toLowerCase().trim(),
+      limit: 1,
+    });
+
+    if (customers.data.length === 0) {
+      return false;
+    }
+
+    const customerId = customers.data[0].id;
+    const subscriptions = await stripe.subscriptions.list({
+      customer: customerId,
+      status: "active",
+      limit: 5,
+    });
+
+    for (const sub of subscriptions.data) {
+      await stripe.subscriptions.cancel(sub.id);
+    }
+
+    return true;
+  } catch (err) {
+    console.warn("[Stripe] Failed to cancel subscription for", email, err);
+    return false;
+  }
+}
+
+/**
+ * Creates a Stripe Customer Billing Portal session for self-serve management.
+ */
+export async function createCustomerPortalSession(params: {
+  email: string;
+  returnUrl: string;
+}): Promise<string | null> {
+  const stripeKey = process.env.STRIPE_SECRET_KEY;
+  if (!stripeKey || stripeKey.includes("placeholder")) {
+    return null;
+  }
+
+  try {
+    const customers = await stripe.customers.list({
+      email: params.email.toLowerCase().trim(),
+      limit: 1,
+    });
+
+    if (customers.data.length === 0) {
+      return null;
+    }
+
+    const session = await stripe.billingPortal.sessions.create({
+      customer: customers.data[0].id,
+      return_url: params.returnUrl,
+    });
+
+    return session.url;
+  } catch (err) {
+    console.warn("[Stripe] Failed to create portal session for", params.email, err);
+    return null;
+  }
+}
+
+

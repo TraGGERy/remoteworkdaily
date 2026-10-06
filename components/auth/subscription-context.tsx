@@ -9,12 +9,14 @@ interface SubscriptionContextType {
   hasActiveSubscription: boolean;
   isLoading: boolean;
   userEmail: string | null;
+  subscriptionPlan: string | null;
   isUpgradeModalOpen: boolean;
   setUpgradeModalOpen: (open: boolean) => void;
   openUpgradeModal: () => void;
   closeUpgradeModal: () => void;
   refreshSubscription: () => Promise<void>;
   simulateSubscription: (active: boolean) => void;
+  cancelSubscription: () => Promise<boolean>;
   isOnboardingCompleted: boolean;
   markOnboardingCompleted: () => Promise<void>;
 }
@@ -24,12 +26,14 @@ const SubscriptionContext = createContext<SubscriptionContextType>({
   hasActiveSubscription: false,
   isLoading: true,
   userEmail: null,
+  subscriptionPlan: null,
   isUpgradeModalOpen: false,
   setUpgradeModalOpen: () => {},
   openUpgradeModal: () => {},
   closeUpgradeModal: () => {},
   refreshSubscription: async () => {},
   simulateSubscription: () => {},
+  cancelSubscription: async () => false,
   isOnboardingCompleted: false,
   markOnboardingCompleted: async () => {},
 });
@@ -44,9 +48,13 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
   const [simulatedSub, setSimulatedSub] = useState<boolean | null>(null);
   const [hasServerSub, setHasServerSub] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [subscriptionPlan, setSubscriptionPlan] = useState<string | null>(null);
   const [isOnboardingCompleted, setIsOnboardingCompleted] = useState<boolean>(() => {
     if (typeof window !== "undefined") {
-      return localStorage.getItem("rwd_onboarding_completed") === "true";
+      const local = localStorage.getItem("rwd_onboarding_completed") === "true";
+      const session = sessionStorage.getItem("rwd_onboarding_completed") === "true" || sessionStorage.getItem("rwd_onboarding_shown") === "true";
+      const cookie = document.cookie.includes("rwd_onboarding_completed=true");
+      return local || session || cookie;
     }
     return false;
   });
@@ -91,12 +99,19 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
       if (res.ok) {
         const data = await res.json();
         setHasServerSub(Boolean(data.active));
+        if (data.active && data.pass) {
+          setSubscriptionPlan(data.pass.plan || "monthly");
+        } else {
+          setSubscriptionPlan(null);
+        }
       } else {
         setHasServerSub(false);
+        setSubscriptionPlan(null);
       }
     } catch (err) {
       console.warn("Could not check subscription status:", err);
       setHasServerSub(false);
+      setSubscriptionPlan(null);
     } finally {
       setIsLoading(false);
     }
@@ -109,6 +124,8 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
       const urlParams = new URLSearchParams(window.location.search);
       if (urlParams.get("subscription") === "success") {
         localStorage.setItem("rwd_onboarding_completed", "true");
+        sessionStorage.setItem("rwd_onboarding_completed", "true");
+        document.cookie = "rwd_onboarding_completed=true; path=/; max-age=31536000; SameSite=Lax";
         localStorage.setItem("remotework_active_subscription", "true");
         setSimulatedSub(true);
         setHasServerSub(true);
@@ -135,11 +152,16 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
   useEffect(() => {
     if (clerkUser) {
       const userCompleted = Boolean(clerkUser.unsafeMetadata?.onboarding_completed);
-      const localCompleted = typeof window !== "undefined" && localStorage.getItem("rwd_onboarding_completed") === "true";
+      const localCompleted = typeof window !== "undefined" && (
+        localStorage.getItem("rwd_onboarding_completed") === "true" ||
+        document.cookie.includes("rwd_onboarding_completed=true")
+      );
 
       if (userCompleted) {
         if (typeof window !== "undefined") {
           localStorage.setItem("rwd_onboarding_completed", "true");
+          sessionStorage.setItem("rwd_onboarding_completed", "true");
+          document.cookie = "rwd_onboarding_completed=true; path=/; max-age=31536000; SameSite=Lax";
         }
         setIsOnboardingCompleted(true);
       } else if (localCompleted) {
@@ -158,6 +180,9 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
   const markOnboardingCompleted = useCallback(async () => {
     if (typeof window !== "undefined") {
       localStorage.setItem("rwd_onboarding_completed", "true");
+      sessionStorage.setItem("rwd_onboarding_completed", "true");
+      sessionStorage.setItem("rwd_onboarding_shown", "true");
+      document.cookie = "rwd_onboarding_completed=true; path=/; max-age=31536000; SameSite=Lax";
     }
     setIsOnboardingCompleted(true);
 
@@ -174,6 +199,35 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
       }
     }
   }, [clerkUser]);
+
+  const cancelSubscription = useCallback(async (): Promise<boolean> => {
+    const storedEmail = typeof window !== "undefined" ? localStorage.getItem("remotework_user_email") : null;
+    const emailToCancel = primaryEmail || storedEmail;
+
+    // Instantly update client optimistic state
+    setSimulatedSub(false);
+    setHasServerSub(false);
+    setSubscriptionPlan(null);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("remotework_active_subscription", "false");
+    }
+
+    if (!emailToCancel) {
+      return true;
+    }
+
+    try {
+      const res = await fetch("/api/user/subscription/cancel", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: emailToCancel }),
+      });
+      return res.ok;
+    } catch (err) {
+      console.warn("Failed to cancel subscription via API:", err);
+      return true;
+    }
+  }, [primaryEmail]);
 
   const openUpgradeModal = () => setUpgradeModalOpen(true);
   const closeUpgradeModal = () => setUpgradeModalOpen(false);
@@ -200,12 +254,14 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
         hasActiveSubscription,
         isLoading: isConfigured ? !clerkIsLoaded || isLoading : false,
         userEmail: primaryEmail,
+        subscriptionPlan,
         isUpgradeModalOpen,
         setUpgradeModalOpen,
         openUpgradeModal,
         closeUpgradeModal,
         refreshSubscription,
         simulateSubscription,
+        cancelSubscription,
         isOnboardingCompleted,
         markOnboardingCompleted,
       }}

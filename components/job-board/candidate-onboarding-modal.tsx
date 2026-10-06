@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { Sparkles, ArrowRight, X, CheckCircle2, ShieldCheck, Zap, Search } from "lucide-react";
 import { ROLE_CATEGORIES, CANDIDATE_PRICING } from "@/lib/constants";
@@ -19,6 +19,7 @@ export function CandidateOnboardingModal({
     isSignedIn,
     hasActiveSubscription,
     isOnboardingCompleted,
+    isLoading,
     markOnboardingCompleted,
   } = useSubscription();
 
@@ -28,27 +29,56 @@ export function CandidateOnboardingModal({
   const [jobCountFound, setJobCountFound] = useState(142);
 
   useEffect(() => {
-    // If onboarding is already marked completed or user has active subscription, never open
-    if (isOnboardingCompleted || hasActiveSubscription) {
+    // If auth state is still initializing, wait so we don't show to logged-in users
+    if (isLoading) {
       return;
     }
 
-    const seen = typeof window !== "undefined" && localStorage.getItem("rwd_onboarding_completed") === "true";
-    const hasSub = typeof window !== "undefined" && localStorage.getItem("remotework_active_subscription") === "true";
-
-    // If user has seen it, has active sub, or is already logged in, do not repeat
-    if (seen || hasSub || isSignedIn) {
-      if (isSignedIn && !seen) {
-        // Authenticated user already signed in: mark completed so it never repeats on future logins
+    // If onboarding is already completed, user has active subscription, or user is signed in:
+    if (isOnboardingCompleted || hasActiveSubscription || isSignedIn) {
+      if (isSignedIn && !isOnboardingCompleted) {
         markOnboardingCompleted();
       }
       return;
     }
 
-    // Only show for first-time unauthenticated visitors 1.2s after arrival
-    const timer = setTimeout(() => setIsOpen(true), 1200);
+    if (typeof window !== "undefined") {
+      const localCompleted = localStorage.getItem("rwd_onboarding_completed") === "true";
+      const sessionCompleted = sessionStorage.getItem("rwd_onboarding_completed") === "true";
+      const sessionShown = sessionStorage.getItem("rwd_onboarding_shown") === "true";
+      const cookieCompleted = document.cookie.includes("rwd_onboarding_completed=true");
+      const hasSub = localStorage.getItem("remotework_active_subscription") === "true";
+      const hasDraft = localStorage.getItem("careerhound_onboarding_draft") !== null;
+
+      if (localCompleted || sessionCompleted || sessionShown || cookieCompleted || hasSub || hasDraft) {
+        return;
+      }
+
+      // Mark as shown in this session so it never triggers a second time in this browser session
+      sessionStorage.setItem("rwd_onboarding_shown", "true");
+    }
+
+    // Only show for first-time unauthenticated visitors 2s after arrival
+    const timer = setTimeout(() => setIsOpen(true), 2000);
     return () => clearTimeout(timer);
-  }, [isOnboardingCompleted, hasActiveSubscription, isSignedIn, markOnboardingCompleted]);
+  }, [isLoading, isOnboardingCompleted, hasActiveSubscription, isSignedIn, markOnboardingCompleted]);
+
+  const handleDismiss = useCallback(() => {
+    markOnboardingCompleted();
+    setIsOpen(false);
+  }, [markOnboardingCompleted]);
+
+  // Handle escape key
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        handleDismiss();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, handleDismiss]);
 
   const handleRoleSelect = (roleId: string) => {
     setSelectedRole(roleId);
@@ -69,11 +99,6 @@ export function CandidateOnboardingModal({
     }, 1400);
   };
 
-  const handleDismiss = () => {
-    markOnboardingCompleted();
-    setIsOpen(false);
-  };
-
   const handleCompleteAndBrowse = () => {
     markOnboardingCompleted();
     onSelectCategory(selectedRole);
@@ -89,7 +114,14 @@ export function CandidateOnboardingModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-neutral-950/80 backdrop-blur-md animate-in fade-in duration-200 overflow-y-auto">
+    <div
+      onClick={(e) => {
+        if (e.target === e.currentTarget) {
+          handleDismiss();
+        }
+      }}
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-neutral-950/80 backdrop-blur-md animate-in fade-in duration-200 overflow-y-auto"
+    >
       <div className="relative w-full max-w-lg max-h-[90vh] overflow-y-auto my-auto rounded-3xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 p-5 sm:p-8 shadow-2xl space-y-5 sm:space-y-6 text-left">
         <button
           onClick={handleDismiss}

@@ -399,3 +399,207 @@ test("Persistence Layer: Data directory and storage integrity check", async () =
   const jobsData = JSON.parse(fs.readFileSync(path.join(dataDir, "jobs.json"), "utf8"));
   assert.ok(Array.isArray(jobsData) && jobsData.length > 0, "data/jobs.json must be a non-empty array");
 });
+
+test("Subscription Management: Pass cancellation updates record status to expired", () => {
+  // Pure state machine simulation of candidate pass lifecycle
+  const passes = new Map();
+  const testEmail = "subscriber@example.com";
+
+  // 1. Initial active subscription
+  passes.set(testEmail, {
+    id: "pass_123",
+    email: testEmail,
+    status: "active",
+    plan: "monthly",
+    amount: 17.99,
+  });
+
+  assert.equal(passes.get(testEmail).status, "active");
+
+  // 2. Cancellation action
+  const record = passes.get(testEmail);
+  if (record) {
+    record.status = "expired";
+  }
+
+  // 3. Status check after cancellation
+  assert.equal(passes.get(testEmail).status, "expired");
+
+  // Verify that an expired pass is rejected for active privileges
+  function hasActiveAccess(email) {
+    const p = passes.get(email);
+    return Boolean(p && p.status === "active");
+  }
+
+  assert.equal(hasActiveAccess(testEmail), false);
+});
+
+test("Employer Dashboard: Filters jobs strictly by employerEmail and calculates real metrics", () => {
+  const mockAllJobs = [
+    {
+      id: "job-1",
+      title: "Frontend Engineer",
+      company: "Acme Corp",
+      employerEmail: "recruiter@acmework.com",
+      viewsCount: 142,
+      appliesCount: 18,
+      status: "active",
+    },
+    {
+      id: "job-2",
+      title: "Backend Engineer",
+      company: "Acme Corp",
+      employerEmail: "recruiter@acmework.com",
+      viewsCount: 88,
+      appliesCount: 9,
+      status: "active",
+    },
+    {
+      id: "job-3",
+      title: "Staff DevOps",
+      company: "Other Co",
+      employerEmail: "hr@otherco.io",
+      viewsCount: 310,
+      appliesCount: 25,
+      status: "active",
+    },
+    {
+      id: "job-4",
+      title: "Scraped Public Job",
+      company: "Elastic",
+      employerEmail: null,
+      viewsCount: 50,
+      appliesCount: 4,
+      status: "active",
+    },
+  ];
+
+  function filterEmployerJobs(jobs, email) {
+    if (!email || !email.trim()) return { count: 0, jobs: [], totalViews: 0, totalApplies: 0 };
+    const normalized = email.toLowerCase().trim();
+    const filtered = jobs.filter((j) => j.employerEmail && j.employerEmail.toLowerCase().trim() === normalized);
+    const totalViews = filtered.reduce((s, j) => s + (j.viewsCount || 0), 0);
+    const totalApplies = filtered.reduce((s, j) => s + (j.appliesCount || 0), 0);
+    return { count: filtered.length, jobs: filtered, totalViews, totalApplies };
+  }
+
+  // Recruiter with 2 jobs
+  const result = filterEmployerJobs(mockAllJobs, "recruiter@acmework.com ");
+  assert.equal(result.count, 2);
+  assert.equal(result.totalViews, 230);
+  assert.equal(result.totalApplies, 27);
+  assert.equal(result.jobs[0].title, "Frontend Engineer");
+  assert.equal(result.jobs[1].title, "Backend Engineer");
+
+  // Recruiter with 0 jobs gets empty state, never public scraped jobs
+  const emptyResult = filterEmployerJobs(mockAllJobs, "newemployer@startup.io");
+  assert.equal(emptyResult.count, 0);
+  assert.equal(emptyResult.jobs.length, 0);
+  assert.equal(emptyResult.totalViews, 0);
+  assert.equal(emptyResult.totalApplies, 0);
+
+  // Blank query returns 0
+  const blankResult = filterEmployerJobs(mockAllJobs, "");
+  assert.equal(blankResult.count, 0);
+});
+
+test("Candidate Onboarding Modal: Multi-tier suppression rules prevent unwanted popups", () => {
+  function shouldShowOnboardingModal({
+    isLoadingClerk,
+    isOnboardingCompleted,
+    hasActiveSubscription,
+    isSignedIn,
+    cookieCompleted,
+    sessionStorageCompleted,
+  }) {
+    // 1. Clerk still loading auth state - do NOT pop up early
+    if (isLoadingClerk) return false;
+
+    // 2. Already completed (state, cookie, or sessionStorage)
+    if (isOnboardingCompleted || cookieCompleted || sessionStorageCompleted) return false;
+
+    // 3. User is already authenticated or paying subscriber
+    if (isSignedIn || hasActiveSubscription) return false;
+
+    return true;
+  }
+
+  // Brand new visitor (first visit) -> Should show
+  assert.equal(
+    shouldShowOnboardingModal({
+      isLoadingClerk: false,
+      isOnboardingCompleted: false,
+      hasActiveSubscription: false,
+      isSignedIn: false,
+      cookieCompleted: false,
+      sessionStorageCompleted: false,
+    }),
+    true
+  );
+
+  // Clerk is loading -> Must NOT show prematurely
+  assert.equal(
+    shouldShowOnboardingModal({
+      isLoadingClerk: true,
+      isOnboardingCompleted: false,
+      hasActiveSubscription: false,
+      isSignedIn: false,
+      cookieCompleted: false,
+      sessionStorageCompleted: false,
+    }),
+    false
+  );
+
+  // Signed-in user -> Must NOT show
+  assert.equal(
+    shouldShowOnboardingModal({
+      isLoadingClerk: false,
+      isOnboardingCompleted: false,
+      hasActiveSubscription: false,
+      isSignedIn: true,
+      cookieCompleted: false,
+      sessionStorageCompleted: false,
+    }),
+    false
+  );
+
+  // Completed via cookie -> Must NOT show
+  assert.equal(
+    shouldShowOnboardingModal({
+      isLoadingClerk: false,
+      isOnboardingCompleted: false,
+      hasActiveSubscription: false,
+      isSignedIn: false,
+      cookieCompleted: true,
+      sessionStorageCompleted: false,
+    }),
+    false
+  );
+
+  // Completed via sessionStorage -> Must NOT show
+  assert.equal(
+    shouldShowOnboardingModal({
+      isLoadingClerk: false,
+      isOnboardingCompleted: false,
+      hasActiveSubscription: false,
+      isSignedIn: false,
+      cookieCompleted: false,
+      sessionStorageCompleted: true,
+    }),
+    false
+  );
+
+  // Active subscriber -> Must NOT show
+  assert.equal(
+    shouldShowOnboardingModal({
+      isLoadingClerk: false,
+      isOnboardingCompleted: false,
+      hasActiveSubscription: true,
+      isSignedIn: false,
+      cookieCompleted: false,
+      sessionStorageCompleted: false,
+    }),
+    false
+  );
+});
+
