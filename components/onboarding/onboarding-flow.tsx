@@ -32,13 +32,25 @@ const LOCAL_STORAGE_KEY = "careerhound_onboarding_draft";
 
 export function CareerHoundOnboardingFlow() {
   const router = useRouter();
-  const { markOnboardingCompleted } = useSubscription();
+  const { markOnboardingCompleted, isOnboardingCompleted, hasActiveSubscription, isLoading } = useSubscription();
   const [state, setState] = useState<OnboardingState>(INITIAL_ONBOARDING_STATE);
   const [currentTitleInput, setCurrentTitleInput] = useState("");
   const [isProcessingCheckout, setIsProcessingCheckout] = useState(false);
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [emailInput, setEmailInput] = useState("");
   const [checkoutSuccess, setCheckoutSuccess] = useState(false);
+
+  // If user already completed onboarding or has active subscription, redirect to dashboard unless explicitly retaking
+  useEffect(() => {
+    if (!isLoading && (isOnboardingCompleted || hasActiveSubscription)) {
+      if (typeof window !== "undefined") {
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get("retake") !== "true") {
+          router.replace("/dashboard");
+        }
+      }
+    }
+  }, [isLoading, isOnboardingCompleted, hasActiveSubscription, router]);
 
   // Restore draft state from localStorage if available
   useEffect(() => {
