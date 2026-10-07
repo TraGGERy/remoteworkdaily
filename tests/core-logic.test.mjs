@@ -664,4 +664,21 @@ test("Job Freshness: Default sort strictly places today's newest listings ahead 
   assert.equal(sorted[2].id, "old-1", "Job from two days ago must be last");
 });
 
+test("Middleware Route Strategy: Public-first policy protects only /dashboard and allows public content and 404s", () => {
+  // Read middleware.ts source to verify Public-First pattern
+  const middlewareContent = fs.readFileSync(path.resolve("middleware.ts"), "utf-8");
+  assert.ok(
+    middlewareContent.includes("isProtectedRoute"),
+    "middleware.ts must define isProtectedRoute instead of restrictive isPublicRoute"
+  );
+  assert.ok(
+    middlewareContent.includes('"/dashboard(.*)"'),
+    "middleware.ts must protect /dashboard"
+  );
+  assert.ok(
+    !middlewareContent.includes("!isPublicRoute"),
+    "middleware.ts must not block all unknown routes with !isPublicRoute"
+  );
+});
+
 

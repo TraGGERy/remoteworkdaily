@@ -33,6 +33,9 @@ export function Footer() {
             <Link href="/tools/remote-savings-calculator" className="hover:text-[#FF4742] transition-colors">
               WFH Savings Calculator
             </Link>
+            <Link href="/ghost-job-listings-on-the-rise-how-to" className="hover:text-[#FF4742] transition-colors">
+              Ghost Jobs Guide
+            </Link>
             <Link
               href="https://safetywing.com"
               target="_blank"
@@ -45,7 +48,7 @@ export function Footer() {
               API Feed
             </Link>
             <Link href="/hire-remotely" className="hover:text-[#FF4742] transition-colors">
-              Post a Job ($199)
+              Post a Job ($249)
             </Link>
             <Link href="/privacy" className="hover:text-[#FF4742] transition-colors">
               Privacy Policy

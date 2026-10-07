@@ -7,31 +7,15 @@ const isClerkConfigured =
   !publishableKey.includes("placeholder") &&
   (publishableKey.startsWith("pk_test_") || publishableKey.startsWith("pk_live_"));
 
-const isPublicRoute = createRouteMatcher([
-  "/",
-  "/sign-in(.*)",
-  "/sign-up(.*)",
-  "/login(.*)",
-  "/remote-(.*)",
-  "/jobs/(.*)",
-  "/tag/(.*)",
-  "/location/(.*)",
-  "/tools/(.*)",
-  "/remote-jobs.json",
-  "/api/(.*)",
-  "/hire-remotely",
-  "/sitemap.xml",
-  "/robots.txt",
-  "/llms.txt",
-  "/llms-full.txt",
-  "/terms",
-  "/privacy",
-  "/onboarding(.*)",
+// Public-First strategy: Only protect routes that strictly require authentication (e.g. private dashboard).
+// All public content pages, articles, guides, feeds, and 404s pass through cleanly without 307 sign-in redirects.
+const isProtectedRoute = createRouteMatcher([
+  "/dashboard(.*)",
 ]);
 
 const middleware = isClerkConfigured
   ? clerkMiddleware(async (auth, req) => {
-      if (!isPublicRoute(req)) {
+      if (isProtectedRoute(req)) {
         await auth.protect();
       }
     })
