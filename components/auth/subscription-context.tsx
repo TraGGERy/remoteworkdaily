@@ -104,6 +104,14 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
         } else {
           setSubscriptionPlan(null);
         }
+        if (data.onboardingCompleted) {
+          setIsOnboardingCompleted(true);
+          if (typeof window !== "undefined") {
+            localStorage.setItem("rwd_onboarding_completed", "true");
+            sessionStorage.setItem("rwd_onboarding_completed", "true");
+            document.cookie = "rwd_onboarding_completed=true; path=/; max-age=31536000; SameSite=Lax";
+          }
+        }
       } else {
         setHasServerSub(false);
         setSubscriptionPlan(null);

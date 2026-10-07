@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getActiveCandidatePass } from "@/lib/candidate-passes-repository";
+import { getSubscriber } from "@/lib/subscribers-repository";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -13,11 +14,15 @@ export async function GET(request: Request) {
 
   try {
     const pass = await getActiveCandidatePass(normalizedEmail);
-    if (pass && pass.status === "active") {
-      return NextResponse.json({ active: true, pass });
-    }
+    const subscriber = getSubscriber(normalizedEmail);
+    const hasActivePass = Boolean(pass && pass.status === "active");
+    const onboardingCompleted = Boolean(hasActivePass || subscriber);
 
-    return NextResponse.json({ active: false, pass: null });
+    return NextResponse.json({
+      active: hasActivePass,
+      pass: hasActivePass ? pass : null,
+      onboardingCompleted,
+    });
   } catch (error) {
     console.error("Error checking subscription status:", error);
     return NextResponse.json({ active: false, error: "Internal server error" }, { status: 500 });

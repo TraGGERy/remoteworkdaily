@@ -1,11 +1,22 @@
 import { NextResponse } from "next/server";
 import { notifyUserOnboarding, OnboardingNotificationPayload } from "@/lib/telegram";
+import { saveSubscriber } from "@/lib/subscribers-repository";
 
 export async function POST(request: Request) {
   try {
     const body = (await request.json()) as OnboardingNotificationPayload;
     if (!body || !body.flow) {
       return NextResponse.json({ error: "Missing required onboarding flow details" }, { status: 400 });
+    }
+
+    // Persist email to persistent store & Supabase cloud DB
+    if (body.email) {
+      await saveSubscriber({
+        email: body.email,
+        category: "onboarded",
+      }).catch((err) => {
+        console.warn("[Onboarding API] Cloud DB sync notice:", err);
+      });
     }
 
     // Fire Telegram notification asynchronously
