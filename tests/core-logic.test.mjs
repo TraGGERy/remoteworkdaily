@@ -705,4 +705,28 @@ test("Public Editorial Guides: Ghost Jobs and Virtual Secret Santa pages exist",
   );
 });
 
+test("Candidate Upgrade Modal & Settings Integration: SiteChrome mounts modal and Settings includes Direct ATS Pass upgrade", () => {
+  const siteChromeSrc = fs.readFileSync(path.resolve("components/navigation/site-chrome.tsx"), "utf-8");
+  assert.ok(
+    siteChromeSrc.includes("<CandidateUpgradeModal />") || siteChromeSrc.includes("<CandidateUpgradeModal/>"),
+    "SiteChrome must globally mount CandidateUpgradeModal"
+  );
+
+  const hunterPassSrc = fs.readFileSync(path.resolve("components/job-board/candidate-hunter-pass.tsx"), "utf-8");
+  assert.ok(
+    hunterPassSrc.includes("openUpgradeModal"),
+    "CandidateHunterPass must invoke openUpgradeModal"
+  );
+
+  const dashboardSrc = fs.readFileSync(path.resolve("app/dashboard/page.tsx"), "utf-8");
+  assert.ok(
+    dashboardSrc.includes("Upgrade to Direct ATS Pass (From $6.99/wk)"),
+    "Dashboard must render 'Upgrade to Direct ATS Pass (From $6.99/wk)' button"
+  );
+  assert.ok(
+    dashboardSrc.includes('Direct ATS Pass & Plan'),
+    "Dashboard Settings tab must include Direct ATS Pass & Plan section"
+  );
+});
+
 

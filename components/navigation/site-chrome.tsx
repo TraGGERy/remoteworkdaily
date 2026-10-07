@@ -6,6 +6,7 @@ import { Header } from "./header";
 import { NoticeBanner } from "./notice-banner";
 import { CatchEmailsBanner } from "./catch-emails-banner";
 import { Footer } from "./footer";
+import { CandidateUpgradeModal } from "@/components/job-board/candidate-upgrade-modal";
 
 export function SiteChrome({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -22,6 +23,7 @@ export function SiteChrome({ children }: { children: React.ReactNode }) {
       <div className="flex-1 pb-16">{children}</div>
       <CatchEmailsBanner />
       <Footer />
+      <CandidateUpgradeModal />
     </>
   );
 }

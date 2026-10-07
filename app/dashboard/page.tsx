@@ -571,16 +571,68 @@ export default function DashboardPage() {
       {/* TAB 3: ACCOUNT & NOTIFICATION SETTINGS                                    */}
       {/* ========================================================================= */}
       {activeTab === "settings" && (
-        <form onSubmit={handleSaveSettings} className="space-y-6 animate-in fade-in duration-150">
-          <div className="p-6 rounded-3xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow-sm space-y-6">
-            <div>
-              <h2 className="font-extrabold text-base text-neutral-900 dark:text-white">
-                Account & Preferences
-              </h2>
-              <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">
-                Manage your notification cadence and saved preferences.
-              </p>
+        <div className="space-y-6 animate-in fade-in duration-150">
+          {/* Candidate Access & Membership Section in Settings */}
+          <div className="p-6 rounded-3xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow-sm space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <span className="text-xs font-bold uppercase tracking-wider text-neutral-400">
+                  Direct ATS Pass & Plan
+                </span>
+                <div className="flex items-center gap-2.5 mt-1">
+                  <h3 className="text-lg sm:text-xl font-black text-neutral-900 dark:text-white">
+                    {hasActiveSubscription ? planNameFormatted : "Free Candidate Preview"}
+                  </h3>
+                  <span
+                    className={`inline-flex items-center gap-1 text-[11px] font-black uppercase px-2.5 py-0.5 rounded-full ${
+                      hasActiveSubscription
+                        ? "bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border border-emerald-300/40"
+                        : "bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400"
+                    }`}
+                  >
+                    {hasActiveSubscription ? "Active Plan" : "Free Preview (25 Jobs)"}
+                  </span>
+                </div>
+                <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1">
+                  {hasActiveSubscription
+                    ? "Direct company ATS links (Greenhouse, Lever, Ashby) and transparent salary insights are unlocked."
+                    : "Upgrade to unlock direct company ATS links for all daily remote jobs, verified salaries, and early-bird alerts."}
+                </p>
+              </div>
+
+              {!hasActiveSubscription ? (
+                <button
+                  type="button"
+                  onClick={openUpgradeModal}
+                  className="px-5 py-3 rounded-xl text-xs sm:text-sm font-bold bg-[#FF4742] text-white hover:bg-[#e03a35] shadow-lg shadow-red-500/20 active:scale-95 transition-all flex items-center justify-center gap-2 shrink-0"
+                >
+                  <Zap className="w-4 h-4" />
+                  <span>Upgrade to Direct ATS Pass (From $6.99/wk)</span>
+                </button>
+              ) : (
+                <div className="flex flex-wrap items-center gap-2 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab("subscription")}
+                    className="px-4 py-2.5 rounded-xl text-xs font-bold border border-neutral-200 dark:border-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-800 text-neutral-700 dark:text-neutral-300 transition-colors"
+                  >
+                    Manage & Billing
+                  </button>
+                </div>
+              )}
             </div>
+          </div>
+
+          <form onSubmit={handleSaveSettings} className="space-y-6">
+            <div className="p-6 rounded-3xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow-sm space-y-6">
+              <div>
+                <h2 className="font-extrabold text-base text-neutral-900 dark:text-white">
+                  Account & Preferences
+                </h2>
+                <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">
+                  Manage your notification cadence and saved preferences.
+                </p>
+              </div>
 
             {/* Account Details */}
             <div className="space-y-3 pt-2 border-t border-neutral-100 dark:border-neutral-800">
@@ -675,7 +727,8 @@ export default function DashboardPage() {
             </div>
           </div>
         </form>
-      )}
-    </div>
-  );
+      </div>
+    )}
+  </div>
+);
 }

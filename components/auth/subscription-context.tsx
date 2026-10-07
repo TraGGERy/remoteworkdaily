@@ -15,7 +15,7 @@ interface SubscriptionContextType {
   openUpgradeModal: () => void;
   closeUpgradeModal: () => void;
   refreshSubscription: () => Promise<void>;
-  simulateSubscription: (active: boolean) => void;
+  simulateSubscription: (active: boolean, plan?: string) => void;
   cancelSubscription: () => Promise<boolean>;
   isOnboardingCompleted: boolean;
   markOnboardingCompleted: () => Promise<void>;
@@ -131,12 +131,15 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
     if (typeof window !== "undefined") {
       const urlParams = new URLSearchParams(window.location.search);
       if (urlParams.get("subscription") === "success") {
+        const plan = urlParams.get("plan") || "monthly";
         localStorage.setItem("rwd_onboarding_completed", "true");
         sessionStorage.setItem("rwd_onboarding_completed", "true");
         document.cookie = "rwd_onboarding_completed=true; path=/; max-age=31536000; SameSite=Lax";
         localStorage.setItem("remotework_active_subscription", "true");
+        localStorage.setItem("remotework_subscription_plan", plan);
         setSimulatedSub(true);
         setHasServerSub(true);
+        setSubscriptionPlan(plan);
       }
     }
 
@@ -144,6 +147,10 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
     const cached = localStorage.getItem("remotework_active_subscription");
     if (cached !== null) {
       setSimulatedSub(cached === "true");
+    }
+    const cachedPlan = localStorage.getItem("remotework_subscription_plan");
+    if (cachedPlan) {
+      setSubscriptionPlan(cachedPlan);
     }
 
     const storedEmail = typeof window !== "undefined" ? localStorage.getItem("remotework_user_email") : null;
@@ -218,6 +225,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
     setSubscriptionPlan(null);
     if (typeof window !== "undefined") {
       localStorage.setItem("remotework_active_subscription", "false");
+      localStorage.removeItem("remotework_subscription_plan");
     }
 
     if (!emailToCancel) {
@@ -240,9 +248,18 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
   const openUpgradeModal = () => setUpgradeModalOpen(true);
   const closeUpgradeModal = () => setUpgradeModalOpen(false);
 
-  const simulateSubscription = (active: boolean) => {
+  const simulateSubscription = (active: boolean, plan?: string) => {
     setSimulatedSub(active);
-    localStorage.setItem("remotework_active_subscription", active ? "true" : "false");
+    if (typeof window !== "undefined") {
+      localStorage.setItem("remotework_active_subscription", active ? "true" : "false");
+      if (plan) {
+        localStorage.setItem("remotework_subscription_plan", plan);
+        setSubscriptionPlan(plan);
+      } else if (!active) {
+        localStorage.removeItem("remotework_subscription_plan");
+        setSubscriptionPlan(null);
+      }
+    }
   };
 
   const refreshSubscription = async () => {
