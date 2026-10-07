@@ -681,4 +681,28 @@ test("Middleware Route Strategy: Public-first policy protects only /dashboard an
   );
 });
 
+test("OG Image Satori Hygiene: /api/og and /api/og/job avoid z-index warnings and dynamic font 400 errors", () => {
+  const ogRoute = fs.readFileSync(path.resolve("app/api/og/route.tsx"), "utf-8");
+  const ogJobRoute = fs.readFileSync(path.resolve("app/api/og/job/route.tsx"), "utf-8");
+
+  // Satori does not support z-index (causes [warn] `z-index` is currently not supported)
+  assert.ok(!ogRoute.includes("zIndex:"), "app/api/og/route.tsx must not contain zIndex");
+  assert.ok(!ogJobRoute.includes("zIndex:"), "app/api/og/job/route.tsx must not contain zIndex");
+
+  // Unicode checkmark ✓ triggers failed dynamic font download from Google Fonts (Status 400)
+  assert.ok(!ogRoute.includes("✓"), "app/api/og/route.tsx must use SVG icon instead of unicode ✓");
+  assert.ok(!ogJobRoute.includes("✓"), "app/api/og/job/route.tsx must use SVG icon instead of unicode ✓");
+});
+
+test("Public Editorial Guides: Ghost Jobs and Virtual Secret Santa pages exist", () => {
+  assert.ok(
+    fs.existsSync(path.resolve("app/ghost-job-listings-on-the-rise-how-to/page.tsx")),
+    "Ghost job guide page must exist"
+  );
+  assert.ok(
+    fs.existsSync(path.resolve("app/10-best-virtual-secret-santa-ideas-for/page.tsx")),
+    "Virtual secret santa guide page must exist"
+  );
+});
+
 

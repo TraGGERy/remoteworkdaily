@@ -57,7 +57,6 @@ export async function GET(req: NextRequest) {
             alignItems: "center",
             justifyContent: "space-between",
             width: "100%",
-            zIndex: 10,
           }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
@@ -87,6 +86,9 @@ export async function GET(req: NextRequest) {
 
           <div
             style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
               padding: "8px 20px",
               borderRadius: "9999px",
               backgroundColor: "rgba(16, 185, 129, 0.15)",
@@ -96,7 +98,19 @@ export async function GET(req: NextRequest) {
               fontWeight: 700,
             }}
           >
-            ✓ 100% VERIFIED REMOTE
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="#34D399"
+              strokeWidth="3"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+            <span>100% VERIFIED REMOTE</span>
           </div>
         </div>
 
@@ -106,7 +120,6 @@ export async function GET(req: NextRequest) {
             display: "flex",
             flexDirection: "column",
             gap: "20px",
-            zIndex: 10,
             maxWidth: "960px",
           }}
         >
@@ -198,7 +211,6 @@ export async function GET(req: NextRequest) {
             width: "100%",
             borderTop: "1px solid rgba(255, 255, 255, 0.1)",
             paddingTop: "24px",
-            zIndex: 10,
           }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: "20px", color: "#a1a1aa", fontSize: "16px" }}>

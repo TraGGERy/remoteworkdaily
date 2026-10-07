@@ -69,7 +69,6 @@ export async function GET(req: NextRequest) {
             alignItems: "center",
             justifyContent: "space-between",
             width: "100%",
-            zIndex: 10,
           }}
         >
           {/* Logo & Brand */}
@@ -151,7 +150,6 @@ export async function GET(req: NextRequest) {
             display: "flex",
             flexDirection: "column",
             gap: "20px",
-            zIndex: 10,
             marginTop: "16px",
             marginBottom: "16px",
           }}
@@ -188,12 +186,20 @@ export async function GET(req: NextRequest) {
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  color: "#FFFFFF",
-                  fontSize: "12px",
-                  fontWeight: 900,
                 }}
               >
-                ✓
+                <svg
+                  width="12"
+                  height="12"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#FFFFFF"
+                  strokeWidth="3"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
               </div>
             </div>
           </div>
@@ -283,7 +289,6 @@ export async function GET(req: NextRequest) {
             width: "100%",
             borderTop: "1px solid rgba(255, 255, 255, 0.1)",
             paddingTop: "24px",
-            zIndex: 10,
           }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: "24px", color: "#a1a1aa", fontSize: "15px", fontWeight: 500 }}>

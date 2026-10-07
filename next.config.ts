@@ -15,6 +15,10 @@ const nextConfig: NextConfig = {
         source: "/api",
         destination: "/remote-jobs.json",
       },
+      {
+        source: "/10-best-virtual-secret-santa-ideas-for-remote-teams",
+        destination: "/10-best-virtual-secret-santa-ideas-for",
+      },
     ];
   },
 };
