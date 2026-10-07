@@ -43,6 +43,32 @@ function filterJobs(jobs, filters) {
     });
   }
 
+  // Sorting logic (matching lib/filter-jobs.ts)
+  result.sort((a, b) => {
+    if (filters.sortBy !== "salary" && filters.sortBy !== "views") {
+      if (a.sticky && !b.sticky) return -1;
+      if (!a.sticky && b.sticky) return 1;
+    }
+
+    switch (filters.sortBy) {
+      case "salary": {
+        const salA = a.salaryMax || a.salaryMin || 0;
+        const salB = b.salaryMax || b.salaryMin || 0;
+        return salB - salA;
+      }
+      case "views":
+        return (b.viewsCount || 0) - (a.viewsCount || 0);
+      case "applied":
+        return (b.appliesCount || 0) - (a.appliesCount || 0);
+      case "date":
+      default: {
+        const timeA = new Date(a.postedAt).getTime() || 0;
+        const timeB = new Date(b.postedAt).getTime() || 0;
+        return timeB - timeA;
+      }
+    }
+  });
+
   return result;
 }
 
@@ -602,4 +628,40 @@ test("Candidate Onboarding Modal: Multi-tier suppression rules prevent unwanted 
     false
   );
 });
+
+test("Job Freshness: Default sort strictly places today's newest listings ahead of older listings", () => {
+  const jobsList = [
+    {
+      id: "old-1",
+      title: "Engineer Two Days Ago",
+      company: "Company A",
+      postedAt: "2026-10-05T18:00:00.000Z",
+      status: "active",
+      tags: [],
+    },
+    {
+      id: "new-1",
+      title: "Engineer Just Posted Today",
+      company: "Company B",
+      postedAt: "2026-10-07T20:00:00.000Z",
+      status: "active",
+      tags: [],
+    },
+    {
+      id: "mid-1",
+      title: "Engineer Yesterday",
+      company: "Company C",
+      postedAt: "2026-10-06T12:00:00.000Z",
+      status: "active",
+      tags: [],
+    },
+  ];
+
+  // Default sort by date descending
+  const sorted = filterJobs(jobsList, {});
+  assert.equal(sorted[0].id, "new-1", "Newest job from today must be first");
+  assert.equal(sorted[1].id, "mid-1", "Job from yesterday must be second");
+  assert.equal(sorted[2].id, "old-1", "Job from two days ago must be last");
+});
+
 

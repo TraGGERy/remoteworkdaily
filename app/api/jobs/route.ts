@@ -1,13 +1,18 @@
 import { NextResponse } from "next/server";
 import { getAllJobs, filterJobs } from "@/lib/jobs-repository";
 import { FilterState } from "@/lib/types";
+import { canSyncInterval } from "@/lib/sync-tracker";
+import { runDailyJobIngestionPipeline } from "@/lib/scrapers/orchestrator";
 
 export const dynamic = "force-dynamic";
+
+let isBackgroundSyncing = false;
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
 
-  const shouldRefresh = searchParams.get("refresh") === "true" || searchParams.has("_t");
+  const shouldSync = searchParams.get("sync") === "true";
+  const shouldRefresh = shouldSync || searchParams.get("refresh") === "true" || searchParams.has("_t");
   const query = searchParams.get("search") || "";
   const location = searchParams.get("location") || "";
   const category = searchParams.get("category") || "";
@@ -19,7 +24,30 @@ export async function GET(request: Request) {
   const directAtsOnly = searchParams.get("directAtsOnly") === "true";
   const workplace = (searchParams.get("workplace") as FilterState["workplaceType"]) || undefined;
 
-  const allJobs = getAllJobs(shouldRefresh);
+  // 1. Explicit on-demand sync from "Check for New Jobs" button
+  if (shouldSync && !isBackgroundSyncing) {
+    isBackgroundSyncing = true;
+    try {
+      await runDailyJobIngestionPipeline({ force: true, targetCount: 1500 });
+    } catch (err) {
+      console.warn("[Jobs API] Explicit on-demand sync error:", err);
+    } finally {
+      isBackgroundSyncing = false;
+    }
+  } else if (!isBackgroundSyncing) {
+    // 2. Stale-While-Revalidate: If last sync was > 100 minutes ago, auto-trigger background ingestion
+    const intervalCheck = canSyncInterval(false);
+    if (intervalCheck.allowed) {
+      isBackgroundSyncing = true;
+      runDailyJobIngestionPipeline({ force: false, targetCount: 1500 })
+        .catch((err) => console.warn("[Jobs API] Background auto-sync notice:", err))
+        .finally(() => {
+          isBackgroundSyncing = false;
+        });
+    }
+  }
+
+  const allJobs = getAllJobs(shouldRefresh || shouldSync);
   const filtered = filterJobs(allJobs, {
     query,
     location,
@@ -33,9 +61,9 @@ export async function GET(request: Request) {
     directAtsOnly,
   });
 
-
   return NextResponse.json({
     count: filtered.length,
     jobs: filtered,
+    syncedAt: new Date().toISOString(),
   });
 }

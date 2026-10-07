@@ -255,8 +255,9 @@ export function insertJobsBatch(newJobs: Job[]): { added: number; updated: numbe
     }
   }
 
-  // Prepend new jobs to keep newest on top
+  // Prepend new jobs and sort strictly by postedAt descending
   const merged = [...toPrepend, ...existingJobs];
+  merged.sort((a, b) => (new Date(b.postedAt).getTime() || 0) - (new Date(a.postedAt).getTime() || 0));
 
   // Keep sliding window of latest 12,000 active jobs to maximize job diversity and capacity
   const MAX_LOCAL_JOBS = 12000;

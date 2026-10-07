@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 export const revalidate = 60;
 
 export default function Home() {
-  const allJobs = getAllJobs();
+  const allJobs = getAllJobs(true);
   const topSchemas = allJobs.slice(0, 10).map((job) => generateJobPostingSchema(job));
 
   return (

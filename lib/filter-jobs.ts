@@ -112,8 +112,11 @@ export function filterJobs(jobs: Job[], filters: Partial<FilterState>): Job[] {
       case "benefits":
         return b.benefits.length - a.benefits.length;
       case "date":
-      default:
-        return new Date(b.postedAt).getTime() - new Date(a.postedAt).getTime();
+      default: {
+        const timeA = new Date(a.postedAt).getTime() || 0;
+        const timeB = new Date(b.postedAt).getTime() || 0;
+        return timeB - timeA;
+      }
     }
   });
 

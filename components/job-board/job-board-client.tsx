@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo, useTransition } from "react";
+import React, { useState, useMemo, useTransition, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Job, FilterState } from "@/lib/types";
 import { filterJobs } from "@/lib/filter-jobs";
@@ -31,6 +31,13 @@ export function JobBoardClient({
 
   const [jobs, setJobs] = useState<Job[]>(initialJobs);
   const [isSyncing, setIsSyncing] = useState(false);
+
+  // Sync client state whenever server initialJobs changes
+  useEffect(() => {
+    if (initialJobs && initialJobs.length > 0) {
+      setJobs(initialJobs);
+    }
+  }, [initialJobs]);
 
   const [filters, setFilters] = useState<FilterState>({
     query: searchParams.get("search") || "",
@@ -95,7 +102,7 @@ export function JobBoardClient({
   const handleRefreshJobs = async () => {
     setIsSyncing(true);
     try {
-      const res = await fetch(`/api/jobs?refresh=true&_t=${Date.now()}`);
+      const res = await fetch(`/api/jobs?sync=true&refresh=true&_t=${Date.now()}`);
       if (res.ok) {
         const data = await res.json();
         if (data.jobs && Array.isArray(data.jobs)) {
