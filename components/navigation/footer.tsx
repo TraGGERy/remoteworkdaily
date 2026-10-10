@@ -17,7 +17,7 @@ export function Footer() {
               © {new Date().getFullYear()} Remote Work Daily
             </span>
             <span className="hidden sm:inline text-neutral-300 dark:text-neutral-700">|</span>
-            <span>Verified Remote Work Directory</span>
+            <span>Find jobs posted on company websites</span>
           </div>
 
           <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6 font-medium">
@@ -36,6 +36,9 @@ export function Footer() {
             <Link href="/ghost-job-listings-on-the-rise-how-to" className="hover:text-[#FF4742] transition-colors">
               Ghost Jobs Guide
             </Link>
+            <Link href="/contact" className="hover:text-[#FF4742] transition-colors">
+              Contact
+            </Link>
             <Link
               href="https://safetywing.com"
               target="_blank"
@@ -50,10 +53,10 @@ export function Footer() {
             <Link href="/hire-remotely" className="hover:text-[#FF4742] transition-colors">
               Post a Job ($249)
             </Link>
-            <Link href="/privacy" className="hover:text-[#FF4742] transition-colors">
+            <Link href="/privacy-policy" className="hover:text-[#FF4742] transition-colors">
               Privacy Policy
             </Link>
-            <Link href="/terms" className="hover:text-[#FF4742] transition-colors">
+            <Link href="/terms-and-conditions" className="hover:text-[#FF4742] transition-colors">
               Terms of Service
             </Link>
           </div>

@@ -26,10 +26,10 @@ export default function Home() {
       {/* Hero Headline */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-6 pb-2 text-center">
         <h1 className="text-2xl sm:text-4xl md:text-5xl font-black text-neutral-900 dark:text-white tracking-tight leading-tight">
-          Find your dream <span className="text-[#FF4742]">job</span>
+          Find jobs posted on <span className="text-[#FF4742]">company websites</span>
         </h1>
         <p className="text-xs sm:text-base text-neutral-500 dark:text-neutral-400 mt-2 max-w-2xl mx-auto">
-          Browse verified remote, hybrid, and on-site positions at top companies. Real transparent salaries, direct ATS applications, all kinds of roles.
+          Browse verified remote positions straight from official company career portals and direct ATS boards. Zero recruiter spam, 100% transparent pay, direct application links.
         </p>
       </div>
 

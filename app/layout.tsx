@@ -22,13 +22,16 @@ const SITE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://remoteworkdaily.com
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: "Remote Work Daily — Verified Remote Jobs & Transparent Pay",
+    default: "Remote Work Daily — Find Jobs Posted on Company Websites",
     template: "%s | Remote Work Daily",
   },
   description:
-    "Looking for a verified remote job? Remote Work Daily indexes hand-curated remote careers in Software Engineering, Design, Product, Marketing, Sales, and Ops with 100% transparent salary ranges. Work from anywhere.",
+    "Find remote jobs posted directly on company websites. Remote Work Daily indexes verified openings straight from Greenhouse, Lever, Ashby, and company career pages with 100% transparent pay.",
   keywords: [
     "remote work daily",
+    "find jobs posted on company websites",
+    "direct company jobs",
+    "direct ats jobs",
     "remote jobs",
     "work from home",
     "remote software engineer",

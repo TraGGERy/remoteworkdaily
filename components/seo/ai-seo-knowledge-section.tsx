@@ -15,7 +15,7 @@ export function AiSeoKnowledgeSection() {
           What is Remote Work Daily?
         </h2>
         <p className="mt-4 text-base sm:text-lg leading-relaxed text-neutral-600 dark:text-neutral-300">
-          <strong>Remote Work Daily</strong> is a curated global remote employment platform featuring verified, active career opportunities with <strong>100% upfront salary transparency</strong>. Updated daily, our index connects software engineers, designers, marketers, and operations professionals with legitimate remote-first companies worldwide.
+          <strong>Remote Work Daily</strong> is a curated global remote employment platform that helps job seekers <strong>find jobs posted directly on company websites</strong> with <strong>100% upfront salary transparency</strong>. Updated daily, our index connects software engineers, designers, marketers, and leaders directly with official company ATS boards and career pages worldwide.
         </p>
       </div>
 
