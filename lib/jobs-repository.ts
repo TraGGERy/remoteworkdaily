@@ -38,35 +38,45 @@ function ensureDataFile(forceReload: boolean = false): Job[] {
       }
     }
 
-    if (!fs.existsSync(DATA_FILE)) {
-      if (fs.existsSync(TMP_DATA_FILE)) {
-        try {
-          const content = fs.readFileSync(TMP_DATA_FILE, "utf8");
-          const parsed = JSON.parse(content);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            memoryCache = parsed;
-            return memoryCache;
-          }
-        } catch {
-          // Fall through
-        }
-      }
+    // Determine whether to read from DATA_FILE or TMP_DATA_FILE
+    // In serverless environments (Vercel/Lambda), DATA_FILE is read-only and
+    // newly scraped jobs are saved to TMP_DATA_FILE.
+    let targetPath = DATA_FILE;
+    if (fs.existsSync(TMP_DATA_FILE)) {
       try {
-        fs.writeFileSync(DATA_FILE, JSON.stringify(INITIAL_JOBS), "utf8");
+        const tmpStat = fs.statSync(TMP_DATA_FILE);
+        const mainStat = fs.existsSync(DATA_FILE) ? fs.statSync(DATA_FILE) : null;
+        if (!mainStat || tmpStat.mtimeMs >= mainStat.mtimeMs) {
+          targetPath = TMP_DATA_FILE;
+        }
       } catch {
-        // Ephemeral or read-only filesystem
+        targetPath = DATA_FILE;
       }
-      memoryCache = [...INITIAL_JOBS];
-      return memoryCache;
     }
 
-    const stat = fs.statSync(DATA_FILE);
+    if (!fs.existsSync(targetPath)) {
+      if (fs.existsSync(DATA_FILE)) {
+        targetPath = DATA_FILE;
+      } else {
+        try {
+          fs.writeFileSync(DATA_FILE, JSON.stringify(INITIAL_JOBS), "utf8");
+        } catch {
+          try {
+            fs.writeFileSync(TMP_DATA_FILE, JSON.stringify(INITIAL_JOBS), "utf8");
+          } catch {}
+        }
+        memoryCache = [...INITIAL_JOBS];
+        return memoryCache;
+      }
+    }
+
+    const stat = fs.statSync(targetPath);
     if (!forceReload && memoryCache && memoryCache.length > 0 && stat.mtimeMs === lastCacheMtime) {
       return memoryCache;
     }
 
     lastCacheMtime = stat.mtimeMs;
-    const content = fs.readFileSync(DATA_FILE, "utf8");
+    const content = fs.readFileSync(targetPath, "utf8");
     const parsed = JSON.parse(content);
     if (Array.isArray(parsed) && parsed.length > 0) {
       memoryCache = parsed;
@@ -94,10 +104,12 @@ function saveJobs(jobs: Job[]) {
       fs.mkdirSync(dir, { recursive: true });
     }
     fs.writeFileSync(DATA_FILE, payload, "utf8");
+    lastCacheMtime = fs.statSync(DATA_FILE).mtimeMs;
   } catch {
     // Read-only filesystem fallback (e.g. AWS Lambda / Vercel Serverless)
     try {
       fs.writeFileSync(TMP_DATA_FILE, payload, "utf8");
+      lastCacheMtime = fs.statSync(TMP_DATA_FILE).mtimeMs;
     } catch {
       // In-memory cache already updated
     }
@@ -316,8 +328,8 @@ export function insertJobsBatch(newJobs: Job[]): { added: number; updated: numbe
   const merged = [...toPrepend, ...existingJobs];
   merged.sort((a, b) => (new Date(b.postedAt).getTime() || 0) - (new Date(a.postedAt).getTime() || 0));
 
-  // Keep sliding window of latest 12,000 active jobs to maximize job diversity and capacity
-  const MAX_LOCAL_JOBS = 12000;
+  // Keep sliding window of latest 25,000 active jobs to maximize job diversity and capacity
+  const MAX_LOCAL_JOBS = 25000;
   const pruned = merged.length > MAX_LOCAL_JOBS ? merged.slice(0, MAX_LOCAL_JOBS) : merged;
 
   saveJobs(pruned);

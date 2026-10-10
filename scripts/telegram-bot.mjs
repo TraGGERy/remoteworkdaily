@@ -12,10 +12,13 @@
 
 import fs from "fs";
 import path from "path";
+import os from "os";
 
 const DATA_FILE = path.join(process.cwd(), "data", "jobs.json");
+const TMP_DATA_FILE = path.join(os.tmpdir(), "remotework-jobs.json");
 const CONFIG_FILE = path.join(process.cwd(), "data", "telegram-config.json");
 const SYNC_STATE_FILE = path.join(process.cwd(), "data", "sync-state.json");
+const TMP_SYNC_STATE_FILE = path.join(os.tmpdir(), "remotework-sync-state.json");
 const DEFAULT_TOKEN = "8593165155:AAEMBF_0UvlRHUjQb4AtvoG0GHgq8lLxgjM";
 
 // Load .env / .env.local
@@ -62,8 +65,19 @@ function saveChatId(chatId) {
 
 function loadJobs() {
   try {
-    if (fs.existsSync(DATA_FILE)) {
-      const raw = JSON.parse(fs.readFileSync(DATA_FILE, "utf8"));
+    let target = DATA_FILE;
+    if (fs.existsSync(TMP_DATA_FILE)) {
+      try {
+        const tmpStat = fs.statSync(TMP_DATA_FILE);
+        const mainStat = fs.existsSync(DATA_FILE) ? fs.statSync(DATA_FILE) : null;
+        if (!mainStat || tmpStat.mtimeMs >= mainStat.mtimeMs) {
+          target = TMP_DATA_FILE;
+        }
+      } catch {}
+    }
+
+    if (fs.existsSync(target)) {
+      const raw = JSON.parse(fs.readFileSync(target, "utf8"));
       if (Array.isArray(raw)) {
         return raw.sort((a, b) => (new Date(b.postedAt).getTime() || 0) - (new Date(a.postedAt).getTime() || 0));
       }
@@ -100,7 +114,14 @@ function formatStats() {
   const jobs = loadJobs();
   let syncState = null;
   try {
-    if (fs.existsSync(SYNC_STATE_FILE)) {
+    if (fs.existsSync(TMP_SYNC_STATE_FILE)) {
+      const tmpStat = fs.statSync(TMP_SYNC_STATE_FILE);
+      const mainStat = fs.existsSync(SYNC_STATE_FILE) ? fs.statSync(SYNC_STATE_FILE) : null;
+      if (!mainStat || tmpStat.mtimeMs >= mainStat.mtimeMs) {
+        syncState = JSON.parse(fs.readFileSync(TMP_SYNC_STATE_FILE, "utf8"));
+      }
+    }
+    if (!syncState && fs.existsSync(SYNC_STATE_FILE)) {
       syncState = JSON.parse(fs.readFileSync(SYNC_STATE_FILE, "utf8"));
     }
   } catch {}

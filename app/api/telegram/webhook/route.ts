@@ -103,7 +103,7 @@ function formatLatestJobsMessage(limit: number = 5): string {
 }
 
 function formatStatsMessage(): string {
-  const jobs = getAllJobs();
+  const jobs = getAllJobs(true);
   const syncState = getSyncState();
 
   const categoriesCount: Record<string, number> = {};
@@ -133,7 +133,7 @@ function formatStatsMessage(): string {
 
 function formatSyncMessage(): string {
   const syncState = getSyncState();
-  const jobs = getAllJobs();
+  const jobs = getAllJobs(true);
 
   return [
     `⏱ <b>Scraper & Sync Pipeline Status:</b>`,

@@ -28,6 +28,19 @@ export function getTodayUTC(): string {
  * Reads the persistent sync state from in-memory cache, disk, or /tmp fallback.
  */
 export function getSyncState(): SyncState | null {
+  // Check TMP_SYNC_STATE_FILE first if it is newer (written on serverless / Vercel)
+  if (fs.existsSync(TMP_SYNC_STATE_FILE)) {
+    try {
+      const tmpStat = fs.statSync(TMP_SYNC_STATE_FILE);
+      const mainStat = fs.existsSync(SYNC_STATE_FILE) ? fs.statSync(SYNC_STATE_FILE) : null;
+      if (!mainStat || tmpStat.mtimeMs >= mainStat.mtimeMs) {
+        const data = fs.readFileSync(TMP_SYNC_STATE_FILE, "utf-8");
+        inMemorySyncState = JSON.parse(data) as SyncState;
+        return inMemorySyncState;
+      }
+    } catch {}
+  }
+
   if (inMemorySyncState) {
     return inMemorySyncState;
   }
@@ -40,16 +53,6 @@ export function getSyncState(): SyncState | null {
     }
   } catch {
     // Read-only or missing
-  }
-
-  try {
-    if (fs.existsSync(TMP_SYNC_STATE_FILE)) {
-      const data = fs.readFileSync(TMP_SYNC_STATE_FILE, "utf-8");
-      inMemorySyncState = JSON.parse(data) as SyncState;
-      return inMemorySyncState;
-    }
-  } catch {
-    // Ephemeral fallback
   }
 
   return null;
