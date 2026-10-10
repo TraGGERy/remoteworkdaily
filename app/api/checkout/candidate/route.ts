@@ -61,7 +61,7 @@ export async function POST(request: Request) {
       plan: planId,
     });
 
-    notifyPaymentReceived({
+    await notifyPaymentReceived({
       paymentType: "candidate_subscription",
       amount: selectedPlan.price,
       currency: "USD",

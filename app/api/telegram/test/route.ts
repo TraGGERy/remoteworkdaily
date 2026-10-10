@@ -5,6 +5,7 @@ import {
   sendTelegramNotification,
   saveTelegramChatId,
   registerBotCommands,
+  notifyPaymentReceived,
 } from "@/lib/telegram";
 
 export const dynamic = "force-dynamic";
@@ -69,7 +70,26 @@ export async function GET(request: Request) {
       });
     }
 
-    // Send a test notification
+    // Send cute payment notification test if requested
+    if (searchParams.get("type") === "payment") {
+      const paymentSent = await notifyPaymentReceived({
+        paymentType: "candidate_subscription",
+        amount: 1799,
+        currency: "USD",
+        customerEmail: "sarah.smith@example.com",
+        planName: "Monthly Pro & Early Alerts",
+        paymentId: `cs_test_${Date.now().toString(36)}`,
+      });
+
+      return NextResponse.json({
+        status: paymentSent ? "cute_payment_alert_delivered" : "error",
+        chatId: currentChatId,
+        bot: meData.result,
+        messageSent: paymentSent,
+      });
+    }
+
+    // Send a standard test notification
     const testResult = await sendTelegramNotification(
       `🤖 <b>Telegram Notification Bot Connected!</b>\n\n` +
       `✅ <b>Bot:</b> @${meData.result?.username || "PandoraWorkBot"}\n` +

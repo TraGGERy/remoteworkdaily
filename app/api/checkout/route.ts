@@ -3,6 +3,7 @@ import { z } from "zod";
 import { insertJob } from "@/lib/jobs-repository";
 import { createJobPostingCheckoutSession } from "@/lib/stripe";
 import { Job } from "@/lib/types";
+import { notifyPaymentReceived } from "@/lib/telegram";
 
 const CheckoutSchema = z.object({
   jobTitle: z.string().min(2, "Job title must be at least 2 characters").max(120),
@@ -135,6 +136,17 @@ export async function POST(request: Request) {
     }
 
     // Local development only: immediately activate for developer ergonomics
+    await notifyPaymentReceived({
+      paymentType: "employer_job_post",
+      amount: 19900,
+      currency: "USD",
+      customerEmail: userEmail,
+      companyName: companyName,
+      jobTitle: jobTitle,
+      planName: "Employer Job Posting",
+      paymentId: jobId,
+    }).catch((err) => console.warn("[Telegram Dev Alert Error]:", err));
+
     return NextResponse.json({ success: true, job: newJob });
   } catch (error) {
     console.error("Checkout route error:", error);

@@ -3,6 +3,7 @@ import {
   getTelegramBotToken,
   saveTelegramChatId,
   registerBotCommands,
+  notifyPaymentReceived,
 } from "@/lib/telegram";
 import { getAllJobs } from "@/lib/jobs-repository";
 import { getSyncState } from "@/lib/sync-tracker";
@@ -231,6 +232,7 @@ export async function POST(request: Request) {
           `• /latest — Get the 5 freshest verified remote jobs`,
           `• /stats — View database listings & industry breakdown`,
           `• /sync — Check latest scraper status`,
+          `• /testpay — Test cute payment alert notification`,
           `• /help — Bot help & guide`,
         ].join("\n");
 
@@ -244,6 +246,16 @@ export async function POST(request: Request) {
       } else if (command === "sync" || command === "status") {
         const syncMsg = formatSyncMessage();
         await sendTelegramReply(token, chatId, syncMsg, getMainMenuKeyboard());
+      } else if (command === "testpay" || command === "testpayment" || command === "pay" || command === "payment") {
+        await notifyPaymentReceived({
+          paymentType: "candidate_subscription",
+          amount: 1799,
+          currency: "USD",
+          customerEmail: "sarah.smith@example.com",
+          planName: "Monthly Pro & Early Alert Pass",
+          paymentId: `cs_test_${Date.now().toString(36)}`,
+        });
+        return NextResponse.json({ ok: true });
       } else if (command === "help") {
         const helpMsg = [
           `🤖 <b>RemoteWorkDaily Bot Help</b>`,
@@ -252,12 +264,13 @@ export async function POST(request: Request) {
           `• /latest — 5 latest remote job openings`,
           `• /stats — Current job board metrics`,
           `• /sync — Ingestion pipeline & sync status`,
+          `• /testpay — Test cute payment alert notification`,
           `• /start — Re-link notification channel`,
         ].join("\n");
         await sendTelegramReply(token, chatId, helpMsg, getMainMenuKeyboard());
       } else {
         // Echo / helpful hint
-        const defaultMsg = `💡 Use /latest to see the latest jobs, /stats for board statistics, or /sync for scraper status!`;
+        const defaultMsg = `💡 Use /latest to see the latest jobs, /stats for board statistics, /sync for scraper status, or /testpay for a cute payment alert!`;
         await sendTelegramReply(token, chatId, defaultMsg, getMainMenuKeyboard());
       }
 

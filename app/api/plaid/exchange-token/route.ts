@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { exchangePlaidPublicToken } from "@/lib/plaid";
+import { notifyPaymentReceived } from "@/lib/telegram";
 
 const ExchangeSchema = z.object({
   publicToken: z.string().min(1, "Public token is required"),
@@ -37,6 +38,14 @@ export async function POST(request: Request) {
     console.log(
       `[PLAID FINTECH] Successfully linked bank account for user ${userId} (${institutionName || "Unknown Bank"}).`
     );
+
+    await notifyPaymentReceived({
+      paymentType: "plaid_ach",
+      customerEmail: userId,
+      companyName: institutionName || "Bank Account",
+      planName: "Plaid ACH Bank Link",
+      paymentId: tokenData.item_id,
+    }).catch((err) => console.warn("[Telegram Plaid Alert Error]:", err));
 
     return NextResponse.json({
       success: true,

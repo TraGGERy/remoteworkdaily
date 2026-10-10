@@ -201,6 +201,7 @@ export async function registerBotCommands(): Promise<boolean> {
           { command: "latest", description: "View 5 latest verified remote jobs" },
           { command: "stats", description: "View job board database statistics" },
           { command: "sync", description: "Check scraper sync telemetry" },
+          { command: "testpay", description: "Send sample cute payment alert" },
           { command: "help", description: "Bot features and usage guide" },
         ],
       }),
@@ -311,23 +312,35 @@ export async function notifyPaymentReceived(payload: PaymentNotificationPayload)
       : "🏦 ACH Bank Transfer";
 
   const message = [
-    `💰 <b>New Payment Received!</b>`,
+    `✨💖 <b>Yaaay! New Payment Received!</b> 🌸🎀`,
     `━━━━━━━━━━━━━━━━━━━━`,
+    `✨ <i>A lovely new customer just completed checkout!</i> 💖🧸`,
+    ``,
     `💳 <b>Type:</b> ${typeLabel}`,
-    `💵 <b>Amount:</b> <code>${formattedAmount}</code>`,
-    payload.planName ? `📦 <b>Plan:</b> ${escapeHtml(payload.planName)}` : null,
-    payload.customerEmail ? `👤 <b>Customer:</b> ${escapeHtml(payload.customerEmail)}` : null,
+    `💵 <b>Amount:</b> <code>${formattedAmount}</code> 🍬`,
+    payload.planName ? `📦 <b>Plan:</b> 🌸 ${escapeHtml(payload.planName)}` : null,
+    payload.customerEmail ? `👤 <b>Customer:</b> 💌 ${escapeHtml(payload.customerEmail)}` : null,
     payload.companyName ? `🏢 <b>Company:</b> ${escapeHtml(payload.companyName)}` : null,
     payload.jobTitle ? `📌 <b>Job Title:</b> ${escapeHtml(payload.jobTitle)}` : null,
     payload.paymentId ? `🔖 <b>ID:</b> <code>${escapeHtml(payload.paymentId)}</code>` : null,
     `⏱ <b>Time:</b> ${new Date().toUTCString()}`,
     `━━━━━━━━━━━━━━━━━━━━`,
-    `🌐 <a href="https://remoteworkdaily.com">RemoteWorkDaily Dashboard</a>`,
+    `🎉 <b>You're doing amazing! Keep shining!</b> 🐾🍰✨`,
+    `🌐 <a href="https://www.remoteworkdaily.com">RemoteWorkDaily Dashboard</a>`,
   ]
     .filter(Boolean)
     .join("\n");
 
-  const res = await sendTelegramNotification(message);
+  const replyMarkup = {
+    inline_keyboard: [
+      [
+        { text: "📊 View Board Stats", callback_data: "cmd_stats" },
+        { text: "🌐 Open Site", url: "https://www.remoteworkdaily.com" },
+      ],
+    ],
+  };
+
+  const res = await sendTelegramNotification(message, { replyMarkup });
   return res.success;
 }
 

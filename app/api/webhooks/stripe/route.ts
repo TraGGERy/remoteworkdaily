@@ -68,7 +68,7 @@ export async function POST(req: Request) {
           sessionId: session.id,
         }).catch((err) => console.warn("[Resend Email Error - Candidate]:", err));
 
-        notifyPaymentReceived({
+        await notifyPaymentReceived({
           paymentType: "candidate_subscription",
           amount: session.amount_total ?? 1799,
           currency: session.currency ?? "usd",
@@ -111,7 +111,7 @@ export async function POST(req: Request) {
             sessionId: session.id,
           }).catch((err) => console.warn("[Resend Email Error - Employer]:", err));
 
-          notifyPaymentReceived({
+          await notifyPaymentReceived({
             paymentType: "employer_job_post",
             amount: session.amount_total ?? 19900,
             currency: session.currency ?? "usd",
@@ -140,7 +140,7 @@ export async function POST(req: Request) {
       });
       console.log(`[STRIPE WEBHOOK] Recurring subscription invoice payment succeeded for ${email}`);
 
-      notifyPaymentReceived({
+      await notifyPaymentReceived({
         paymentType: "candidate_subscription",
         amount: invoice.amount_paid ?? 0,
         currency: invoice.currency ?? "usd",
