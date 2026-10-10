@@ -7,8 +7,10 @@ import {
 } from "@/lib/telegram";
 import { getAllJobs } from "@/lib/jobs-repository";
 import { getSyncState } from "@/lib/sync-tracker";
+import { runDailyJobIngestionPipeline } from "@/lib/scrapers/orchestrator";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 300;
 
 interface TelegramUpdate {
   update_id: number;
@@ -150,15 +152,92 @@ function getMainMenuKeyboard() {
   return {
     inline_keyboard: [
       [
+        { text: "⚡ Trigger Scraper Now", callback_data: "cmd_scrape" },
         { text: "🔥 Latest 5 Jobs", callback_data: "cmd_latest" },
-        { text: "📊 Board Stats", callback_data: "cmd_stats" },
       ],
       [
-        { text: "⏱ Scraper Status", callback_data: "cmd_sync" },
-        { text: "🌐 Open Site", url: "https://www.remoteworkdaily.com" },
+        { text: "📊 Board Stats", callback_data: "cmd_stats" },
+        { text: "💖 Test Payment Alert", callback_data: "cmd_testpay" },
+      ],
+      [
+        { text: "🌐 Open RemoteWorkDaily", url: "https://www.remoteworkdaily.com" },
       ],
     ],
   };
+}
+
+let isScrapeRunning = false;
+
+async function triggerScraperFromTelegram(token: string, chatId: number | string): Promise<void> {
+  if (isScrapeRunning) {
+    await sendTelegramReply(
+      token,
+      chatId,
+      `⏳ <b>Scraper Already Running!</b>\n\nA job ingestion scrape is actively in progress right now. Please allow a few moments for it to finish.`,
+      getMainMenuKeyboard()
+    );
+    return;
+  }
+
+  isScrapeRunning = true;
+
+  try {
+    // 1. Immediate acknowledgment so the user gets instant feedback
+    await sendTelegramReply(
+      token,
+      chatId,
+      [
+        `🚀 <b>Scraper Triggered!</b> ⚡`,
+        `━━━━━━━━━━━━━━━━━━━━`,
+        `⏳ <i>Initiating real-time ingestion across verified sources:</i>`,
+        `• 🏢 Direct ATS Boards (Greenhouse, Lever, Ashby, Workable)`,
+        `• 🌐 Remote feeds (Arbeitnow, WeWorkRemotely, Jobicy, RemoteOK, Remotive, Himalayas, ReliefWeb)`,
+        ``,
+        `<i>Please wait a few moments while listings are collected, deduplicated, and indexed...</i>`,
+      ].join("\n")
+    );
+
+    // 2. Execute high-capacity ingestion pipeline
+    const result = await runDailyJobIngestionPipeline({
+      force: true,
+      targetCount: 5000,
+    });
+
+    const sourcesSummary = Object.entries(result.sources || {})
+      .filter(([, count]) => count > 0)
+      .map(([name, count]) => `• ${name}: <b>${count.toLocaleString()}</b>`)
+      .join("\n");
+
+    const durationSec = (result.durationMs / 1000).toFixed(1);
+
+    // 3. Send detailed completion report
+    const completionMsg = [
+      `🎉 <b>Scraper Run Complete!</b> 🚀`,
+      `━━━━━━━━━━━━━━━━━━━━`,
+      `📥 <b>Newly Ingested:</b> +${result.addedCount.toLocaleString()} fresh jobs`,
+      `🔄 <b>Updated / Refreshed:</b> ${result.updatedCount.toLocaleString()} listings`,
+      `💼 <b>Total Live Listings:</b> ${result.totalInDatabase.toLocaleString()} jobs`,
+      `⏱ <b>Duration:</b> ${durationSec}s`,
+      `━━━━━━━━━━━━━━━━━━━━`,
+      sourcesSummary ? `📈 <b>Harvested Sources:</b>\n${sourcesSummary}\n━━━━━━━━━━━━━━━━━━━━` : null,
+      `🌐 <a href="https://www.remoteworkdaily.com">Browse Live Jobs on RemoteWorkDaily &rarr;</a>`,
+    ]
+      .filter(Boolean)
+      .join("\n");
+
+    await sendTelegramReply(token, chatId, completionMsg, getMainMenuKeyboard());
+  } catch (err: unknown) {
+    const errorMsg = err instanceof Error ? err.message : String(err);
+    console.error("[Telegram Webhook] Scraper execution error:", err);
+    await sendTelegramReply(
+      token,
+      chatId,
+      `❌ <b>Scraper Execution Failed:</b>\n<code>${escapeHtml(errorMsg)}</code>\n\nPlease try again shortly.`,
+      getMainMenuKeyboard()
+    );
+  } finally {
+    isScrapeRunning = false;
+  }
 }
 
 function escapeHtml(text: string): string {
@@ -185,13 +264,30 @@ export async function POST(request: Request) {
 
       await answerCallbackQuery(token, cb.id);
 
-      if (data === "cmd_latest") {
+      if (data === "cmd_scrape" || data === "cmd_sync") {
+        await triggerScraperFromTelegram(token, chatId);
+      } else if (data === "cmd_latest") {
         const msg = formatLatestJobsMessage(5);
         await sendTelegramReply(token, chatId, msg, getMainMenuKeyboard());
       } else if (data === "cmd_stats") {
         const msg = formatStatsMessage();
         await sendTelegramReply(token, chatId, msg, getMainMenuKeyboard());
-      } else if (data === "cmd_sync") {
+      } else if (data === "cmd_testpay") {
+        await notifyPaymentReceived({
+          paymentType: "candidate_subscription",
+          amount: 1799,
+          currency: "USD",
+          customerEmail: "sarah.smith@example.com",
+          planName: "Monthly Pro & Early Alert Pass",
+          paymentId: `cs_test_${Date.now().toString(36)}`,
+        });
+        await sendTelegramReply(
+          token,
+          chatId,
+          `💖 <b>Cute Payment Alert Sent!</b> Check the notification right above! ✨`,
+          getMainMenuKeyboard()
+        );
+      } else if (data === "cmd_status") {
         const msg = formatSyncMessage();
         await sendTelegramReply(token, chatId, msg, getMainMenuKeyboard());
       }
@@ -229,21 +325,25 @@ export async function POST(request: Request) {
           `• 💰 Payment confirmations`,
           ``,
           `<b>Available Commands:</b>`,
-          `• /latest — Get the 5 freshest verified remote jobs`,
-          `• /stats — View database listings & industry breakdown`,
-          `• /sync — Check latest scraper status`,
-          `• /testpay — Test cute payment alert notification`,
-          `• /help — Bot help & guide`,
+          `• /scrape — ⚡ <b>Trigger the scrapers right now</b>`,
+          `• /sync — 🔄 Trigger scraper ingestion pipeline`,
+          `• /latest — 🔥 Get 5 freshest verified remote jobs`,
+          `• /stats — 📊 View database listings & industry breakdown`,
+          `• /status — ⏱ Check latest scraper telemetry`,
+          `• /testpay — 💖 Test cute payment alert notification`,
+          `• /help — ℹ️ Bot help & guide`,
         ].join("\n");
 
         await sendTelegramReply(token, chatId, welcomeText, getMainMenuKeyboard());
+      } else if (command === "scrape" || command === "sync" || command === "runsync" || command === "crawl" || command === "harvest") {
+        await triggerScraperFromTelegram(token, chatId);
       } else if (command === "latest" || command === "jobs") {
         const latestMsg = formatLatestJobsMessage(5);
         await sendTelegramReply(token, chatId, latestMsg, getMainMenuKeyboard());
       } else if (command === "stats") {
         const statsMsg = formatStatsMessage();
         await sendTelegramReply(token, chatId, statsMsg, getMainMenuKeyboard());
-      } else if (command === "sync" || command === "status") {
+      } else if (command === "status") {
         const syncMsg = formatSyncMessage();
         await sendTelegramReply(token, chatId, syncMsg, getMainMenuKeyboard());
       } else if (command === "testpay" || command === "testpayment" || command === "pay" || command === "payment") {
@@ -255,22 +355,29 @@ export async function POST(request: Request) {
           planName: "Monthly Pro & Early Alert Pass",
           paymentId: `cs_test_${Date.now().toString(36)}`,
         });
-        return NextResponse.json({ ok: true });
+        await sendTelegramReply(
+          token,
+          chatId,
+          `💖 <b>Cute Payment Alert Sent!</b> Check the notification right above! ✨`,
+          getMainMenuKeyboard()
+        );
       } else if (command === "help") {
         const helpMsg = [
           `🤖 <b>RemoteWorkDaily Bot Help</b>`,
           `━━━━━━━━━━━━━━━━━━━━`,
-          `Use the buttons below or commands:`,
+          `Tap any button below or send a command:`,
+          `• /scrape — ⚡ <b>Trigger the job scraper</b>`,
+          `• /sync — 🔄 Trigger ingestion pipeline`,
           `• /latest — 5 latest remote job openings`,
           `• /stats — Current job board metrics`,
-          `• /sync — Ingestion pipeline & sync status`,
+          `• /status — Scraper telemetry status`,
           `• /testpay — Test cute payment alert notification`,
           `• /start — Re-link notification channel`,
         ].join("\n");
         await sendTelegramReply(token, chatId, helpMsg, getMainMenuKeyboard());
       } else {
-        // Echo / helpful hint
-        const defaultMsg = `💡 Use /latest to see the latest jobs, /stats for board statistics, /sync for scraper status, or /testpay for a cute payment alert!`;
+        // Helpful hint
+        const defaultMsg = `💡 Tap <b>⚡ Trigger Scraper Now</b> below, or type /scrape, /latest, /stats, or /testpay!`;
         await sendTelegramReply(token, chatId, defaultMsg, getMainMenuKeyboard());
       }
 

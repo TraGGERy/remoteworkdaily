@@ -130,17 +130,100 @@ function formatStats() {
   ].filter(Boolean).join("\n");
 }
 
+import { spawn } from "child_process";
+
 const KEYBOARD = {
   inline_keyboard: [
     [
+      { text: "⚡ Trigger Scraper Now", callback_data: "cmd_scrape" },
       { text: "🔥 Latest 5 Jobs", callback_data: "cmd_latest" },
+    ],
+    [
       { text: "📊 Board Stats", callback_data: "cmd_stats" },
+      { text: "💖 Test Payment Alert", callback_data: "cmd_testpay" },
     ],
     [
       { text: "🌐 Open RemoteWorkDaily", url: "https://remoteworkdaily.com" },
     ],
   ],
 };
+
+let isScrapingLocally = false;
+
+async function triggerScraperLocally(chatId) {
+  if (isScrapingLocally) {
+    await sendMessage(chatId, "⏳ <b>Scraper Already in Progress!</b>\n\nAnother job ingestion scrape is actively running right now. Please wait a moment.");
+    return;
+  }
+  isScrapingLocally = true;
+  await sendMessage(
+    chatId,
+    [
+      `🚀 <b>Scraper Triggered!</b> ⚡`,
+      `━━━━━━━━━━━━━━━━━━━━`,
+      `⏳ <i>Initiating real-time ingestion across verified sources:</i>`,
+      `• 🏢 Direct ATS Boards (Greenhouse, Lever, Ashby, Workable)`,
+      `• 🌐 Remote job feeds (Arbeitnow, WWR, Jobicy, RemoteOK, Remotive, Himalayas, ReliefWeb)`,
+      ``,
+      `<i>Please wait a few moments while listings are collected, deduplicated, and indexed...</i>`,
+    ].join("\n")
+  );
+
+  const startTime = Date.now();
+  const child = spawn(process.execPath, [path.join(process.cwd(), "scripts", "sync-jobs.mjs"), "--force", "--target=5000"], {
+    cwd: process.cwd(),
+    stdio: "pipe",
+  });
+
+  child.on("close", async (code) => {
+    isScrapingLocally = false;
+    const durationSec = ((Date.now() - startTime) / 1000).toFixed(1);
+    let syncState = null;
+    try {
+      if (fs.existsSync(SYNC_STATE_FILE)) syncState = JSON.parse(fs.readFileSync(SYNC_STATE_FILE, "utf8"));
+    } catch {}
+    const jobs = loadJobs();
+
+    if (code === 0) {
+      await sendMessage(
+        chatId,
+        [
+          `🎉 <b>Scraper Run Complete!</b> 🚀`,
+          `━━━━━━━━━━━━━━━━━━━━`,
+          `📥 <b>Newly Ingested:</b> +${(syncState?.syncedCount || 0).toLocaleString()} fresh jobs`,
+          `💼 <b>Total Live Listings:</b> ${jobs.length.toLocaleString()} jobs`,
+          `⏱ <b>Duration:</b> ${durationSec}s`,
+          `━━━━━━━━━━━━━━━━━━━━`,
+          `🌐 <a href="https://remoteworkdaily.com">Browse Live Listings</a>`,
+        ].join("\n")
+      );
+    } else {
+      await sendMessage(chatId, `⚠️ <b>Scraper process completed with exit code ${code}</b> in ${durationSec}s.`);
+    }
+  });
+
+  child.on("error", async (err) => {
+    isScrapingLocally = false;
+    await sendMessage(chatId, `❌ <b>Failed to start scraper process:</b> ${escapeHtml(err.message)}`);
+  });
+}
+
+function formatCutePaymentMessage() {
+  return [
+    `✨💖 <b>Yaaay! New Payment Received!</b> 🌸🎀`,
+    `━━━━━━━━━━━━━━━━━━━━`,
+    `✨ <i>A lovely new customer just completed checkout!</i> 💖🧸`,
+    ``,
+    `💳 <b>Type:</b> 🌟 Candidate Subscription`,
+    `💵 <b>Amount:</b> <code>$17.99 USD</code> 🍬`,
+    `📦 <b>Plan:</b> 🌸 Monthly Pro & Early Alerts`,
+    `👤 <b>Customer:</b> 💌 sarah.smith@example.com`,
+    `⏱ <b>Time:</b> ${new Date().toUTCString()}`,
+    `━━━━━━━━━━━━━━━━━━━━`,
+    `🎉 <b>You're doing amazing! Keep shining!</b> 🐾🍰✨`,
+    `🌐 <a href="https://remoteworkdaily.com">RemoteWorkDaily Dashboard</a>`,
+  ].join("\n");
+}
 
 async function sendMessage(chatId, text, replyMarkup = KEYBOARD) {
   try {
@@ -191,15 +274,17 @@ async function startBot() {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       commands: [
-        { command: "start", description: "Subscribe to job alerts & link chat" },
-        { command: "latest", description: "View 5 latest verified remote jobs" },
-        { command: "stats", description: "View job board statistics" },
-        { command: "sync", description: "Check sync & scraper status" },
-        { command: "help", description: "Bot help and guide" },
+        { command: "start", description: "Subscribe & link real-time job alerts" },
+        { command: "scrape", description: "⚡ Trigger scrapers & fetch fresh remote jobs" },
+        { command: "sync", description: "🔄 Trigger scraper ingestion pipeline" },
+        { command: "latest", description: "🔥 View 5 latest verified remote jobs" },
+        { command: "stats", description: "📊 View job board database statistics" },
+        { command: "testpay", description: "💖 Test cute payment notification" },
+        { command: "help", description: "ℹ️ Bot features and usage guide" },
       ],
     }),
   });
-  console.log("✅ Commands registered with Telegram Bot API (/start, /latest, /stats, /sync, /help)");
+  console.log("✅ Commands registered with Telegram Bot API (/start, /scrape, /sync, /latest, /stats, /testpay, /help)");
 
   // Clear any active webhook to allow long polling
   await fetch(`https://api.telegram.org/bot${TOKEN}/deleteWebhook`);
@@ -226,10 +311,14 @@ async function startBot() {
             const action = cb.data;
             await answerCallback(cb.id);
 
-            if (action === "cmd_latest") {
+            if (action === "cmd_scrape" || action === "cmd_sync") {
+              await triggerScraperLocally(chatId);
+            } else if (action === "cmd_latest") {
               await sendMessage(chatId, formatLatestJobs(5));
             } else if (action === "cmd_stats") {
               await sendMessage(chatId, formatStats());
+            } else if (action === "cmd_testpay") {
+              await sendMessage(chatId, formatCutePaymentMessage());
             }
             continue;
           }
@@ -244,7 +333,10 @@ async function startBot() {
             console.log(`[Bot] Received message from ${sender} (chat ${chatId}): "${text}"`);
             saveChatId(chatId);
 
-            if (text === "/start" || text.startsWith("/start ")) {
+            const firstToken = text.split(/\s+/)[0].toLowerCase();
+            const command = firstToken.replace(/^\//, "").split("@")[0];
+
+            if (command === "start") {
               const welcome = [
                 `👋 <b>Hello ${escapeHtml(sender)}!</b>`,
                 ``,
@@ -256,17 +348,24 @@ async function startBot() {
                 `• 💰 Payment confirmations`,
                 ``,
                 `<b>Commands:</b>`,
+                `• /scrape — ⚡ <b>Trigger the job scrapers now</b>`,
+                `• /sync — 🔄 Trigger scraper ingestion pipeline`,
                 `• /latest — 5 latest remote job postings`,
                 `• /stats — Active database metrics`,
-                `• /sync — Last scraper sync report`,
+                `• /status — Last scraper telemetry report`,
+                `• /testpay — 💖 Test cute payment notification`,
                 `• /help — Help & guide`,
               ].join("\n");
               await sendMessage(chatId, welcome);
-            } else if (text === "/latest") {
+            } else if (command === "scrape" || command === "sync" || command === "runsync" || command === "crawl" || command === "harvest") {
+              await triggerScraperLocally(chatId);
+            } else if (command === "latest" || command === "jobs") {
               await sendMessage(chatId, formatLatestJobs(5));
-            } else if (text === "/stats") {
+            } else if (command === "stats") {
               await sendMessage(chatId, formatStats());
-            } else if (text === "/sync") {
+            } else if (command === "testpay" || command === "pay" || command === "payment") {
+              await sendMessage(chatId, formatCutePaymentMessage());
+            } else if (command === "status") {
               let syncState = null;
               try {
                 if (fs.existsSync(SYNC_STATE_FILE)) syncState = JSON.parse(fs.readFileSync(SYNC_STATE_FILE, "utf8"));
@@ -282,18 +381,21 @@ async function startBot() {
                 `🌐 <a href="https://remoteworkdaily.com">Browse Live Listings</a>`,
               ].join("\n");
               await sendMessage(chatId, syncReport);
-            } else if (text === "/help") {
+            } else if (command === "help") {
               const help = [
                 `🤖 <b>RemoteWorkDaily Bot Commands:</b>`,
                 `━━━━━━━━━━━━━━━━━━━━`,
+                `• /scrape — ⚡ <b>Trigger the job scraper</b>`,
+                `• /sync — 🔄 Trigger scraper ingestion pipeline`,
                 `• /latest — See the latest 5 verified remote positions`,
                 `• /stats — See total job board counts & categories`,
-                `• /sync — Check scraper sync telemetry`,
+                `• /status — Check scraper sync telemetry`,
+                `• /testpay — Test cute payment alert notification`,
                 `• /start — Re-link this chat for alerts`,
               ].join("\n");
               await sendMessage(chatId, help);
             } else {
-              await sendMessage(chatId, `💡 Type /latest to see new job openings or /stats for database metrics!`);
+              await sendMessage(chatId, `💡 Tap <b>⚡ Trigger Scraper Now</b> below, or type /scrape, /latest, /stats, or /testpay!`);
             }
           }
         }
@@ -304,6 +406,21 @@ async function startBot() {
     }
   }
 }
+
+async function restoreWebhookOnExit() {
+  console.log("\n[Bot] Restoring production webhook before exiting...");
+  try {
+    const webhookUrl = "https://www.remoteworkdaily.com/api/telegram/webhook";
+    await fetch(`https://api.telegram.org/bot${TOKEN}/setWebhook?url=${encodeURIComponent(webhookUrl)}&drop_pending_updates=false`);
+    console.log("[Bot] ✅ Webhook restored to https://www.remoteworkdaily.com/api/telegram/webhook");
+  } catch (err) {
+    console.warn("[Bot] Notice restoring webhook:", err.message);
+  }
+  process.exit(0);
+}
+
+process.on("SIGINT", restoreWebhookOnExit);
+process.on("SIGTERM", restoreWebhookOnExit);
 
 startBot().catch((err) => {
   console.error("Bot crashed:", err);

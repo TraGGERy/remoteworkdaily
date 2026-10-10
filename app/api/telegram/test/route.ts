@@ -7,8 +7,10 @@ import {
   registerBotCommands,
   notifyPaymentReceived,
 } from "@/lib/telegram";
+import { runDailyJobIngestionPipeline } from "@/lib/scrapers/orchestrator";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 300;
 
 export async function GET(request: Request) {
   const token = getTelegramBotToken();
@@ -86,6 +88,21 @@ export async function GET(request: Request) {
         chatId: currentChatId,
         bot: meData.result,
         messageSent: paymentSent,
+      });
+    }
+
+    // Trigger scraper test if requested
+    if (searchParams.get("type") === "scrape" || searchParams.get("type") === "sync") {
+      const result = await runDailyJobIngestionPipeline({
+        force: true,
+        targetCount: 5000,
+      });
+
+      return NextResponse.json({
+        status: "scraper_executed_successfully",
+        chatId: currentChatId,
+        bot: meData.result,
+        result,
       });
     }
 

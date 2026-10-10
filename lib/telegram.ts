@@ -198,11 +198,12 @@ export async function registerBotCommands(): Promise<boolean> {
       body: JSON.stringify({
         commands: [
           { command: "start", description: "Subscribe & link real-time job alerts" },
-          { command: "latest", description: "View 5 latest verified remote jobs" },
-          { command: "stats", description: "View job board database statistics" },
-          { command: "sync", description: "Check scraper sync telemetry" },
-          { command: "testpay", description: "Send sample cute payment alert" },
-          { command: "help", description: "Bot features and usage guide" },
+          { command: "scrape", description: "⚡ Trigger scrapers & fetch fresh remote jobs" },
+          { command: "sync", description: "🔄 Trigger scraper ingestion pipeline" },
+          { command: "latest", description: "🔥 View 5 latest verified remote jobs" },
+          { command: "stats", description: "📊 View job board database statistics" },
+          { command: "testpay", description: "💖 Test cute payment notification" },
+          { command: "help", description: "ℹ️ Bot features and usage guide" },
         ],
       }),
     });
