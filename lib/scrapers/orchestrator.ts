@@ -44,7 +44,7 @@ export async function runDailyJobIngestionPipeline(
   const targetCount = options.targetCount || 5000;
 
   // Calculate Arbeitnow pages needed to satisfy volume target (100-325 jobs/page)
-  const pagesNeeded = Math.min(Math.max(Math.ceil(targetCount / 200), 12), 25);
+  const pagesNeeded = Math.min(Math.max(Math.ceil(targetCount / 250), 3), 15);
 
   console.log(`[Ingestion Pipeline] Initiating universal multi-source scrape (Target: ${targetCount} jobs, Arbeitnow pages: ${pagesNeeded})...`);
 

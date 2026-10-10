@@ -1,8 +1,12 @@
 import fs from "fs";
 import path from "path";
+import os from "os";
 
 const DEFAULT_BOT_TOKEN = "8593165155:AAEMBF_0UvlRHUjQb4AtvoG0GHgq8lLxgjM";
 const CONFIG_FILE = path.join(process.cwd(), "data", "telegram-config.json");
+const TMP_CONFIG_FILE = path.join(os.tmpdir(), "remotework-telegram-config.json");
+
+let inMemoryChatId: string | null = null;
 
 export function getTelegramBotToken(): string {
   return process.env.TELEGRAM_BOT_TOKEN || DEFAULT_BOT_TOKEN;
@@ -12,12 +16,17 @@ export function getTelegramBotToken(): string {
  * Retrieve the active Telegram chat ID.
  * Hierarchy:
  * 1. Environment variable TELEGRAM_CHAT_ID
- * 2. Persistent configuration file data/telegram-config.json
- * 3. Auto-discovery via Telegram getUpdates (finds whoever clicked /start on @PandoraWorkBot)
+ * 2. In-memory cache
+ * 3. Persistent configuration file data/telegram-config.json or /tmp
+ * 4. Auto-discovery via Telegram getUpdates (finds whoever clicked /start on @PandoraWorkBot)
  */
 export async function getTelegramChatId(): Promise<string | null> {
   if (process.env.TELEGRAM_CHAT_ID && process.env.TELEGRAM_CHAT_ID.trim()) {
     return process.env.TELEGRAM_CHAT_ID.trim();
+  }
+
+  if (inMemoryChatId) {
+    return inMemoryChatId;
   }
 
   try {
@@ -25,17 +34,32 @@ export async function getTelegramChatId(): Promise<string | null> {
       const raw = fs.readFileSync(CONFIG_FILE, "utf8");
       const parsed = JSON.parse(raw);
       if (parsed.chat_id) {
-        return String(parsed.chat_id);
+        inMemoryChatId = String(parsed.chat_id);
+        return inMemoryChatId;
       }
     }
-  } catch (err) {
-    console.warn("[Telegram] Error reading telegram-config.json:", err);
+  } catch {
+    // Read-only or missing
+  }
+
+  try {
+    if (fs.existsSync(TMP_CONFIG_FILE)) {
+      const raw = fs.readFileSync(TMP_CONFIG_FILE, "utf8");
+      const parsed = JSON.parse(raw);
+      if (parsed.chat_id) {
+        inMemoryChatId = String(parsed.chat_id);
+        return inMemoryChatId;
+      }
+    }
+  } catch {
+    // Ephemeral fallback
   }
 
   // Auto-discover from Telegram Bot API getUpdates
   try {
     const token = getTelegramBotToken();
     const res = await fetch(`https://api.telegram.org/bot${token}/getUpdates`, {
+      signal: AbortSignal.timeout(10000),
       next: { revalidate: 0 },
     });
     if (res.ok) {
@@ -58,34 +82,39 @@ export async function getTelegramChatId(): Promise<string | null> {
         }
       }
     }
-  } catch (err) {
-    console.warn("[Telegram] Auto-discovery via getUpdates failed:", err);
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.warn("[Telegram] Auto-discovery via getUpdates notice:", msg);
   }
 
   return null;
 }
 
 export function saveTelegramChatId(chatId: string): void {
+  inMemoryChatId = chatId;
+  const payload = JSON.stringify(
+    {
+      chat_id: chatId,
+      updated_at: new Date().toISOString(),
+      bot_username: "PandoraWorkBot",
+    },
+    null,
+    2
+  );
+
   try {
     const dir = path.dirname(CONFIG_FILE);
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true });
     }
-    fs.writeFileSync(
-      CONFIG_FILE,
-      JSON.stringify(
-        {
-          chat_id: chatId,
-          updated_at: new Date().toISOString(),
-          bot_username: "PandoraWorkBot",
-        },
-        null,
-        2
-      )
-    );
-    console.log(`[Telegram] Saved active chat_id ${chatId} to ${CONFIG_FILE}`);
-  } catch (err) {
-    console.warn("[Telegram] Failed to save chat_id:", err);
+    fs.writeFileSync(CONFIG_FILE, payload);
+  } catch {
+    // Read-only filesystem fallback (e.g. AWS Lambda / Vercel Serverless)
+    try {
+      fs.writeFileSync(TMP_CONFIG_FILE, payload);
+    } catch {
+      // In-memory cache already updated
+    }
   }
 }
 
@@ -128,19 +157,30 @@ export async function sendTelegramNotification(
     const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
+      signal: AbortSignal.timeout(10000),
       body: JSON.stringify(payload),
     });
 
     const result = await res.json();
     if (!result.ok) {
-      console.error("[Telegram] SendMessage failed:", result.description);
+      if (result.description?.includes("chat not found")) {
+        console.warn(
+          `[Telegram] Notification could not be delivered: Chat not found (chatId: ${chatId}). ` +
+          `To enable alerts, ensure TELEGRAM_CHAT_ID is valid or message /start to @PandoraWorkBot.`
+        );
+        if (inMemoryChatId === chatId) {
+          inMemoryChatId = null;
+        }
+      } else {
+        console.warn("[Telegram] SendMessage notice:", result.description);
+      }
       return { success: false, error: result.description, chatId };
     }
 
     return { success: true, chatId };
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
-    console.error("[Telegram] Unexpected notification error:", msg);
+    console.warn("[Telegram] Notification notice:", msg);
     return { success: false, error: msg };
   }
 }

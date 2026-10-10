@@ -3,6 +3,9 @@ import { runDailyJobIngestionPipeline } from "@/lib/scrapers/orchestrator";
 import { getAllJobs } from "@/lib/jobs-repository";
 import { canSyncInterval } from "@/lib/sync-tracker";
 
+export const dynamic = "force-dynamic";
+export const maxDuration = 300; // Allow up to 5 minutes on Vercel Pro if available
+
 const ALLOWED_ACTORS = new Set([
   "apify/web-scraper",
   "apify/cheerio-scraper",
@@ -89,7 +92,6 @@ async function handleSync(request: Request) {
       totalJobs: result.totalInDatabase,
       sources: result.sources,
       durationMs: result.durationMs,
-      jobs: getAllJobs(true),
     });
 
   } catch (error) {

@@ -4,13 +4,12 @@ import { insertJob } from "./jobs-repository";
 import { recordSyncCompleted } from "./sync-tracker";
 import crypto from "crypto";
 
-const APIFY_TOKEN = process.env.APIFY_TOKEN;
-
 export function getApifyClient(): ApifyClient | null {
-  if (!APIFY_TOKEN) {
+  const token = (process.env.APIFY_TOKEN || "").trim();
+  if (!token || token.includes("placeholder") || token === "undefined" || token.length < 10) {
     return null;
   }
-  return new ApifyClient({ token: APIFY_TOKEN });
+  return new ApifyClient({ token });
 }
 
 export function generateCanonicalHash(company: string, title: string, applyUrl: string): string {

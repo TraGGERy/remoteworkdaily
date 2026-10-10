@@ -1,8 +1,12 @@
 import fs from "fs";
 import path from "path";
+import os from "os";
 import { getSupabaseClient, isSupabaseConfigured } from "./supabase";
 
 const SYNC_STATE_FILE = path.join(process.cwd(), "data", "sync-state.json");
+const TMP_SYNC_STATE_FILE = path.join(os.tmpdir(), "remotework-sync-state.json");
+
+let inMemorySyncState: SyncState | null = null;
 
 export interface SyncState {
   lastSyncDate: string; // YYYY-MM-DD
@@ -21,17 +25,33 @@ export function getTodayUTC(): string {
 }
 
 /**
- * Reads the persistent sync state from disk or in-memory fallback.
+ * Reads the persistent sync state from in-memory cache, disk, or /tmp fallback.
  */
 export function getSyncState(): SyncState | null {
+  if (inMemorySyncState) {
+    return inMemorySyncState;
+  }
+
   try {
     if (fs.existsSync(SYNC_STATE_FILE)) {
       const data = fs.readFileSync(SYNC_STATE_FILE, "utf-8");
-      return JSON.parse(data) as SyncState;
+      inMemorySyncState = JSON.parse(data) as SyncState;
+      return inMemorySyncState;
     }
-  } catch (err) {
-    console.warn("Could not read sync state file:", err);
+  } catch {
+    // Read-only or missing
   }
+
+  try {
+    if (fs.existsSync(TMP_SYNC_STATE_FILE)) {
+      const data = fs.readFileSync(TMP_SYNC_STATE_FILE, "utf-8");
+      inMemorySyncState = JSON.parse(data) as SyncState;
+      return inMemorySyncState;
+    }
+  } catch {
+    // Ephemeral fallback
+  }
+
   return null;
 }
 
@@ -97,14 +117,21 @@ export async function recordSyncCompleted(
     sources: details?.sources,
   };
 
+  inMemorySyncState = newState;
+
   try {
     const dir = path.dirname(SYNC_STATE_FILE);
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true });
     }
     fs.writeFileSync(SYNC_STATE_FILE, JSON.stringify(newState, null, 2), "utf-8");
-  } catch (err) {
-    console.warn("Failed to write sync-state.json:", err);
+  } catch {
+    // Read-only filesystem fallback (e.g. AWS Lambda / Vercel Serverless)
+    try {
+      fs.writeFileSync(TMP_SYNC_STATE_FILE, JSON.stringify(newState), "utf-8");
+    } catch {
+      // In-memory state already updated
+    }
   }
 
   // Also persist to Supabase if available

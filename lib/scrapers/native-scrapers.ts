@@ -6,41 +6,51 @@ const USER_AGENT = "RemoteWorkDailyScraper/2.0 (+https://remoteworkdaily.com; su
  * 1. Arbeitnow Multi-Page High-Capacity Fetcher
  * Paginates through up to 25 pages (100-325 items/page) to fetch ~3,000 listings across all industries.
  */
-export async function fetchArbeitnowJobs(pagesToFetch: number = 20): Promise<RawScrapedJob[]> {
+export async function fetchArbeitnowJobs(pagesToFetch: number = 15): Promise<RawScrapedJob[]> {
   const allJobs: RawScrapedJob[] = [];
-  const pagePromises = Array.from({ length: pagesToFetch }, (_, i) => i + 1).map(async (page) => {
-    try {
-      const res = await fetch(`https://arbeitnow.com/api/job-board-api?page=${page}`, {
-        headers: { "User-Agent": USER_AGENT },
-        next: { revalidate: 0 },
-      });
-      if (!res.ok) return [];
-      const data = await res.json();
-      if (!Array.isArray(data.data)) return [];
+  const pageNumbers = Array.from({ length: pagesToFetch }, (_, i) => i + 1);
+  const BATCH_SIZE = 3;
 
-      return data.data.map((item: any): RawScrapedJob => ({
-        title: item.title,
-        company_name: item.company_name,
-        url: item.url,
-        apply_url: item.url,
-        tags: Array.isArray(item.tags) ? item.tags : [],
-        location: item.location || (item.remote ? "Worldwide" : "On-site"),
-        candidate_required_location: item.location,
-        description: item.description,
-        posted_at: item.created_at ? new Date(item.created_at * 1000).toISOString() : undefined,
-        remote: Boolean(item.remote),
-        workplace_type: item.remote ? "remote" : "on-site",
-      }));
-    } catch (err) {
-      console.warn(`[Native Scraper] Arbeitnow page ${page} error:`, err);
-      return [];
+  for (let i = 0; i < pageNumbers.length; i += BATCH_SIZE) {
+    const chunk = pageNumbers.slice(i, i + BATCH_SIZE);
+    const chunkResults = await Promise.all(
+      chunk.map(async (page) => {
+        try {
+          const res = await fetch(`https://arbeitnow.com/api/job-board-api?page=${page}`, {
+            headers: { "User-Agent": USER_AGENT, "Accept": "application/json" },
+            signal: AbortSignal.timeout(12000),
+            next: { revalidate: 0 },
+          });
+          if (!res.ok) return [];
+          const data = await res.json();
+          if (!Array.isArray(data.data)) return [];
+
+          return data.data.map((item: any): RawScrapedJob => ({
+            title: item.title,
+            company_name: item.company_name,
+            url: item.url,
+            apply_url: item.url,
+            tags: Array.isArray(item.tags) ? item.tags : [],
+            location: item.location || (item.remote ? "Worldwide" : "On-site"),
+            candidate_required_location: item.location,
+            description: item.description,
+            posted_at: item.created_at ? new Date(item.created_at * 1000).toISOString() : undefined,
+            remote: Boolean(item.remote),
+            workplace_type: item.remote ? "remote" : "on-site",
+          }));
+        } catch (err: unknown) {
+          const msg = err instanceof Error ? err.message : String(err);
+          console.warn(`[Native Scraper] Arbeitnow page ${page} notice:`, msg);
+          return [];
+        }
+      })
+    );
+
+    for (const pageJobs of chunkResults) {
+      allJobs.push(...pageJobs);
     }
-  });
-
-  const results = await Promise.all(pagePromises);
-  for (const pageJobs of results) {
-    allJobs.push(...pageJobs);
   }
+
   return allJobs;
 }
 
@@ -67,6 +77,7 @@ export async function fetchWeWorkRemotelyJobs(): Promise<RawScrapedJob[]> {
       const url = `https://weworkremotely.com/categories/${cat}.rss`;
       const res = await fetch(url, {
         headers: { "User-Agent": USER_AGENT },
+        signal: AbortSignal.timeout(12000),
         next: { revalidate: 0 },
       });
       if (!res.ok) return [];
@@ -101,8 +112,9 @@ export async function fetchWeWorkRemotelyJobs(): Promise<RawScrapedJob[]> {
           location: "Worldwide",
         };
       }).filter((j): j is RawScrapedJob => j !== null);
-    } catch (err) {
-      console.warn(`[Native Scraper] WWR ${cat} error:`, err);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.warn(`[Native Scraper] WWR ${cat} notice:`, msg);
       return [];
     }
   });
@@ -131,44 +143,52 @@ export async function fetchJobicyJobs(): Promise<RawScrapedJob[]> {
     "copywriting",
   ];
   const jobs: RawScrapedJob[] = [];
+  const BATCH_SIZE = 3;
 
-  const promises = industries.map(async (industry) => {
-    try {
-      const res = await fetch(`https://jobicy.com/api/v2/remote-jobs?count=50&industry=${industry}`, {
-        headers: { "User-Agent": USER_AGENT },
-        next: { revalidate: 0 },
-      });
-      if (!res.ok) return [];
-      const data = await res.json();
-      if (!Array.isArray(data.jobs)) return [];
+  for (let i = 0; i < industries.length; i += BATCH_SIZE) {
+    const chunk = industries.slice(i, i + BATCH_SIZE);
+    const chunkResults = await Promise.all(
+      chunk.map(async (industry) => {
+        try {
+          const res = await fetch(`https://jobicy.com/api/v2/remote-jobs?count=50&industry=${industry}`, {
+            headers: { "User-Agent": USER_AGENT, "Accept": "application/json" },
+            signal: AbortSignal.timeout(12000),
+            next: { revalidate: 0 },
+          });
+          if (!res.ok) return [];
+          const data = await res.json();
+          if (!Array.isArray(data.jobs)) return [];
 
-      return data.jobs.map((item: any): RawScrapedJob => ({
-        title: item.jobTitle,
-        company_name: item.companyName,
-        company_logo_url: item.companyLogo,
-        url: item.url,
-        apply_url: item.url,
-        candidate_required_location: item.jobGeo || "Worldwide",
-        location: item.jobGeo || "Worldwide",
-        description: item.jobDescription,
-        posted_at: item.pubDate,
-        salary: item.annualSalaryMin && item.annualSalaryMax ? `$${item.annualSalaryMin} - $${item.annualSalaryMax}` : undefined,
-        salary_min: item.annualSalaryMin ? Number(item.annualSalaryMin) : undefined,
-        salary_max: item.annualSalaryMax ? Number(item.annualSalaryMax) : undefined,
-        remote: true,
-        workplace_type: "remote",
-        tags: [item.jobIndustry, item.jobLevel, item.jobType].filter(Boolean),
-      }));
-    } catch (err) {
-      console.warn(`[Native Scraper] Jobicy ${industry} error:`, err);
-      return [];
+          return data.jobs.map((item: any): RawScrapedJob => ({
+            title: item.jobTitle,
+            company_name: item.companyName,
+            company_logo_url: item.companyLogo,
+            url: item.url,
+            apply_url: item.url,
+            candidate_required_location: item.jobGeo || "Worldwide",
+            location: item.jobGeo || "Worldwide",
+            description: item.jobDescription,
+            posted_at: item.pubDate,
+            salary: item.annualSalaryMin && item.annualSalaryMax ? `$${item.annualSalaryMin} - $${item.annualSalaryMax}` : undefined,
+            salary_min: item.annualSalaryMin ? Number(item.annualSalaryMin) : undefined,
+            salary_max: item.annualSalaryMax ? Number(item.annualSalaryMax) : undefined,
+            remote: true,
+            workplace_type: "remote",
+            tags: [item.jobIndustry, item.jobLevel, item.jobType].filter(Boolean),
+          }));
+        } catch (err: unknown) {
+          const msg = err instanceof Error ? err.message : String(err);
+          console.warn(`[Native Scraper] Jobicy ${industry} notice:`, msg);
+          return [];
+        }
+      })
+    );
+
+    for (const group of chunkResults) {
+      jobs.push(...group);
     }
-  });
-
-  const results = await Promise.all(promises);
-  for (const group of results) {
-    jobs.push(...group);
   }
+
   return jobs;
 }
 
@@ -178,7 +198,11 @@ export async function fetchJobicyJobs(): Promise<RawScrapedJob[]> {
 export async function fetchRemoteOKJobs(): Promise<RawScrapedJob[]> {
   try {
     const res = await fetch("https://remoteok.com/api", {
-      headers: { "User-Agent": USER_AGENT },
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+        "Accept": "application/json",
+      },
+      signal: AbortSignal.timeout(15000),
       next: { revalidate: 0 },
     });
     if (!res.ok) return [];
@@ -203,8 +227,9 @@ export async function fetchRemoteOKJobs(): Promise<RawScrapedJob[]> {
       remote: true,
       workplace_type: "remote",
     }));
-  } catch (err) {
-    console.warn("[Native Scraper] RemoteOK feed error:", err);
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.warn("[Native Scraper] RemoteOK feed notice:", msg);
     return [];
   }
 }
@@ -216,6 +241,7 @@ export async function fetchRemotiveJobs(): Promise<RawScrapedJob[]> {
   try {
     const res = await fetch("https://remotive.com/api/remote-jobs", {
       headers: { "User-Agent": USER_AGENT },
+      signal: AbortSignal.timeout(12000),
       next: { revalidate: 0 },
     });
     if (!res.ok) return [];
@@ -237,8 +263,9 @@ export async function fetchRemotiveJobs(): Promise<RawScrapedJob[]> {
       remote: true,
       workplace_type: "remote",
     }));
-  } catch (err) {
-    console.warn("[Native Scraper] Remotive feed error:", err);
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.warn("[Native Scraper] Remotive feed notice:", msg);
     return [];
   }
 }
@@ -250,6 +277,7 @@ export async function fetchHimalayasJobs(): Promise<RawScrapedJob[]> {
   try {
     const res = await fetch("https://himalayas.app/jobs/api?limit=50", {
       headers: { "User-Agent": USER_AGENT },
+      signal: AbortSignal.timeout(12000),
       next: { revalidate: 0 },
     });
     if (!res.ok) return [];
@@ -273,8 +301,9 @@ export async function fetchHimalayasJobs(): Promise<RawScrapedJob[]> {
       remote: true,
       workplace_type: "remote",
     }));
-  } catch (err) {
-    console.warn("[Native Scraper] Himalayas feed error:", err);
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.warn("[Native Scraper] Himalayas feed notice:", msg);
     return [];
   }
 }
@@ -287,6 +316,7 @@ export async function fetchReliefWebJobs(): Promise<RawScrapedJob[]> {
   try {
     const res = await fetch("https://reliefweb.int/jobs/rss.xml", {
       headers: { "User-Agent": USER_AGENT },
+      signal: AbortSignal.timeout(12000),
       next: { revalidate: 0 },
     });
     if (!res.ok) return [];
@@ -335,8 +365,9 @@ export async function fetchReliefWebJobs(): Promise<RawScrapedJob[]> {
         tags,
       };
     }).filter((j): j is RawScrapedJob => j !== null);
-  } catch (err) {
-    console.warn("[Native Scraper] ReliefWeb RSS error:", err);
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.warn("[Native Scraper] ReliefWeb RSS notice:", msg);
     return [];
   }
 }

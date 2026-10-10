@@ -1,5 +1,6 @@
 import fs from "fs";
 import path from "path";
+import os from "os";
 import { Job } from "./types";
 import { INITIAL_JOBS } from "./sample-jobs";
 import { getSupabaseClient, isSupabaseConfigured } from "./supabase";
@@ -14,6 +15,7 @@ export { filterJobs } from "./filter-jobs";
  */
 
 const DATA_FILE = path.join(process.cwd(), "data", "jobs.json");
+const TMP_DATA_FILE = path.join(os.tmpdir(), "remotework-jobs.json");
 let memoryCache: Job[] | null = null;
 let lastCacheMtime: number = 0;
 let lastCacheCheck: number = 0;
@@ -37,8 +39,20 @@ function ensureDataFile(forceReload: boolean = false): Job[] {
     }
 
     if (!fs.existsSync(DATA_FILE)) {
+      if (fs.existsSync(TMP_DATA_FILE)) {
+        try {
+          const content = fs.readFileSync(TMP_DATA_FILE, "utf8");
+          const parsed = JSON.parse(content);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            memoryCache = parsed;
+            return memoryCache;
+          }
+        } catch {
+          // Fall through
+        }
+      }
       try {
-        fs.writeFileSync(DATA_FILE, JSON.stringify(INITIAL_JOBS, null, 2), "utf8");
+        fs.writeFileSync(DATA_FILE, JSON.stringify(INITIAL_JOBS), "utf8");
       } catch {
         // Ephemeral or read-only filesystem
       }
@@ -62,7 +76,6 @@ function ensureDataFile(forceReload: boolean = false): Job[] {
     memoryCache = [...INITIAL_JOBS];
     return memoryCache;
   } catch (error) {
-    console.warn("Notice: Using in-memory fallback for jobs data:", error);
     if (!memoryCache || memoryCache.length === 0) {
       memoryCache = [...INITIAL_JOBS];
     }
@@ -71,18 +84,23 @@ function ensureDataFile(forceReload: boolean = false): Job[] {
 }
 
 function saveJobs(jobs: Job[]) {
-
   // Always update in-memory cache immediately
   memoryCache = [...jobs];
 
+  const payload = JSON.stringify(jobs);
   try {
     const dir = path.dirname(DATA_FILE);
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true });
     }
-    fs.writeFileSync(DATA_FILE, JSON.stringify(jobs, null, 2), "utf8");
-  } catch (error) {
-    console.warn("Notice: File write skipped in current runtime environment (in-memory updated):", error);
+    fs.writeFileSync(DATA_FILE, payload, "utf8");
+  } catch {
+    // Read-only filesystem fallback (e.g. AWS Lambda / Vercel Serverless)
+    try {
+      fs.writeFileSync(TMP_DATA_FILE, payload, "utf8");
+    } catch {
+      // In-memory cache already updated
+    }
   }
 }
 
@@ -136,7 +154,7 @@ async function syncJobsBatchToSupabase(jobs: Job[]) {
   const supabase = getSupabaseClient();
   if (!supabase) return;
 
-  const CHUNK_SIZE = 50;
+  const CHUNK_SIZE = 250;
   for (let i = 0; i < jobs.length; i += CHUNK_SIZE) {
     const chunk = jobs.slice(i, i + CHUNK_SIZE);
     const records = chunk.map((job) => ({
@@ -186,6 +204,11 @@ let isBackgroundAutoSyncing = false;
  * Ensures visitors always trigger fresh job harvesting in the background.
  */
 export function triggerBackgroundSyncIfStale(): void {
+  // In serverless environments (Vercel/Lambda), scheduled cron jobs handle ingestion.
+  // Un-awaited background work gets frozen/severed when the HTTP response finishes.
+  if (process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME) {
+    return;
+  }
   if (isBackgroundAutoSyncing) return;
   try {
     // Dynamic import to prevent circular dependencies

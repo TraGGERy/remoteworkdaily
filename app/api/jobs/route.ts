@@ -34,8 +34,8 @@ export async function GET(request: Request) {
     } finally {
       isBackgroundSyncing = false;
     }
-  } else if (!isBackgroundSyncing) {
-    // 2. Stale-While-Revalidate: If last sync was > 100 minutes ago, auto-trigger background ingestion
+  } else if (!isBackgroundSyncing && !process.env.VERCEL && !process.env.AWS_LAMBDA_FUNCTION_NAME) {
+    // 2. Stale-While-Revalidate (local / VM environments only)
     const intervalCheck = canSyncInterval(false);
     if (intervalCheck.allowed) {
       isBackgroundSyncing = true;

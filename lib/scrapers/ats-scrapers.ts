@@ -81,6 +81,7 @@ export async function fetchGreenhouseAtsJobs(): Promise<RawScrapedJob[]> {
       const url = `https://boards-api.greenhouse.io/v1/boards/${company.token}/jobs?content=true`;
       const res = await fetch(url, {
         headers: { "User-Agent": USER_AGENT },
+        signal: AbortSignal.timeout(12000),
         next: { revalidate: 0 },
       });
       if (!res.ok) return [];
@@ -120,8 +121,9 @@ export async function fetchGreenhouseAtsJobs(): Promise<RawScrapedJob[]> {
           is_direct_company_post: true,
         };
       });
-    } catch (err) {
-      console.warn(`[ATS Scraper] Greenhouse ${company.token} error:`, err);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.warn(`[ATS Scraper] Greenhouse ${company.token} notice:`, msg);
       return [];
     }
   });
@@ -145,6 +147,7 @@ export async function fetchLeverAtsJobs(): Promise<RawScrapedJob[]> {
       const url = `https://api.lever.co/v0/postings/${company.slug}?mode=json`;
       const res = await fetch(url, {
         headers: { "User-Agent": USER_AGENT },
+        signal: AbortSignal.timeout(12000),
         next: { revalidate: 0 },
       });
       if (!res.ok) return [];
@@ -187,8 +190,9 @@ export async function fetchLeverAtsJobs(): Promise<RawScrapedJob[]> {
           is_direct_company_post: true,
         };
       });
-    } catch (err) {
-      console.warn(`[ATS Scraper] Lever ${company.slug} error:`, err);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.warn(`[ATS Scraper] Lever ${company.slug} notice:`, msg);
       return [];
     }
   });
@@ -212,6 +216,7 @@ export async function fetchAshbyAtsJobs(): Promise<RawScrapedJob[]> {
       const url = `https://api.ashbyhq.com/posting-api/job-board/${company.slug}`;
       const res = await fetch(url, {
         headers: { "User-Agent": USER_AGENT },
+        signal: AbortSignal.timeout(12000),
         next: { revalidate: 0 },
       });
       if (!res.ok) return [];
@@ -247,8 +252,9 @@ export async function fetchAshbyAtsJobs(): Promise<RawScrapedJob[]> {
           is_direct_company_post: true,
         };
       });
-    } catch (err) {
-      console.warn(`[ATS Scraper] Ashby ${company.slug} error:`, err);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.warn(`[ATS Scraper] Ashby ${company.slug} notice:`, msg);
       return [];
     }
   });

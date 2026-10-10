@@ -8,8 +8,10 @@ export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 export default function Home() {
-  // Keep listings constantly fresh across user visits via non-blocking background revalidation
-  triggerBackgroundSyncIfStale();
+  // In serverless environments, cron (/api/jobs/sync) handles scheduled scraping.
+  if (!process.env.VERCEL && !process.env.AWS_LAMBDA_FUNCTION_NAME) {
+    triggerBackgroundSyncIfStale();
+  }
   const allJobs = getAllJobs(true);
   const topSchemas = allJobs.slice(0, 10).map((job) => generateJobPostingSchema(job));
 

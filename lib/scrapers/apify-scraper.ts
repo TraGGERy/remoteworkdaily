@@ -50,8 +50,15 @@ export async function fetchApifyJobs(
       remote: raw.remote !== false,
       workplace_type: raw.workplace_type || (raw.remote === false ? "on-site" : "remote"),
     })).filter((j) => Boolean(j.title && (j.company || j.company_name)));
-  } catch (err) {
-    console.warn(`[Apify Scraper] Error executing actor ${actorId}:`, err);
+  } catch (err: unknown) {
+    const errorObj = err as { statusCode?: number; type?: string; message?: string };
+    if (errorObj?.statusCode === 401 || errorObj?.type === "user-or-token-not-found" || String(err).includes("token is not valid")) {
+      console.warn(
+        `[Apify Scraper] Authentication failed (401: user-or-token-not-found). Please check APIFY_TOKEN environment variable. Skipping Apify ingestion.`
+      );
+    } else {
+      console.warn(`[Apify Scraper] Error executing actor ${actorId}:`, errorObj?.message || String(err));
+    }
     return [];
   }
 }
