@@ -192,3 +192,32 @@ export async function expireCandidatePass(email: string): Promise<boolean> {
 
   return true;
 }
+
+/**
+ * Permanently removes candidate pass records for an email upon account deletion.
+ * Ensures no orphan entitlement data remains in local cache or cloud database.
+ */
+export async function deleteCandidatePass(email: string): Promise<boolean> {
+  if (!email) return false;
+  const normalizedEmail = email.toLowerCase().trim();
+  const cache = ensureCache();
+  cache.delete(normalizedEmail);
+  persistToDisk();
+
+  if (isSupabaseConfigured()) {
+    const supabase = getSupabaseClient();
+    if (supabase) {
+      try {
+        await supabase
+          .from("candidate_passes")
+          .delete()
+          .ilike("email", normalizedEmail);
+      } catch (err) {
+        console.warn("[Candidate Pass Delete] Supabase delete bypassed:", err);
+      }
+    }
+  }
+
+  return true;
+}
+

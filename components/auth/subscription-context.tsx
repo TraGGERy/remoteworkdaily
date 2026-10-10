@@ -17,6 +17,11 @@ interface SubscriptionContextType {
   refreshSubscription: () => Promise<void>;
   simulateSubscription: (active: boolean, plan?: string) => void;
   cancelSubscription: () => Promise<boolean>;
+  deleteAccount: (options?: { cancelPlanFirst?: boolean }) => Promise<{
+    success: boolean;
+    error?: string;
+    hasActiveSubscription?: boolean;
+  }>;
   isOnboardingCompleted: boolean;
   markOnboardingCompleted: () => Promise<void>;
 }
@@ -34,6 +39,7 @@ const SubscriptionContext = createContext<SubscriptionContextType>({
   refreshSubscription: async () => {},
   simulateSubscription: () => {},
   cancelSubscription: async () => false,
+  deleteAccount: async () => ({ success: false, error: "Context not initialized" }),
   isOnboardingCompleted: false,
   markOnboardingCompleted: async () => {},
 });
@@ -245,6 +251,73 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
     }
   }, [primaryEmail]);
 
+  const deleteAccount = useCallback(
+    async (options?: { cancelPlanFirst?: boolean }): Promise<{
+      success: boolean;
+      error?: string;
+      hasActiveSubscription?: boolean;
+    }> => {
+      const storedEmail =
+        typeof window !== "undefined"
+          ? localStorage.getItem("remotework_user_email") ||
+            localStorage.getItem("remotework_employer_email")
+          : null;
+      const emailToDelete = primaryEmail || storedEmail;
+
+      if (!emailToDelete) {
+        return {
+          success: false,
+          error: "A valid email or active session is required to delete your account.",
+        };
+      }
+
+      try {
+        const res = await fetch("/api/user/delete", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email: emailToDelete,
+            cancelPlan: Boolean(options?.cancelPlanFirst),
+          }),
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          return {
+            success: false,
+            error: data.error || "Failed to delete account.",
+            hasActiveSubscription: Boolean(data.hasActiveSubscription),
+          };
+        }
+
+        // Reset client subscription state and wipe persisted credentials
+        setSimulatedSub(false);
+        setHasServerSub(false);
+        setSubscriptionPlan(null);
+        if (typeof window !== "undefined") {
+          localStorage.removeItem("remotework_user_email");
+          localStorage.removeItem("remotework_employer_email");
+          localStorage.removeItem("remotework_active_subscription");
+          localStorage.removeItem("remotework_subscription_plan");
+          localStorage.removeItem("rwd_onboarding_completed");
+          sessionStorage.removeItem("rwd_onboarding_completed");
+          sessionStorage.removeItem("rwd_onboarding_shown");
+          document.cookie = "rwd_onboarding_completed=; path=/; max-age=0";
+        }
+
+        return { success: true };
+      } catch (err) {
+        console.error("Account deletion network error:", err);
+        return {
+          success: false,
+          error: "A network error occurred while deleting your account. Please try again.",
+        };
+      }
+    },
+    [primaryEmail]
+  );
+
   const openUpgradeModal = () => setUpgradeModalOpen(true);
   const closeUpgradeModal = () => setUpgradeModalOpen(false);
 
@@ -287,6 +360,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
         refreshSubscription,
         simulateSubscription,
         cancelSubscription,
+        deleteAccount,
         isOnboardingCompleted,
         markOnboardingCompleted,
       }}

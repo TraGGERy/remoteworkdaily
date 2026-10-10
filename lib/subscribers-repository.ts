@@ -125,3 +125,32 @@ export function getAllActiveSubscribers(): SubscriberRecord[] {
   const cache = ensureCache();
   return Array.from(cache.values()).filter((s) => s.status === "active");
 }
+
+/**
+ * Permanently removes a subscriber record by email upon account deletion.
+ * Cleans both memory cache, persistent JSON file, and Supabase cloud store.
+ */
+export async function deleteSubscriber(email: string): Promise<boolean> {
+  if (!email) return false;
+  const normalizedEmail = email.toLowerCase().trim();
+  const cache = ensureCache();
+  cache.delete(normalizedEmail);
+  persistToDisk();
+
+  if (isSupabaseConfigured()) {
+    const supabase = getSupabaseClient();
+    if (supabase) {
+      try {
+        await supabase
+          .from("subscribers")
+          .delete()
+          .ilike("email", normalizedEmail);
+      } catch (err) {
+        console.warn("[Subscribers Delete] Supabase delete bypassed:", err);
+      }
+    }
+  }
+
+  return true;
+}
+

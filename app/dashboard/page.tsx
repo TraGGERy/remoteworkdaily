@@ -25,6 +25,7 @@ import {
   AlertTriangle,
   RefreshCw,
   Lock,
+  Trash2,
 } from "lucide-react";
 
 type DashboardTab = "employer" | "subscription" | "settings";
@@ -36,6 +37,7 @@ export default function DashboardPage() {
     hasActiveSubscription,
     subscriptionPlan,
     cancelSubscription,
+    deleteAccount,
     openUpgradeModal,
     refreshSubscription,
   } = useSubscription();
@@ -57,6 +59,13 @@ export default function DashboardPage() {
   const [cancelSuccess, setCancelSuccess] = useState(false);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [portalLoading, setPortalLoading] = useState(false);
+
+  // Account Deletion State
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [deleteSuccess, setDeleteSuccess] = useState(false);
 
   // Settings State
   const [dailyDigest, setDailyDigest] = useState(true);
@@ -129,6 +138,55 @@ export default function DashboardPage() {
       setIsCancelling(false);
     }
   };
+
+  const handleCancelPlanFromDelete = async () => {
+    setIsCancelling(true);
+    try {
+      const ok = await cancelSubscription();
+      if (ok) {
+        setCancelSuccess(true);
+        await refreshSubscription();
+      } else {
+        alert("Could not process cancellation. Please contact support@remoteworkdaily.com.");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Network error. Please try again.");
+    } finally {
+      setIsCancelling(false);
+    }
+  };
+
+  const handleExecuteDeleteAccount = async (cancelPlanFirst = false) => {
+    setIsDeleting(true);
+    setDeleteError(null);
+    try {
+      const res = await deleteAccount({ cancelPlanFirst });
+      if (!res.success) {
+        setDeleteError(res.error || "Failed to delete account.");
+        return;
+      }
+
+      setDeleteSuccess(true);
+
+      setTimeout(async () => {
+        if (typeof window !== "undefined" && (window as any).Clerk) {
+          try {
+            await (window as any).Clerk.signOut();
+          } catch {
+            // fallback
+          }
+        }
+        window.location.href = "/?deleted=account";
+      }, 1400);
+    } catch (err) {
+      console.error("Account deletion failed:", err);
+      setDeleteError("A network error occurred while deleting your account. Please try again.");
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
 
   const handleOpenStripePortal = async () => {
     const email = userEmail || employerEmail || localStorage.getItem("remotework_user_email");
@@ -727,6 +785,161 @@ export default function DashboardPage() {
             </div>
           </div>
         </form>
+
+        {/* Danger Zone: Account Deletion */}
+        <div className="p-6 rounded-3xl border border-red-200 dark:border-red-950/70 bg-red-50/20 dark:bg-red-950/20 shadow-sm space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+            <div>
+              <h3 className="font-extrabold text-base text-red-600 dark:text-red-400 flex items-center gap-2">
+                <Trash2 className="w-4 h-4 text-red-500" />
+                <span>Danger Zone: Delete Account</span>
+              </h3>
+              <p className="text-xs text-neutral-600 dark:text-neutral-400 mt-1 max-w-xl leading-relaxed">
+                Permanently delete your account, candidate alerts, and saved preferences. This action is irreversible.
+              </p>
+            </div>
+
+            {!hasActiveSubscription && (
+              <button
+                type="button"
+                onClick={() => {
+                  setDeleteError(null);
+                  setDeleteConfirmText("");
+                  setShowDeleteModal(true);
+                }}
+                className="px-4 py-2.5 rounded-xl text-xs font-bold text-red-600 dark:text-red-400 bg-red-100/60 dark:bg-red-950/60 hover:bg-red-200/80 dark:hover:bg-red-900/60 border border-red-200 dark:border-red-900 transition-colors shrink-0"
+              >
+                Delete Account
+              </button>
+            )}
+          </div>
+
+          {/* Active Subscription Guard */}
+          {hasActiveSubscription ? (
+            <div className="p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/60 space-y-3">
+              <div className="flex items-start gap-2.5">
+                <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
+                <div>
+                  <h4 className="text-xs font-bold text-amber-900 dark:text-amber-200">
+                    Active Subscription Detected ({planNameFormatted})
+                  </h4>
+                  <p className="text-xs text-amber-700 dark:text-amber-300 mt-0.5 leading-relaxed">
+                    To prevent unexpected renewal charges, your account cannot be deleted while you have an active paid plan. You can cancel your paid plan below before deleting your account.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2 pt-1">
+                <button
+                  type="button"
+                  disabled={isCancelling}
+                  onClick={handleCancelPlanFromDelete}
+                  className="px-3.5 py-2 rounded-xl text-xs font-bold bg-amber-600 hover:bg-amber-700 active:scale-95 text-white transition-all shadow-sm"
+                >
+                  {isCancelling ? "Cancelling Plan..." : "Cancel Paid Plan First"}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDeleteError(null);
+                    setDeleteConfirmText("");
+                    setShowDeleteModal(true);
+                  }}
+                  className="px-3.5 py-2 rounded-xl text-xs font-bold text-red-600 dark:text-red-400 bg-red-100/60 dark:bg-red-950/60 hover:bg-red-200/80 dark:hover:bg-red-900/60 border border-red-200 dark:border-red-900 transition-colors"
+                >
+                  Cancel Plan & Delete Account
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 text-xs text-neutral-500 dark:text-neutral-400">
+              <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+              <span>No active paid subscriptions. Account is eligible for immediate deletion.</span>
+            </div>
+          )}
+        </div>
+      </div>
+    )}
+
+    {/* Delete Account Confirmation Modal */}
+    {showDeleteModal && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-150">
+        <div className="w-full max-w-md rounded-3xl bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 p-6 shadow-2xl space-y-4">
+          <div className="w-12 h-12 rounded-2xl bg-red-100 dark:bg-red-950/80 text-red-600 dark:text-red-400 flex items-center justify-center">
+            <Trash2 className="w-6 h-6" />
+          </div>
+
+          <div>
+            <h3 className="text-lg font-black text-neutral-900 dark:text-white">
+              Permanently Delete Account?
+            </h3>
+            <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1 leading-relaxed">
+              {hasActiveSubscription
+                ? "You have an active paid plan. Deleting your account will immediately cancel your subscription in Stripe to stop future charges, and erase all your account data."
+                : "All profile details, alerts, and settings associated with this account will be permanently removed. This action cannot be reversed."}
+            </p>
+          </div>
+
+          {hasActiveSubscription && (
+            <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-900 text-xs text-amber-800 dark:text-amber-200 flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
+              <span>Your active Stripe plan ({planNameFormatted}) will be canceled.</span>
+            </div>
+          )}
+
+          {deleteError && (
+            <div className="p-3 rounded-xl bg-red-100 dark:bg-red-950/80 border border-red-300 dark:border-red-800 text-xs text-red-800 dark:text-red-200 flex items-center gap-2">
+              <XCircle className="w-4 h-4 text-red-600 shrink-0" />
+              <span>{deleteError}</span>
+            </div>
+          )}
+
+          {deleteSuccess ? (
+            <div className="p-4 rounded-xl bg-emerald-100 dark:bg-emerald-950/80 border border-emerald-300 dark:border-emerald-800 text-xs font-bold text-emerald-800 dark:text-emerald-200 flex items-center gap-2">
+              <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+              <span>Account deleted successfully. Signing out and redirecting...</span>
+            </div>
+          ) : (
+            <>
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-semibold text-neutral-600 dark:text-neutral-400 block">
+                  Type <strong className="text-red-600 font-mono">DELETE</strong> to confirm:
+                </label>
+                <input
+                  type="text"
+                  placeholder="DELETE"
+                  value={deleteConfirmText}
+                  onChange={(e) => setDeleteConfirmText(e.target.value)}
+                  className="w-full px-3.5 py-2 text-xs rounded-xl border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white focus:outline-none focus:border-red-500 font-mono"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  disabled={isDeleting}
+                  onClick={() => setShowDeleteModal(false)}
+                  className="px-4 py-2 text-xs font-bold rounded-xl text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={isDeleting || deleteConfirmText.trim().toUpperCase() !== "DELETE"}
+                  onClick={() => handleExecuteDeleteAccount(hasActiveSubscription)}
+                  className="px-4 py-2 text-xs font-bold rounded-xl bg-red-600 text-white hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm"
+                >
+                  {isDeleting
+                    ? "Deleting Account..."
+                    : hasActiveSubscription
+                    ? "Cancel Plan & Delete"
+                    : "Confirm Delete"}
+                </button>
+              </div>
+            </>
+          )}
+        </div>
       </div>
     )}
   </div>

@@ -205,7 +205,8 @@ export async function createCandidateSubscriptionCheckoutSession(params: Candida
 export const createCandidateHunterPassCheckoutSession = createCandidateSubscriptionCheckoutSession;
 
 /**
- * Cancels any active Stripe subscription for the given email address.
+ * Cancels all active, trialing, or past_due Stripe subscriptions for the given email.
+ * Ensures the customer will not incur future charges upon subscription cancellation or account deletion.
  */
 export async function cancelStripeSubscription(email: string): Promise<boolean> {
   const stripeKey = process.env.STRIPE_SECRET_KEY;
@@ -226,20 +227,79 @@ export async function cancelStripeSubscription(email: string): Promise<boolean> 
     const customerId = customers.data[0].id;
     const subscriptions = await stripe.subscriptions.list({
       customer: customerId,
-      status: "active",
-      limit: 5,
+      status: "all",
+      limit: 10,
     });
 
+    let anyCancelled = false;
     for (const sub of subscriptions.data) {
-      await stripe.subscriptions.cancel(sub.id);
+      if (
+        sub.status === "active" ||
+        sub.status === "trialing" ||
+        sub.status === "past_due" ||
+        sub.status === "unpaid"
+      ) {
+        await stripe.subscriptions.cancel(sub.id);
+        anyCancelled = true;
+      }
     }
 
-    return true;
+    return anyCancelled || subscriptions.data.length === 0;
   } catch (err) {
     console.warn("[Stripe] Failed to cancel subscription for", email, err);
     return false;
   }
 }
+
+/**
+ * Checks whether an email has an active or trialing Stripe subscription directly via Stripe API.
+ */
+export async function getActiveStripeSubscription(email: string): Promise<{
+  hasActive: boolean;
+  subscriptionId?: string;
+  status?: string;
+} | null> {
+  const stripeKey = process.env.STRIPE_SECRET_KEY;
+  if (!stripeKey || stripeKey.includes("placeholder")) {
+    return null;
+  }
+
+  try {
+    const customers = await stripe.customers.list({
+      email: email.toLowerCase().trim(),
+      limit: 1,
+    });
+
+    if (customers.data.length === 0) {
+      return { hasActive: false };
+    }
+
+    const customerId = customers.data[0].id;
+    const subscriptions = await stripe.subscriptions.list({
+      customer: customerId,
+      status: "all",
+      limit: 5,
+    });
+
+    const activeSub = subscriptions.data.find(
+      (sub) => sub.status === "active" || sub.status === "trialing"
+    );
+
+    if (activeSub) {
+      return {
+        hasActive: true,
+        subscriptionId: activeSub.id,
+        status: activeSub.status,
+      };
+    }
+
+    return { hasActive: false };
+  } catch (err) {
+    console.warn("[Stripe] Failed to check active subscription for", email, err);
+    return null;
+  }
+}
+
 
 /**
  * Creates a Stripe Customer Billing Portal session for self-serve management.
