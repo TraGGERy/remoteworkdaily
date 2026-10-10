@@ -3,6 +3,7 @@ import path from "path";
 import os from "os";
 
 const DEFAULT_BOT_TOKEN = "8593165155:AAEMBF_0UvlRHUjQb4AtvoG0GHgq8lLxgjM";
+const DEFAULT_CHAT_ID = "8518521254";
 const CONFIG_FILE = path.join(process.cwd(), "data", "telegram-config.json");
 const TMP_CONFIG_FILE = path.join(os.tmpdir(), "remotework-telegram-config.json");
 
@@ -87,7 +88,7 @@ export async function getTelegramChatId(): Promise<string | null> {
     console.warn("[Telegram] Auto-discovery via getUpdates notice:", msg);
   }
 
-  return null;
+  return DEFAULT_CHAT_ID;
 }
 
 export function saveTelegramChatId(chatId: string): void {
