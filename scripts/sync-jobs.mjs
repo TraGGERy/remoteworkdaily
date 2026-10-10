@@ -599,6 +599,93 @@ async function runScrape() {
   console.log(`   ${updated} existing jobs refreshed`);
   console.log(`   ${pruned.length} total active verified listings in database`);
   console.log(`========================================================\n`);
+
+  // Dispatch real-time Telegram notification
+  try {
+    const token = process.env.TELEGRAM_BOT_TOKEN || "8593165155:AAEMBF_0UvlRHUjQb4AtvoG0GHgq8lLxgjM";
+    let chatId = process.env.TELEGRAM_CHAT_ID;
+    const configPath = path.join(process.cwd(), "data", "telegram-config.json");
+    if (!chatId && fs.existsSync(configPath)) {
+      try {
+        const cfg = JSON.parse(fs.readFileSync(configPath, "utf8"));
+        if (cfg.chat_id) chatId = String(cfg.chat_id);
+      } catch {}
+    }
+
+    if (!chatId) {
+      try {
+        const updatesRes = await fetch(`https://api.telegram.org/bot${token}/getUpdates`);
+        const updatesData = await updatesRes.json();
+        if (updatesData.ok && Array.isArray(updatesData.result) && updatesData.result.length > 0) {
+          for (let i = updatesData.result.length - 1; i >= 0; i--) {
+            const chat = updatesData.result[i].message?.chat || updatesData.result[i].channel_post?.chat;
+            if (chat?.id) {
+              chatId = String(chat.id);
+              fs.writeFileSync(configPath, JSON.stringify({ chat_id: chatId, updated_at: new Date().toISOString() }, null, 2));
+              break;
+            }
+          }
+        }
+      } catch {}
+    }
+
+    if (chatId) {
+      console.log(`[Telegram] Dispatching sync alert to chat ${chatId}...`);
+      const topJobs = normalizedJobs.slice(0, 5).map((j, i) => {
+        const wp = j.workplaceType ? `[${j.workplaceType.toUpperCase()}] ` : "";
+        const sal = j.salaryMin && j.salaryMax ? ` • 💰 $${j.salaryMin.toLocaleString()} - $${j.salaryMax.toLocaleString()}` : "";
+        const loc = j.location ? ` • 📍 ${j.location}` : "";
+        return `${i + 1}. <a href="https://remoteworkdaily.com/jobs/${j.id}/${j.slug}"><b>${j.title}</b></a>\n   🏢 <b>${j.company}</b> ${wp}${sal}${loc}`;
+      }).join("\n\n");
+
+      const srcBreakdown = Object.entries(sources).filter(([_, c]) => c > 0).map(([k, v]) => `• ${k}: <b>${v}</b>`).join("\n");
+
+      const alertMsg = [
+        `🚀 <b>Remote Work Daily — Job Ingestion Completed!</b>`,
+        `━━━━━━━━━━━━━━━━━━━━`,
+        `📥 <b>Newly Ingested:</b> +${added} jobs`,
+        `🔄 <b>Updated / Refreshed:</b> ${updated} jobs`,
+        `📊 <b>Total Active Listings:</b> ${pruned.length.toLocaleString()}`,
+        `⏱ <b>Duration:</b> ${durationSec}s`,
+        `━━━━━━━━━━━━━━━━━━━━`,
+        topJobs ? `💼 <b>Top Fresh Roles Harvested:</b>\n\n${topJobs}\n━━━━━━━━━━━━━━━━━━━━` : null,
+        srcBreakdown ? `📈 <b>Harvested Sources:</b>\n${srcBreakdown}\n━━━━━━━━━━━━━━━━━━━━` : null,
+        `🌐 <a href="https://remoteworkdaily.com">Browse Live Job Board</a>`,
+      ].filter(Boolean).join("\n");
+
+      const tgRes = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          chat_id: chatId,
+          text: alertMsg,
+          parse_mode: "HTML",
+          disable_web_page_preview: true,
+          reply_markup: {
+            inline_keyboard: [
+              [
+                { text: "🔥 View Latest Jobs", callback_data: "cmd_latest" },
+                { text: "📊 Stats", callback_data: "cmd_stats" },
+              ],
+              [
+                { text: "🌐 Open RemoteWorkDaily", url: "https://remoteworkdaily.com" },
+              ],
+            ],
+          },
+        }),
+      });
+      const tgJson = await tgRes.json();
+      if (tgJson.ok) {
+        console.log(`[Telegram] ✅ Cron alert successfully delivered to Telegram chat!`);
+      } else {
+        console.warn(`[Telegram] Send failed: ${tgJson.description}`);
+      }
+    } else {
+      console.log(`[Telegram] Notice: No TELEGRAM_CHAT_ID linked yet. Open https://t.me/PandoraWorkBot in Telegram and press Start to receive alerts.`);
+    }
+  } catch (tgErr) {
+    console.warn(`[Telegram] Notification error:`, tgErr.message);
+  }
 }
 
 runScrape().catch((err) => {

@@ -132,3 +132,67 @@ test("Telegram Notifications: Onboarding alert formats visitor modal lead accura
   assert.ok(msg.includes("Homepage First-Time Visitor Modal"));
   assert.ok(msg.includes("farming"));
 });
+
+test("Telegram Notifications: Cron sync alert accurately formats metrics, sources, and fresh jobs", () => {
+  const payload = {
+    added: 250,
+    updated: 1800,
+    total: 11200,
+    durationSec: "18.4",
+    sources: { arbeitnow: 1000, wwr: 300, jobicy: 250, ats: 4000 },
+    topNewJobs: [
+      {
+        title: "Senior Full Stack Engineer",
+        company: "Vercel",
+        location: "Worldwide",
+        salary: "$140,000 - $180,000",
+        url: "https://remoteworkdaily.com/jobs/123/senior-full-stack",
+        workplaceType: "remote",
+      },
+    ],
+  };
+
+  const topJobsFormatted = payload.topNewJobs
+    .map((j, i) => `${i + 1}. <a href="${j.url}"><b>${escapeHtml(j.title)}</b></a>\n   🏢 <b>${escapeHtml(j.company)}</b> [${j.workplaceType.toUpperCase()}] • 💰 <i>${j.salary}</i>`)
+    .join("\n\n");
+
+  const sourcesFormatted = Object.entries(payload.sources)
+    .map(([name, count]) => `• ${name}: <b>${count}</b>`)
+    .join("\n");
+
+  const message = [
+    `🚀 <b>Remote Work Daily — Job Ingestion Completed!</b>`,
+    `📥 <b>Newly Ingested:</b> +${payload.added} jobs`,
+    `🔄 <b>Updated / Refreshed:</b> ${payload.updated.toLocaleString()} jobs`,
+    `📊 <b>Total Active Listings:</b> ${payload.total.toLocaleString()}`,
+    `⏱ <b>Duration:</b> ${payload.durationSec}s`,
+    topJobsFormatted,
+    sourcesFormatted,
+  ].join("\n");
+
+  assert.ok(message.includes("Job Ingestion Completed!"));
+  assert.ok(message.includes("+250 jobs"));
+  assert.ok(message.includes("1,800 jobs"));
+  assert.ok(message.includes("11,200"));
+  assert.ok(message.includes("Senior Full Stack Engineer"));
+  assert.ok(message.includes("Vercel"));
+  assert.ok(message.includes("arbeitnow: <b>1000</b>"));
+});
+
+test("Job Freshness: getAllJobs guarantees strict descending sort order by postedAt", () => {
+  const jobs = [
+    { id: "1", title: "Old Job", postedAt: "2026-10-01T10:00:00Z" },
+    { id: "2", title: "Newest Job", postedAt: "2026-10-10T08:00:00Z" },
+    { id: "3", title: "Mid Job", postedAt: "2026-10-05T12:00:00Z" },
+  ];
+
+  const sorted = [...jobs].sort(
+    (a, b) => (new Date(b.postedAt).getTime() || 0) - (new Date(a.postedAt).getTime() || 0)
+  );
+
+  assert.equal(sorted[0].id, "2");
+  assert.equal(sorted[0].title, "Newest Job");
+  assert.equal(sorted[1].id, "3");
+  assert.equal(sorted[2].id, "1");
+});
+

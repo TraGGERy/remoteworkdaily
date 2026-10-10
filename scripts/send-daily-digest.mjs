@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env node
+#!/usr/bin/env node
 
 /**
  * Remote Work Daily — Automated Daily Newsletter & Job Alert Digest Dispatcher
@@ -152,9 +152,31 @@ async function main() {
     } catch (err) {
       console.error(`❌ Failed sending to ${sub.email}:`, err.message);
     }
-  }
-
   console.log(`\n✨ Digest dispatch finished. Successfully sent to ${sent}/${subscribers.length} subscribers.`);
+
+  // Telegram alert
+  try {
+    const token = process.env.TELEGRAM_BOT_TOKEN || "8593165155:AAEMBF_0UvlRHUjQb4AtvoG0GHgq8lLxgjM";
+    let chatId = process.env.TELEGRAM_CHAT_ID;
+    const configPath = path.join(process.cwd(), "data", "telegram-config.json");
+    if (!chatId && fs.existsSync(configPath)) {
+      const cfg = JSON.parse(fs.readFileSync(configPath, "utf8"));
+      if (cfg.chat_id) chatId = String(cfg.chat_id);
+    }
+    if (chatId) {
+      await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          chat_id: chatId,
+          text: `📬 <b>Daily Job Digest Dispatched!</b>\n━━━━━━━━━━━━━━━━━━━━\n👥 <b>Subscribers:</b> ${subscribers.length}\n✅ <b>Delivered:</b> ${sent}\n💼 <b>Jobs Included:</b> ${digestJobs.length}\n⏱ <b>Time:</b> ${new Date().toUTCString()}\n━━━━━━━━━━━━━━━━━━━━\n🌐 <a href="https://remoteworkdaily.com">RemoteWorkDaily</a>`,
+          parse_mode: "HTML",
+          disable_web_page_preview: true,
+        }),
+      });
+      console.log(`[Telegram] Alert dispatched to chat ${chatId}.`);
+    }
+  } catch {}
 }
 
 main().catch(console.error);

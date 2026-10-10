@@ -4,14 +4,24 @@ import {
   getTelegramChatId,
   sendTelegramNotification,
   saveTelegramChatId,
+  registerBotCommands,
 } from "@/lib/telegram";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export async function GET(request: Request) {
   const token = getTelegramBotToken();
+  const { searchParams } = new URL(request.url);
+  const explicitChatId = searchParams.get("chat_id");
 
   try {
+    // 0. Auto-register interactive commands
+    await registerBotCommands();
+
+    if (explicitChatId && explicitChatId.trim()) {
+      saveTelegramChatId(explicitChatId.trim());
+    }
+
     // 1. Check getMe
     const meRes = await fetch(`https://api.telegram.org/bot${token}/getMe`);
     const meData = await meRes.json();
@@ -22,10 +32,10 @@ export async function GET() {
     });
     const updatesData = await updatesRes.json();
 
-    let discoveredChatId: string | null = null;
+    let discoveredChatId: string | null = explicitChatId ? explicitChatId.trim() : null;
     let senderInfo: { username?: string; first_name?: string; id?: number } | null = null;
 
-    if (updatesData.ok && Array.isArray(updatesData.result) && updatesData.result.length > 0) {
+    if (!discoveredChatId && updatesData.ok && Array.isArray(updatesData.result) && updatesData.result.length > 0) {
       for (let i = updatesData.result.length - 1; i >= 0; i--) {
         const update = updatesData.result[i];
         const chat =

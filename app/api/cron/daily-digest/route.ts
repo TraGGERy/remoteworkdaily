@@ -1,8 +1,9 @@
-﻿import { NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { getAllActiveSubscribers } from "@/lib/subscribers-repository";
 import { getAllJobs } from "@/lib/jobs-repository";
 import { sendDailyDigestEmail } from "@/lib/email/resend";
 import { formatSalary } from "@/lib/utils";
+import { sendTelegramNotification } from "@/lib/telegram";
 
 export const dynamic = "force-dynamic";
 
@@ -80,6 +81,19 @@ async function handleDailyDigest(request: Request) {
         failedCount++;
       }
     }
+
+    // Notify Telegram bot of daily digest delivery
+    sendTelegramNotification(
+      `📬 <b>Daily Job Digest Dispatched!</b>\n` +
+      `━━━━━━━━━━━━━━━━━━━━\n` +
+      `👥 <b>Subscribers:</b> ${subscribers.length}\n` +
+      `✅ <b>Delivered:</b> ${successCount}\n` +
+      (failedCount > 0 ? `⚠️ <b>Failed:</b> ${failedCount}\n` : "") +
+      `💼 <b>Jobs Included:</b> ${digestJobs.length}\n` +
+      `⏱ <b>Time:</b> ${new Date().toUTCString()}\n` +
+      `━━━━━━━━━━━━━━━━━━━━\n` +
+      `🌐 <a href="https://remoteworkdaily.com">RemoteWorkDaily</a>`
+    ).catch(() => {});
 
     return NextResponse.json({
       success: true,

@@ -89,13 +89,22 @@ export function saveTelegramChatId(chatId: string): void {
   }
 }
 
+export interface SendTelegramOptions {
+  replyMarkup?: unknown;
+  disableWebPagePreview?: boolean;
+  targetChatId?: string;
+}
+
 /**
  * Send an HTML formatted message to the Telegram bot.
  */
-export async function sendTelegramNotification(htmlText: string): Promise<{ success: boolean; error?: string; chatId?: string }> {
+export async function sendTelegramNotification(
+  htmlText: string,
+  options?: SendTelegramOptions
+): Promise<{ success: boolean; error?: string; chatId?: string }> {
   try {
     const token = getTelegramBotToken();
-    const chatId = await getTelegramChatId();
+    const chatId = options?.targetChatId || (await getTelegramChatId());
 
     if (!chatId) {
       console.warn("[Telegram] Cannot send notification: No chat ID registered yet. Please send /start to @PandoraWorkBot.");
@@ -105,15 +114,21 @@ export async function sendTelegramNotification(htmlText: string): Promise<{ succ
       };
     }
 
+    const payload: Record<string, unknown> = {
+      chat_id: chatId,
+      text: htmlText,
+      parse_mode: "HTML",
+      disable_web_page_preview: options?.disableWebPagePreview ?? true,
+    };
+
+    if (options?.replyMarkup) {
+      payload.reply_markup = options.replyMarkup;
+    }
+
     const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        chat_id: chatId,
-        text: htmlText,
-        parse_mode: "HTML",
-        disable_web_page_preview: true,
-      }),
+      body: JSON.stringify(payload),
     });
 
     const result = await res.json();
@@ -128,6 +143,102 @@ export async function sendTelegramNotification(htmlText: string): Promise<{ succ
     console.error("[Telegram] Unexpected notification error:", msg);
     return { success: false, error: msg };
   }
+}
+
+/**
+ * Registers interactive commands with the Telegram Bot API.
+ */
+export async function registerBotCommands(): Promise<boolean> {
+  try {
+    const token = getTelegramBotToken();
+    const res = await fetch(`https://api.telegram.org/bot${token}/setMyCommands`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        commands: [
+          { command: "start", description: "Subscribe & link real-time job alerts" },
+          { command: "latest", description: "View 5 latest verified remote jobs" },
+          { command: "stats", description: "View job board database statistics" },
+          { command: "sync", description: "Check scraper sync telemetry" },
+          { command: "help", description: "Bot features and usage guide" },
+        ],
+      }),
+    });
+    const data = await res.json();
+    return Boolean(data.ok);
+  } catch (err) {
+    console.warn("[Telegram] registerBotCommands failed:", err);
+    return false;
+  }
+}
+
+export interface CronSyncNotificationPayload {
+  added: number;
+  updated: number;
+  total: number;
+  durationSec: number | string;
+  sources: Record<string, number>;
+  topNewJobs?: Array<{
+    title: string;
+    company: string;
+    location?: string;
+    salary?: string;
+    url?: string;
+    workplaceType?: string;
+  }>;
+}
+
+/**
+ * Formatted real-time notification broadcast when a cron job sync completes.
+ */
+export async function notifyCronSyncCompleted(payload: CronSyncNotificationPayload): Promise<boolean> {
+  const topJobsFormatted = (payload.topNewJobs || [])
+    .slice(0, 5)
+    .map((j, i) => {
+      const workplace = j.workplaceType ? `[${j.workplaceType.toUpperCase()}] ` : "";
+      const salaryPart = j.salary ? ` • 💰 <i>${escapeHtml(j.salary)}</i>` : "";
+      const locPart = j.location ? ` • 📍 ${escapeHtml(j.location)}` : "";
+      const titleLink = j.url
+        ? `<a href="${escapeHtml(j.url)}"><b>${escapeHtml(j.title)}</b></a>`
+        : `<b>${escapeHtml(j.title)}</b>`;
+      return `${i + 1}. ${titleLink}\n   🏢 <b>${escapeHtml(j.company)}</b> ${workplace}${salaryPart}${locPart}`;
+    })
+    .join("\n\n");
+
+  const sourcesBreakdown = Object.entries(payload.sources || {})
+    .filter(([_, count]) => count > 0)
+    .map(([name, count]) => `• ${name}: <b>${count}</b>`)
+    .join("\n");
+
+  const message = [
+    `🚀 <b>Remote Work Daily — Job Ingestion Completed!</b>`,
+    `━━━━━━━━━━━━━━━━━━━━`,
+    `📥 <b>Newly Ingested:</b> +${payload.added} jobs`,
+    `🔄 <b>Updated / Refreshed:</b> ${payload.updated} jobs`,
+    `📊 <b>Total Active Listings:</b> ${payload.total.toLocaleString()}`,
+    `⏱ <b>Duration:</b> ${payload.durationSec}s`,
+    `━━━━━━━━━━━━━━━━━━━━`,
+    topJobsFormatted ? `💼 <b>Top Fresh Roles Harvested:</b>\n\n${topJobsFormatted}\n━━━━━━━━━━━━━━━━━━━━` : null,
+    sourcesBreakdown ? `📈 <b>Harvested Sources:</b>\n${sourcesBreakdown}\n━━━━━━━━━━━━━━━━━━━━` : null,
+    `🌐 <a href="https://remoteworkdaily.com">Browse Latest Jobs on Board</a>`,
+  ]
+    .filter(Boolean)
+    .join("\n");
+
+  const replyMarkup = {
+    inline_keyboard: [
+      [
+        { text: "🔥 View Latest Jobs", callback_data: "cmd_latest" },
+        { text: "📊 Stats", callback_data: "cmd_stats" },
+      ],
+      [
+        { text: "🌐 Open RemoteWorkDaily", url: "https://remoteworkdaily.com" },
+      ],
+    ],
+  };
+
+  const res = await sendTelegramNotification(message, { replyMarkup });
+  return res.success;
 }
 
 export interface PaymentNotificationPayload {

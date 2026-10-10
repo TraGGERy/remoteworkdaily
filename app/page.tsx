@@ -1,13 +1,15 @@
 import { Suspense } from "react";
-import { getAllJobs } from "@/lib/jobs-repository";
+import { getAllJobs, triggerBackgroundSyncIfStale } from "@/lib/jobs-repository";
 import { JobBoardClient } from "@/components/job-board/job-board-client";
 import { generateJobPostingSchema } from "@/lib/seo";
 import { AiSeoKnowledgeSection } from "@/components/seo/ai-seo-knowledge-section";
 
 export const dynamic = "force-dynamic";
-export const revalidate = 60;
+export const revalidate = 0;
 
 export default function Home() {
+  // Keep listings constantly fresh across user visits via non-blocking background revalidation
+  triggerBackgroundSyncIfStale();
   const allJobs = getAllJobs(true);
   const topSchemas = allJobs.slice(0, 10).map((job) => generateJobPostingSchema(job));
 

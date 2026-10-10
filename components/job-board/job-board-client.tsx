@@ -39,6 +39,36 @@ export function JobBoardClient({
     }
   }, [initialJobs]);
 
+  // Seamlessly check for any live newly-harvested jobs on page load
+  useEffect(() => {
+    let isCancelled = false;
+    const checkFreshJobs = async () => {
+      try {
+        const res = await fetch(`/api/jobs?refresh=true&_t=${Date.now()}`);
+        if (res.ok && !isCancelled) {
+          const data = await res.json();
+          if (Array.isArray(data.jobs) && data.jobs.length > 0) {
+            setJobs((prev) => {
+              const currentTopDate = prev[0]?.postedAt;
+              const newTopDate = data.jobs[0]?.postedAt;
+              if (currentTopDate !== newTopDate || prev.length !== data.jobs.length) {
+                return data.jobs;
+              }
+              return prev;
+            });
+          }
+        }
+      } catch {
+        // silent fallback
+      }
+    };
+
+    checkFreshJobs();
+    return () => {
+      isCancelled = true;
+    };
+  }, []);
+
   const [filters, setFilters] = useState<FilterState>({
     query: searchParams.get("search") || "",
     location: initialLocation || searchParams.get("location") || "",

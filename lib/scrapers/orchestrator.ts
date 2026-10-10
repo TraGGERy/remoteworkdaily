@@ -2,6 +2,7 @@ import { Job } from "../types";
 import { normalizeScrapedJob, RawScrapedJob } from "../apify";
 import { insertJobsBatch, getAllJobs } from "../jobs-repository";
 import { recordSyncCompleted } from "../sync-tracker";
+import { notifyCronSyncCompleted } from "../telegram";
 import {
   fetchArbeitnowJobs,
   fetchWeWorkRemotelyJobs,
@@ -165,7 +166,29 @@ export async function runDailyJobIngestionPipeline(
   });
 
   const durationMs = Date.now() - startTime;
+  const durationSec = (durationMs / 1000).toFixed(1);
   console.log(`[Ingestion Pipeline] Completed in ${durationMs}ms: +${added} newly added, ${updated} updated, ${total} total active listings.`);
+
+  // Broadcast real-time sync notification to Telegram bot
+  const topNewJobs = normalizedJobs.slice(0, 5).map((j) => ({
+    title: j.title,
+    company: j.company,
+    location: j.location,
+    salary: j.salaryMin && j.salaryMax ? `$${j.salaryMin.toLocaleString()} - $${j.salaryMax.toLocaleString()}` : undefined,
+    url: `https://remoteworkdaily.com/jobs/${j.id}/${j.slug}`,
+    workplaceType: j.workplaceType,
+  }));
+
+  notifyCronSyncCompleted({
+    added,
+    updated,
+    total,
+    durationSec,
+    sources: sourcesBreakdown,
+    topNewJobs,
+  }).catch((err) => {
+    console.warn("[Ingestion Pipeline] Telegram notification notice:", err);
+  });
 
   return {
     success: true,

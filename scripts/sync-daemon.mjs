@@ -73,13 +73,23 @@ console.log(`║      RemoteWorkDaily Continuous Ingestion Daemon           ║`
 console.log(`║      Cadence: Every ${INTERVAL_MINUTES} Minutes | Target: ${TARGET_COUNT} jobs      ║`);
 console.log(`╚════════════════════════════════════════════════════════════╝\n`);
 
-// 1. Initial run immediately on daemon startup
+// 1. Launch Telegram interactive bot in background
+const BOT_SCRIPT = path.join(process.cwd(), "scripts", "telegram-bot.mjs");
+let botChild = null;
+try {
+  botChild = spawn(process.execPath, [BOT_SCRIPT], { stdio: "inherit", cwd: process.cwd() });
+  botChild.on("error", (e) => console.warn("[Daemon] Telegram bot child process error:", e.message));
+} catch (err) {
+  console.warn("[Daemon] Could not spawn telegram bot:", err.message);
+}
+
+// 2. Initial scraper run immediately on daemon startup
 runScrapeJob();
 
-// 2. Schedule recurring execution every 2 hours
+// 3. Schedule recurring execution every 2 hours
 const timer = setInterval(runScrapeJob, INTERVAL_MS);
 
-// 3. Heartbeat status logging every 15 minutes
+// 4. Heartbeat status logging every 15 minutes
 setInterval(() => {
   if (!isRunning) {
     console.log(`[${formatTime()}] 💓 Daemon active. Waiting for next 2-hour schedule trigger.`);
@@ -89,12 +99,14 @@ setInterval(() => {
 // Graceful termination handling
 process.on("SIGINT", () => {
   console.log(`\n[${formatTime()}] Daemon received SIGINT. Shutting down gracefully...`);
+  if (botChild) botChild.kill();
   clearInterval(timer);
   process.exit(0);
 });
 
 process.on("SIGTERM", () => {
   console.log(`\n[${formatTime()}] Daemon received SIGTERM. Shutting down gracefully...`);
+  if (botChild) botChild.kill();
   clearInterval(timer);
   process.exit(0);
 });

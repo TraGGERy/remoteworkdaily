@@ -179,8 +179,39 @@ async function syncJobsBatchToSupabase(jobs: Job[]) {
   }
 }
 
+let isBackgroundAutoSyncing = false;
+
+/**
+ * Triggers a non-blocking background ingestion sync if jobs are stale (>100 min or new day).
+ * Ensures visitors always trigger fresh job harvesting in the background.
+ */
+export function triggerBackgroundSyncIfStale(): void {
+  if (isBackgroundAutoSyncing) return;
+  try {
+    // Dynamic import to prevent circular dependencies
+    const { canSyncInterval } = require("./sync-tracker");
+    const intervalCheck = canSyncInterval(false);
+    if (intervalCheck.allowed) {
+      isBackgroundAutoSyncing = true;
+      const { runDailyJobIngestionPipeline } = require("./scrapers/orchestrator");
+      runDailyJobIngestionPipeline({ force: false, targetCount: 1500 })
+        .catch((err: unknown) => {
+          console.warn("[Jobs Repo] Auto-refresh on visit error:", err);
+        })
+        .finally(() => {
+          isBackgroundAutoSyncing = false;
+        });
+    }
+  } catch (err) {
+    // Non-blocking fallback
+  }
+}
+
 export function getAllJobs(forceReload: boolean = false): Job[] {
-  return ensureDataFile(forceReload);
+  const jobs = ensureDataFile(forceReload);
+  return [...jobs].sort(
+    (a, b) => (new Date(b.postedAt).getTime() || 0) - (new Date(a.postedAt).getTime() || 0)
+  );
 }
 
 
