@@ -39,3 +39,11 @@ export function timeAgo(dateString: string | Date): string {
   return `${Math.floor(months / 12)}y ago`;
 }
 
+export function isRecentPost(dateString?: string): boolean {
+  if (!dateString) return false;
+  const date = new Date(dateString);
+  if (isNaN(date.getTime())) return false;
+  const diff = Date.now() - date.getTime();
+  return diff >= 0 && diff < 24 * 3600 * 1000;
+}
+

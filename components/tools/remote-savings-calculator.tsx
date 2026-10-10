@@ -3,7 +3,6 @@
 import React, { useState, useMemo } from "react";
 import Link from "next/link";
 import {
-  DollarSign,
   Clock,
   Car,
   Train,
@@ -94,7 +93,6 @@ export function RemoteSavingsCalculator() {
     };
   }, [
     commuteMode,
-    daysInOffice,
     roundTripMiles,
     roundTripMinutes,
     gasPrice,

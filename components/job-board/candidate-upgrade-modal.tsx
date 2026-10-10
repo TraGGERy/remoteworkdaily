@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { CANDIDATE_PRICING, CandidatePlanId } from "@/lib/constants";
-import { Zap, ShieldCheck, CheckCircle2, X, Sparkles, Lock, Check, XCircle, ArrowRight } from "lucide-react";
+import { ShieldCheck, CheckCircle2, X, Sparkles, Lock, Check, XCircle } from "lucide-react";
 import { useSubscription } from "@/components/auth/subscription-context";
 
 export function CandidateUpgradeModal() {
@@ -30,9 +30,9 @@ export function CandidateUpgradeModal() {
     if (typeof window !== "undefined") {
       const stored = localStorage.getItem("remotework_user_email") || localStorage.getItem("remotework_employer_email") || "";
       if (userEmail) {
-        setEmail(userEmail);
+        setTimeout(() => setEmail(userEmail), 0);
       } else if (stored && !email) {
-        setEmail(stored);
+        setTimeout(() => setEmail(stored), 0);
       }
     }
   }, [userEmail, email]);

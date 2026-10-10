@@ -1,5 +1,5 @@
 import { Resend } from "resend";
-import { CANDIDATE_PRICING, JOB_POSTING_PRICING } from "@/lib/constants";
+import { CANDIDATE_PRICING } from "@/lib/constants";
 
 let resendInstance: Resend | null = null;
 
@@ -147,9 +147,10 @@ export async function sendCandidatePaymentConfirmationEmail(params: {
     });
     console.log(`[Resend Email Sent] Candidate receipt to ${params.email}:`, data);
     return { success: true, id: data.data?.id };
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const errorMsg = error instanceof Error ? error.message : String(error);
     console.error(`[Resend Email Error] Failed sending candidate receipt to ${params.email}:`, error);
-    return { success: false, error: error.message || String(error) };
+    return { success: false, error: errorMsg };
   }
 }
 
@@ -274,9 +275,10 @@ export async function sendEmployerJobConfirmationEmail(params: {
     });
     console.log(`[Resend Email Sent] Employer receipt to ${params.email}:`, data);
     return { success: true, id: data.data?.id };
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const errorMsg = error instanceof Error ? error.message : String(error);
     console.error(`[Resend Email Error] Failed sending employer receipt to ${params.email}:`, error);
-    return { success: false, error: error.message || String(error) };
+    return { success: false, error: errorMsg };
   }
 }
 
@@ -351,9 +353,10 @@ export async function sendJobAlertWelcomeEmail(params: {
     });
     console.log(`[Resend Email Sent] Job alert welcome to ${params.email}:`, data);
     return { success: true, id: data.data?.id };
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const errorMsg = error instanceof Error ? error.message : String(error);
     console.error(`[Resend Email Error] Failed sending job alert welcome to ${params.email}:`, error);
-    return { success: false, error: error.message || String(error) };
+    return { success: false, error: errorMsg };
   }
 }
 
@@ -459,9 +462,10 @@ export async function sendDailyDigestEmail(params: {
     });
     console.log(`[Resend Email Sent] Daily digest to ${params.email}:`, data);
     return { success: true, id: data.data?.id };
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const errorMsg = error instanceof Error ? error.message : String(error);
     console.error(`[Resend Email Error] Failed sending daily digest to ${params.email}:`, error);
-    return { success: false, error: error.message || String(error) };
+    return { success: false, error: errorMsg };
   }
 }
 

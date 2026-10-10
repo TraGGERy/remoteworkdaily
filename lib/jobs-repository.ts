@@ -75,7 +75,7 @@ function ensureDataFile(forceReload: boolean = false): Job[] {
 
     memoryCache = [...INITIAL_JOBS];
     return memoryCache;
-  } catch (error) {
+  } catch {
     if (!memoryCache || memoryCache.length === 0) {
       memoryCache = [...INITIAL_JOBS];
     }
@@ -210,24 +210,27 @@ export function triggerBackgroundSyncIfStale(): void {
     return;
   }
   if (isBackgroundAutoSyncing) return;
-  try {
-    // Dynamic import to prevent circular dependencies
-    const { canSyncInterval } = require("./sync-tracker");
-    const intervalCheck = canSyncInterval(false);
-    if (intervalCheck.allowed) {
-      isBackgroundAutoSyncing = true;
-      const { runDailyJobIngestionPipeline } = require("./scrapers/orchestrator");
-      runDailyJobIngestionPipeline({ force: false, targetCount: 1500 })
-        .catch((err: unknown) => {
-          console.warn("[Jobs Repo] Auto-refresh on visit error:", err);
-        })
-        .finally(() => {
-          isBackgroundAutoSyncing = false;
-        });
-    }
-  } catch (err) {
-    // Non-blocking fallback
-  }
+  // Dynamic import to prevent circular dependencies
+  Promise.all([
+    import("./sync-tracker"),
+    import("./scrapers/orchestrator"),
+  ])
+    .then(([{ canSyncInterval }, { runDailyJobIngestionPipeline }]) => {
+      const intervalCheck = canSyncInterval(false);
+      if (intervalCheck.allowed && !isBackgroundAutoSyncing) {
+        isBackgroundAutoSyncing = true;
+        runDailyJobIngestionPipeline({ force: false, targetCount: 1500 })
+          .catch((err: unknown) => {
+            console.warn("[Jobs Repo] Auto-refresh on visit error:", err);
+          })
+          .finally(() => {
+            isBackgroundAutoSyncing = false;
+          });
+      }
+    })
+    .catch(() => {
+      // Non-blocking fallback
+    });
 }
 
 export function getAllJobs(forceReload: boolean = false): Job[] {

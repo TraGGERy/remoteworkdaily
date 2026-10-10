@@ -1,6 +1,6 @@
 import React from "react";
 import Link from "next/link";
-import { ShieldCheck, DollarSign, Globe, CheckCircle2, TrendingUp, Sparkles } from "lucide-react";
+import { ShieldCheck, DollarSign, Globe, Sparkles } from "lucide-react";
 
 export function AiSeoKnowledgeSection() {
   return (

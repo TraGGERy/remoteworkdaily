@@ -1,10 +1,9 @@
 "use client";
 
 import React from "react";
-import Image from "next/image";
 import { Job } from "@/lib/types";
-import { formatSalary, timeAgo } from "@/lib/utils";
-import { CheckCircle, Globe, MapPin, DollarSign, Pin, ExternalLink, Sparkles } from "lucide-react";
+import { formatSalary, timeAgo, isRecentPost } from "@/lib/utils";
+import { CheckCircle, Globe, MapPin, DollarSign, Pin, Sparkles } from "lucide-react";
 
 interface JobRowProps {
   job: Job;
@@ -15,9 +14,7 @@ interface JobRowProps {
 
 export function JobRow({ job, isSelected, onToggleSelect, onTagClick }: JobRowProps) {
   const salaryText = formatSalary(job.salaryMin, job.salaryMax, job.salaryCurrency);
-  const isNewToday = job.postedAt
-    ? Date.now() - new Date(job.postedAt).getTime() < 24 * 3600 * 1000
-    : false;
+  const isNewToday = isRecentPost(job.postedAt);
 
 
   return (

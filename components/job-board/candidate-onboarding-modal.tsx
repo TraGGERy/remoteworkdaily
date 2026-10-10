@@ -2,8 +2,8 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { Sparkles, ArrowRight, X, CheckCircle2, ShieldCheck, Zap, Search } from "lucide-react";
-import { ROLE_CATEGORIES, CANDIDATE_PRICING } from "@/lib/constants";
+import { Sparkles, X, CheckCircle2, ShieldCheck, Zap, Search } from "lucide-react";
+import { ROLE_CATEGORIES } from "@/lib/constants";
 import { useSubscription } from "@/components/auth/subscription-context";
 
 interface CandidateOnboardingModalProps {
@@ -80,7 +80,8 @@ export function CandidateOnboardingModal({
   const handleRoleSelect = (roleId: string) => {
     setSelectedRole(roleId);
     setStep("scanning");
-    setJobCountFound(Math.floor(Math.random() * 80) + 120);
+    const count = 120 + ((roleId.charCodeAt(0) * 17) % 80);
+    setJobCountFound(count);
 
     fetch("/api/notifications/onboarding", {
       method: "POST",

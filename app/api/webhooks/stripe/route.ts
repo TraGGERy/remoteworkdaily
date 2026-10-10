@@ -3,7 +3,6 @@ import { NextResponse } from "next/server";
 import Stripe from "stripe";
 import { stripe } from "@/lib/stripe";
 import { getJobById, insertJob } from "@/lib/jobs-repository";
-import { getSupabaseClient, isSupabaseConfigured } from "@/lib/supabase";
 import { saveCandidatePass, expireCandidatePass } from "@/lib/candidate-passes-repository";
 import {
   sendCandidatePaymentConfirmationEmail,
@@ -125,10 +124,11 @@ export async function POST(req: Request) {
       }
     }
   } else if (event.type === "invoice.payment_succeeded") {
-    const invoice = event.data.object as any;
-    const email = (invoice.customer_email || invoice.customer_details?.email) as string | undefined;
+    const invoice = event.data.object as Stripe.Invoice;
+    const invData = invoice as unknown as Record<string, unknown>;
+    const email = (invoice.customer_email || invoice.customer_name) as string | undefined;
     if (email) {
-      const paymentIntent = typeof invoice.payment_intent === "string" ? invoice.payment_intent : null;
+      const paymentIntent = typeof invData.payment_intent === "string" ? invData.payment_intent : null;
       await saveCandidatePass({
         email: email.toLowerCase().trim(),
         amount: (invoice.amount_paid ?? 0) / 100,
@@ -136,7 +136,7 @@ export async function POST(req: Request) {
         stripe_session_id: invoice.id,
         stripe_payment_intent: paymentIntent,
         status: "active",
-        plan: invoice.subscription ? "subscription_renewal" : "candidate_pass",
+        plan: invData.subscription ? "subscription_renewal" : "candidate_pass",
       });
       console.log(`[STRIPE WEBHOOK] Recurring subscription invoice payment succeeded for ${email}`);
 
@@ -145,7 +145,7 @@ export async function POST(req: Request) {
         amount: invoice.amount_paid ?? 0,
         currency: invoice.currency ?? "usd",
         customerEmail: email,
-        planName: invoice.subscription ? "Subscription Renewal" : "Candidate Pass",
+        planName: invData.subscription ? "Subscription Renewal" : "Candidate Pass",
         paymentId: invoice.id,
       }).catch((err) => console.warn("[Telegram Payment Alert Error]:", err));
     }

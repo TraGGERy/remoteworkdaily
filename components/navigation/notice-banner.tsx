@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { X, Sparkles } from "lucide-react";
+import { X } from "lucide-react";
 
 export function NoticeBanner() {
   const [dismissed, setDismissed] = useState(false);
@@ -10,7 +10,7 @@ export function NoticeBanner() {
   useEffect(() => {
     const isDismissed = localStorage.getItem("remotework_notice_dismissed");
     if (isDismissed) {
-      setDismissed(true);
+      setTimeout(() => setDismissed(true), 0);
     }
   }, []);
 

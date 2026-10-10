@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import { Job } from "@/lib/types";
 import { JobRow } from "./job-row";
 import { JobDetailDrawer } from "./job-detail-drawer";
-import { Sparkles, RefreshCw, AlertCircle, Lock, Zap, CheckCircle2, ArrowRight } from "lucide-react";
+import { RefreshCw, AlertCircle, Lock, Zap, ArrowRight } from "lucide-react";
 import { useSubscription } from "@/components/auth/subscription-context";
 
 interface JobTableProps {
@@ -26,10 +26,11 @@ export function JobTable({
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
   const [visibleCount, setVisibleCount] = useState<number>(40);
 
-  // Reset pagination count when the filtered list changes
-  React.useEffect(() => {
+  const [prevJobsLength, setPrevJobsLength] = useState(jobs.length);
+  if (jobs.length !== prevJobsLength) {
+    setPrevJobsLength(jobs.length);
     setVisibleCount(40);
-  }, [jobs.length]);
+  }
 
   const displayedJobs = jobs.slice(0, visibleCount);
   const hasMore = visibleCount < jobs.length;

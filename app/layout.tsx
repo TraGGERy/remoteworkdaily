@@ -4,10 +4,6 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { AppAuthProvider } from "@/components/auth/auth-provider";
 import { ThemeProvider } from "@/components/theme/theme-provider";
-import { Header } from "@/components/navigation/header";
-import { NoticeBanner } from "@/components/navigation/notice-banner";
-import { CatchEmailsBanner } from "@/components/navigation/catch-emails-banner";
-import { Footer } from "@/components/navigation/footer";
 import { SiteChrome } from "@/components/navigation/site-chrome";
 import { generateWebsiteSchema, generateFAQSchema } from "@/lib/seo";
 

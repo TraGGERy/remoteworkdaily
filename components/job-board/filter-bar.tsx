@@ -24,10 +24,11 @@ export function FilterBar({
 
   // Debounced search query
   const [localQuery, setLocalQuery] = useState(filters.query);
-
-  useEffect(() => {
+  const [prevQuery, setPrevQuery] = useState(filters.query);
+  if (filters.query !== prevQuery) {
+    setPrevQuery(filters.query);
     setLocalQuery(filters.query);
-  }, [filters.query]);
+  }
 
   useEffect(() => {
     const timer = setTimeout(() => {

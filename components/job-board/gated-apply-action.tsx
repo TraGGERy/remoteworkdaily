@@ -18,7 +18,6 @@ interface GatedApplyActionProps {
 
 export function GatedApplyAction({
   jobId,
-  jobTitle,
   company,
   applyUrl,
   variant = "inline",

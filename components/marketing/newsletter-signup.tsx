@@ -8,9 +8,9 @@ interface NewsletterSignupProps {
   className?: string;
 }
 
-export function NewsletterSignup({ variant = "card", className = "" }: NewsletterSignupProps) {
+export function NewsletterSignup({ className = "" }: NewsletterSignupProps) {
   const [email, setEmail] = useState("");
-  const [category, setCategory] = useState("all");
+  const [category] = useState("all");
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [errorMessage, setErrorMessage] = useState("");
 

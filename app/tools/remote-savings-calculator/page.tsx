@@ -1,7 +1,7 @@
 import { Metadata } from "next";
-import { RemoteSavingsCalculator } from "@/components/tools/remote-savings-calculator";
 import Link from "next/link";
-import { ArrowLeft, Sparkles, HelpCircle, CheckCircle2 } from "lucide-react";
+import { RemoteSavingsCalculator } from "@/components/tools/remote-savings-calculator";
+import { ArrowLeft, HelpCircle } from "lucide-react";
 
 export const metadata: Metadata = {
   title: "Free Remote Work Savings Calculator: Commute Cost & WFH Savings | Remote Work Daily",

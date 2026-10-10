@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { ThemeToggle } from "../theme/theme-toggle";
 import { AuthButtons } from "../auth/auth-buttons";
-import { Briefcase, Menu, X, Sparkles, ShieldCheck } from "lucide-react";
+import { Menu, X } from "lucide-react";
 import { BrandIcon } from "./brand-icon";
 
 export function Header() {

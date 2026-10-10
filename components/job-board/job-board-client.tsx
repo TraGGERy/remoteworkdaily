@@ -26,18 +26,18 @@ export function JobBoardClient({
 }: JobBoardClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [isPending, startTransition] = useTransition();
+  const [, startTransition] = useTransition();
   const { openUpgradeModal } = useSubscription();
 
   const [jobs, setJobs] = useState<Job[]>(initialJobs);
-  const [isSyncing, setIsSyncing] = useState(false);
-
-  // Sync client state whenever server initialJobs changes
-  useEffect(() => {
+  const [prevInitialJobs, setPrevInitialJobs] = useState(initialJobs);
+  if (initialJobs !== prevInitialJobs) {
+    setPrevInitialJobs(initialJobs);
     if (initialJobs && initialJobs.length > 0) {
       setJobs(initialJobs);
     }
-  }, [initialJobs]);
+  }
+  const [isSyncing, setIsSyncing] = useState(false);
 
   // Seamlessly check for any live newly-harvested jobs on page load
   useEffect(() => {

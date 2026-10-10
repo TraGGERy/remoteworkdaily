@@ -143,29 +143,39 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
         document.cookie = "rwd_onboarding_completed=true; path=/; max-age=31536000; SameSite=Lax";
         localStorage.setItem("remotework_active_subscription", "true");
         localStorage.setItem("remotework_subscription_plan", plan);
-        setSimulatedSub(true);
-        setHasServerSub(true);
-        setSubscriptionPlan(plan);
+        setTimeout(() => {
+          setSimulatedSub(true);
+          setHasServerSub(true);
+          setSubscriptionPlan(plan);
+        }, 0);
       }
     }
 
     // Check local storage for simulation or cached pass
     const cached = localStorage.getItem("remotework_active_subscription");
     if (cached !== null) {
-      setSimulatedSub(cached === "true");
+      setTimeout(() => {
+        setSimulatedSub(cached === "true");
+      }, 0);
     }
     const cachedPlan = localStorage.getItem("remotework_subscription_plan");
     if (cachedPlan) {
-      setSubscriptionPlan(cachedPlan);
+      setTimeout(() => {
+        setSubscriptionPlan(cachedPlan);
+      }, 0);
     }
 
     const storedEmail = typeof window !== "undefined" ? localStorage.getItem("remotework_user_email") : null;
     const emailToCheck = primaryEmail || storedEmail;
 
     if (emailToCheck) {
-      checkSubscription(emailToCheck);
+      setTimeout(() => {
+        checkSubscription(emailToCheck);
+      }, 0);
     } else {
-      setIsLoading(false);
+      setTimeout(() => {
+        setIsLoading(false);
+      }, 0);
     }
   }, [primaryEmail, checkSubscription]);
 
@@ -184,7 +194,9 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
           sessionStorage.setItem("rwd_onboarding_completed", "true");
           document.cookie = "rwd_onboarding_completed=true; path=/; max-age=31536000; SameSite=Lax";
         }
-        setIsOnboardingCompleted(true);
+        setTimeout(() => {
+          setIsOnboardingCompleted(true);
+        }, 0);
       } else if (localCompleted) {
         // Sync local completion to Clerk metadata so it persists across other devices/browsers
         clerkUser.update({
@@ -193,7 +205,9 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
             onboarding_completed: true,
           },
         }).catch(() => {});
-        setIsOnboardingCompleted(true);
+        setTimeout(() => {
+          setIsOnboardingCompleted(true);
+        }, 0);
       }
     }
   }, [clerkUser]);

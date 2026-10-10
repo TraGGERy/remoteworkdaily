@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Job } from "@/lib/types";
 import { formatSalary, timeAgo } from "@/lib/utils";
 import { useSubscription } from "@/components/auth/subscription-context";
@@ -19,18 +20,15 @@ import {
   Zap,
   CreditCard,
   Settings,
-  Bell,
-  Mail,
-  User,
   AlertTriangle,
   RefreshCw,
-  Lock,
   Trash2,
 } from "lucide-react";
 
 type DashboardTab = "employer" | "subscription" | "settings";
 
 export default function DashboardPage() {
+  const router = useRouter();
   const {
     isSignedIn,
     userEmail,
@@ -77,21 +75,27 @@ export default function DashboardPage() {
     const saved = localStorage.getItem("remotework_employer_email");
     const emailToUse = userEmail || saved || localStorage.getItem("remotework_user_email") || "";
     if (emailToUse) {
-      setEmployerEmail(emailToUse);
-      setEmailInput(emailToUse);
+      setTimeout(() => {
+        setEmployerEmail(emailToUse);
+        setEmailInput(emailToUse);
+      }, 0);
     }
   }, [userEmail]);
 
   // Fetch real employer jobs when employerEmail changes
   useEffect(() => {
     if (!employerEmail) {
-      setJobs([]);
-      setTotalViews(0);
-      setTotalApplies(0);
+      setTimeout(() => {
+        setJobs([]);
+        setTotalViews(0);
+        setTotalApplies(0);
+      }, 0);
       return;
     }
 
-    setLoadingJobs(true);
+    setTimeout(() => {
+      setLoadingJobs(true);
+    }, 0);
     fetch(`/api/employer/jobs?email=${encodeURIComponent(employerEmail.trim())}`)
       .then((res) => res.json())
       .then((data) => {
@@ -171,14 +175,15 @@ export default function DashboardPage() {
       setDeleteSuccess(true);
 
       setTimeout(async () => {
-        if (typeof window !== "undefined" && (window as any).Clerk) {
+        const win = window as unknown as { Clerk?: { signOut: () => Promise<void> } };
+        if (typeof window !== "undefined" && win.Clerk) {
           try {
-            await (window as any).Clerk.signOut();
+            await win.Clerk.signOut();
           } catch {
             // fallback
           }
         }
-        window.location.href = "/?deleted=account";
+        router.push("/?deleted=account");
       }, 1400);
     } catch (err) {
       console.error("Account deletion failed:", err);

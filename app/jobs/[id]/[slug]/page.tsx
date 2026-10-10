@@ -1,18 +1,13 @@
 import { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { getJobById, getAllJobs } from "@/lib/jobs-repository";
+import { getJobById } from "@/lib/jobs-repository";
 import { formatSalary, timeAgo } from "@/lib/utils";
 import { generateJobPostingSchema, generateJobBreadcrumbSchema } from "@/lib/seo";
 import { BENEFITS_LIST } from "@/lib/constants";
 import {
-  ExternalLink,
-  Globe,
-  DollarSign,
   CheckCircle,
   ArrowLeft,
-  Calendar,
-  Share2,
 } from "lucide-react";
 import { WorkInformation } from "@/components/job-board/work-information";
 import { GatedApplyAction } from "@/components/job-board/gated-apply-action";

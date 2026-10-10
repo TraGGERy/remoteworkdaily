@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useState, useEffect } from "react";
 import { Zap, ArrowRight, X } from "lucide-react";
@@ -18,7 +18,7 @@ export function CandidateHunterPass() {
   useEffect(() => {
     const isDismissed = localStorage.getItem("remotework_hunter_banner_dismissed");
     if (!isDismissed) {
-      setDismissed(false);
+      setTimeout(() => setDismissed(false), 0);
     }
   }, []);
 

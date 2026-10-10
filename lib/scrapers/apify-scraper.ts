@@ -1,5 +1,39 @@
 import { getApifyClient, RawScrapedJob } from "../apify";
 
+interface ApifyRawJob {
+  title?: string;
+  position?: string;
+  jobTitle?: string;
+  role?: string;
+  company?: string;
+  company_name?: string;
+  companyName?: string;
+  company_logo?: string;
+  company_logo_url?: string;
+  logo?: string;
+  companyLogo?: string;
+  url?: string;
+  apply_url?: string;
+  jobUrl?: string;
+  link?: string;
+  location?: string;
+  candidate_required_location?: string;
+  remote?: boolean;
+  workplace_type?: "remote" | "hybrid" | "on-site";
+  description?: string;
+  jobDescription?: string;
+  summary?: string;
+  tags?: string[] | string;
+  salary?: string;
+  salary_min?: string | number;
+  salary_max?: string | number;
+  posted_at?: string;
+  publication_date?: string;
+  date?: string;
+  postedAt?: string;
+  source?: string;
+}
+
 /**
  * Apify Actor Scraper Runner
  * Executes targeted Apify Actors to scrape hundreds of fresh remote jobs.
@@ -32,7 +66,7 @@ export async function fetchApifyJobs(
     const { items } = await client.dataset(run.defaultDatasetId).listItems({ limit: 500 });
     console.log(`[Apify Scraper] Retrieved ${items.length} raw items from dataset ${run.defaultDatasetId}`);
 
-    return (items as any[]).map((raw: any): RawScrapedJob => ({
+    return (items as unknown as ApifyRawJob[]).map((raw: ApifyRawJob): RawScrapedJob => ({
       title: raw.title || raw.position || raw.jobTitle || raw.role,
       company: raw.company || raw.company_name || raw.companyName,
       company_name: raw.company_name || raw.company || raw.companyName,

@@ -22,11 +22,16 @@ export function SalarySliderPopup({
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
+    const timer = setTimeout(() => {
+      setMounted(true);
+      setIsMobile(window.innerWidth < 640);
+    }, 0);
     const checkMobile = () => setIsMobile(window.innerWidth < 640);
-    checkMobile();
     window.addEventListener("resize", checkMobile);
-    return () => window.removeEventListener("resize", checkMobile);
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener("resize", checkMobile);
+    };
   }, []);
 
   useEffect(() => {

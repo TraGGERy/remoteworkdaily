@@ -8,10 +8,6 @@ import {
   Clock,
   CheckCircle2,
   ChevronRight,
-  Coffee,
-  Globe,
-  Smile,
-  Laptop,
   Users,
   Search,
 } from "lucide-react";

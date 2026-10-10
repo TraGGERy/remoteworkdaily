@@ -103,10 +103,11 @@ async function handleDailyDigest(request: Request) {
       jobsIncluded: digestJobs.length,
       timestamp: new Date().toISOString(),
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Daily digest cron execution error:", error);
+    const msg = error instanceof Error ? error.message : "Failed to execute daily digest";
     return NextResponse.json(
-      { success: false, error: error.message || "Failed to execute daily digest" },
+      { success: false, error: msg },
       { status: 500 }
     );
   }

@@ -1,6 +1,6 @@
 import { Job } from "../types";
 import { normalizeScrapedJob, RawScrapedJob } from "../apify";
-import { insertJobsBatch, getAllJobs } from "../jobs-repository";
+import { insertJobsBatch } from "../jobs-repository";
 import { recordSyncCompleted } from "../sync-tracker";
 import { notifyCronSyncCompleted } from "../telegram";
 import {

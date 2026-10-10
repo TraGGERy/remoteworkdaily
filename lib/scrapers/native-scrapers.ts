@@ -1,5 +1,74 @@
 import { RawScrapedJob } from "../apify";
 
+interface ArbeitnowJobItem {
+  title?: string;
+  company_name?: string;
+  url?: string;
+  tags?: string[];
+  location?: string;
+  description?: string;
+  created_at?: number;
+  remote?: boolean;
+}
+
+interface JobicyJobItem {
+  jobTitle?: string;
+  companyName?: string;
+  companyLogo?: string;
+  url?: string;
+  jobGeo?: string;
+  jobDescription?: string;
+  pubDate?: string;
+  annualSalaryMin?: string | number;
+  annualSalaryMax?: string | number;
+  jobIndustry?: string;
+  jobLevel?: string;
+  jobType?: string;
+}
+
+interface RemoteOKJobItem {
+  position?: string;
+  title?: string;
+  company?: string;
+  company_logo?: string;
+  logo?: string;
+  url?: string;
+  apply_url?: string;
+  tags?: string[];
+  location?: string;
+  description?: string;
+  date?: string;
+  salary_min?: string | number;
+  salary_max?: string | number;
+}
+
+interface RemotiveJobItem {
+  title?: string;
+  company_name?: string;
+  company_logo_url?: string;
+  url?: string;
+  tags?: string[];
+  category?: string;
+  candidate_required_location?: string;
+  salary?: string;
+  description?: string;
+  publication_date?: string;
+}
+
+interface HimalayasJobItem {
+  title?: string;
+  companyName?: string;
+  companyLogo?: string;
+  applicationLink?: string;
+  url?: string;
+  categories?: string[];
+  locationRestrictions?: string[];
+  minSalary?: string | number;
+  maxSalary?: string | number;
+  description?: string;
+  pubDate?: string;
+}
+
 const USER_AGENT = "RemoteWorkDailyScraper/2.0 (+https://remoteworkdaily.com; support@remoteworkdaily.com)";
 
 /**
@@ -25,7 +94,7 @@ export async function fetchArbeitnowJobs(pagesToFetch: number = 15): Promise<Raw
           const data = await res.json();
           if (!Array.isArray(data.data)) return [];
 
-          return data.data.map((item: any): RawScrapedJob => ({
+          return data.data.map((item: ArbeitnowJobItem): RawScrapedJob => ({
             title: item.title,
             company_name: item.company_name,
             url: item.url,
@@ -159,7 +228,7 @@ export async function fetchJobicyJobs(): Promise<RawScrapedJob[]> {
           const data = await res.json();
           if (!Array.isArray(data.jobs)) return [];
 
-          return data.jobs.map((item: any): RawScrapedJob => ({
+          return data.jobs.map((item: JobicyJobItem): RawScrapedJob => ({
             title: item.jobTitle,
             company_name: item.companyName,
             company_logo_url: item.companyLogo,
@@ -174,7 +243,7 @@ export async function fetchJobicyJobs(): Promise<RawScrapedJob[]> {
             salary_max: item.annualSalaryMax ? Number(item.annualSalaryMax) : undefined,
             remote: true,
             workplace_type: "remote",
-            tags: [item.jobIndustry, item.jobLevel, item.jobType].filter(Boolean),
+            tags: [item.jobIndustry, item.jobLevel, item.jobType].filter((t): t is string => Boolean(t)),
           }));
         } catch (err: unknown) {
           const msg = err instanceof Error ? err.message : String(err);
@@ -209,9 +278,9 @@ export async function fetchRemoteOKJobs(): Promise<RawScrapedJob[]> {
     const data = await res.json();
     if (!Array.isArray(data)) return [];
 
-    const items = data.filter((item: any) => item && (item.position || item.title) && item.company);
+    const items = (data as RemoteOKJobItem[]).filter((item: RemoteOKJobItem) => item && (item.position || item.title) && item.company);
 
-    return items.map((item: any): RawScrapedJob => ({
+    return items.map((item: RemoteOKJobItem): RawScrapedJob => ({
       title: item.position || item.title,
       company_name: item.company,
       company_logo_url: item.company_logo || item.logo,
@@ -248,13 +317,13 @@ export async function fetchRemotiveJobs(): Promise<RawScrapedJob[]> {
     const data = await res.json();
     if (!Array.isArray(data.jobs)) return [];
 
-    return data.jobs.map((item: any): RawScrapedJob => ({
+    return data.jobs.map((item: RemotiveJobItem): RawScrapedJob => ({
       title: item.title,
       company_name: item.company_name,
       company_logo_url: item.company_logo_url,
       url: item.url,
       apply_url: item.url,
-      tags: Array.isArray(item.tags) ? item.tags : [item.category].filter(Boolean),
+      tags: Array.isArray(item.tags) ? item.tags : (item.category ? [item.category] : []),
       candidate_required_location: item.candidate_required_location || "Worldwide",
       location: item.candidate_required_location || "Worldwide",
       salary: item.salary,
@@ -284,7 +353,7 @@ export async function fetchHimalayasJobs(): Promise<RawScrapedJob[]> {
     const data = await res.json();
     if (!Array.isArray(data.jobs)) return [];
 
-    return data.jobs.map((item: any): RawScrapedJob => ({
+    return data.jobs.map((item: HimalayasJobItem): RawScrapedJob => ({
       title: item.title,
       company_name: item.companyName,
       company_logo_url: item.companyLogo,

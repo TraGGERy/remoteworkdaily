@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowLeft, Search, Briefcase, Calculator, Building2 } from "lucide-react";
+import { ArrowLeft, Briefcase, Calculator, Building2 } from "lucide-react";
 
 export default function NotFound() {
   return (

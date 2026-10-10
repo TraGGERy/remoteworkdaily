@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Clock, X, Check, Star, Lock, Sparkles } from "lucide-react";
+import { ArrowLeft, Clock, X, Check, Star, Lock } from "lucide-react";
 import {
   CareerHoundLogo,
   CoinStackIcon,
@@ -58,13 +58,15 @@ export function CareerHoundOnboardingFlow() {
       const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
       if (saved) {
         const parsed = JSON.parse(saved);
-        setState((prev) => ({ ...prev, ...parsed }));
-        if (parsed.jobTitles && parsed.jobTitles.length > 0 && !currentTitleInput) {
-          setCurrentTitleInput(parsed.jobTitles[0] || "");
-        }
-        if (parsed.candidateEmail) {
-          setEmailInput(parsed.candidateEmail);
-        }
+        setTimeout(() => {
+          setState((prev) => ({ ...prev, ...parsed }));
+          if (parsed.jobTitles && parsed.jobTitles.length > 0) {
+            setCurrentTitleInput((prev) => (!prev ? parsed.jobTitles[0] || "" : prev));
+          }
+          if (parsed.candidateEmail) {
+            setEmailInput(parsed.candidateEmail);
+          }
+        }, 0);
       }
     } catch {
       // Ignore parse errors

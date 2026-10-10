@@ -3,10 +3,10 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { JOB_POSTING_PRICING, ROLE_CATEGORIES, POPULAR_TAGS, BENEFITS_LIST } from "@/lib/constants";
+import { JOB_POSTING_PRICING, ROLE_CATEGORIES } from "@/lib/constants";
 import { JobRow } from "../job-board/job-row";
 import { Job } from "@/lib/types";
-import { Check, Sparkles, Shield, DollarSign, ArrowLeft } from "lucide-react";
+import { Check, Sparkles, Shield, ArrowLeft } from "lucide-react";
 import confetti from "canvas-confetti";
 
 export function JobPostForm() {
@@ -25,7 +25,7 @@ export function JobPostForm() {
   const [applyUrl, setApplyUrl] = useState("");
   const [tagInput, setTagInput] = useState("");
   const [tags, setTags] = useState<string[]>(["React", "TypeScript", "Remote"]);
-  const [selectedBenefits, setSelectedBenefits] = useState<string[]>([
+  const [selectedBenefits] = useState<string[]>([
     "distributed_team",
     "async",
     "unlimited_vacation",
@@ -116,14 +116,6 @@ export function JobPostForm() {
 
   const handleRemoveTag = (tagToRemove: string) => {
     setTags(tags.filter((t) => t !== tagToRemove));
-  };
-
-  const handleToggleBenefit = (benefitId: string) => {
-    setSelectedBenefits((prev) =>
-      prev.includes(benefitId)
-        ? prev.filter((b) => b !== benefitId)
-        : [...prev, benefitId]
-    );
   };
 
   const handleSubmit = async (e: React.FormEvent) => {

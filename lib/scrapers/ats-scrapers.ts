@@ -1,5 +1,45 @@
 import { RawScrapedJob } from "../apify";
 
+interface GreenhouseJobItem {
+  id?: number | string;
+  title?: string;
+  updated_at?: string;
+  absolute_url?: string;
+  location?: { name?: string };
+  departments?: Array<{ name?: string }>;
+  offices?: Array<{ name?: string }>;
+  content?: string;
+}
+
+interface LeverJobItem {
+  id?: string;
+  text?: string;
+  createdAt?: number;
+  hostedUrl?: string;
+  applyUrl?: string;
+  descriptionPlain?: string;
+  description?: string;
+  categories?: {
+    location?: string;
+    team?: string;
+    workplaceType?: string;
+    commitment?: string;
+  };
+}
+
+interface AshbyJobItem {
+  id?: string;
+  title?: string;
+  publishedAt?: string;
+  jobUrl?: string;
+  applyUrl?: string;
+  isRemote?: boolean;
+  location?: string;
+  department?: string;
+  descriptionHtml?: string;
+  descriptionPlain?: string;
+}
+
 const USER_AGENT = "RemoteWorkDailyScraper/2.0 (+https://remoteworkdaily.com; support@remoteworkdaily.com)";
 
 /**
@@ -88,7 +128,7 @@ export async function fetchGreenhouseAtsJobs(): Promise<RawScrapedJob[]> {
       const data = await res.json();
       if (!Array.isArray(data.jobs)) return [];
 
-      return data.jobs.map((item: any): RawScrapedJob => {
+      return data.jobs.map((item: GreenhouseJobItem): RawScrapedJob => {
         const locationName = item.location?.name || "Worldwide";
         const locationLower = locationName.toLowerCase();
         const titleLower = (item.title || "").toLowerCase();
@@ -154,7 +194,7 @@ export async function fetchLeverAtsJobs(): Promise<RawScrapedJob[]> {
       const data = await res.json();
       if (!Array.isArray(data)) return [];
 
-      return data.map((item: any): RawScrapedJob => {
+      return data.map((item: LeverJobItem): RawScrapedJob => {
         const locationName = item.categories?.location || "Worldwide";
         const locationLower = locationName.toLowerCase();
         const textLower = (item.text || "").toLowerCase();
@@ -223,7 +263,7 @@ export async function fetchAshbyAtsJobs(): Promise<RawScrapedJob[]> {
       const data = await res.json();
       if (!Array.isArray(data.jobs)) return [];
 
-      return data.jobs.map((item: any): RawScrapedJob => {
+      return data.jobs.map((item: AshbyJobItem): RawScrapedJob => {
         const isRemote = Boolean(item.isRemote);
         const locationName = item.location || (isRemote ? "Worldwide" : "On-site");
         const locationLower = locationName.toLowerCase();
@@ -246,7 +286,7 @@ export async function fetchAshbyAtsJobs(): Promise<RawScrapedJob[]> {
           posted_at: item.publishedAt ? new Date(item.publishedAt).toISOString() : new Date().toISOString(),
           remote: isRemote,
           workplace_type: workplaceType,
-          tags: ["Direct ATS", "Company Careers", item.department].filter(Boolean),
+          tags: ["Direct ATS", "Company Careers", ...(item.department ? [item.department] : [])],
           source: "ats",
           ats_provider: "ashby",
           is_direct_company_post: true,

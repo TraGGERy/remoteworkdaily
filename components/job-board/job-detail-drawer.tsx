@@ -1,18 +1,14 @@
 "use client";
 
 import React, { useState } from "react";
-import Link from "next/link";
 import { Job } from "@/lib/types";
 import { formatSalary, timeAgo } from "@/lib/utils";
 import { BENEFITS_LIST } from "@/lib/constants";
 import {
-  ExternalLink,
-  Share2,
   Bookmark,
   CheckCircle,
   Globe,
   MapPin,
-  DollarSign,
   ArrowRight,
   X,
   Copy,

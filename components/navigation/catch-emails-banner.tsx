@@ -11,7 +11,7 @@ export function CatchEmailsBanner() {
 
   useEffect(() => {
     const isClosed = sessionStorage.getItem("remoteok_catch_emails_closed");
-    if (isClosed) setClosed(true);
+    if (isClosed) setTimeout(() => setClosed(true), 0);
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {

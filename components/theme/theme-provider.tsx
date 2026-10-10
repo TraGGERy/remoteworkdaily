@@ -20,25 +20,21 @@ export function useTheme() {
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setTheme] = useState<Theme>("light");
-  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
     const saved = localStorage.getItem("remoteok_theme") as Theme | null;
+    let nextTheme: Theme = "light";
     if (saved === "dark" || saved === "light") {
-      setTheme(saved);
-      if (saved === "dark") {
-        document.documentElement.classList.add("dark");
-      } else {
-        document.documentElement.classList.remove("dark");
-      }
-    } else {
-      const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-      if (prefersDark) {
-        setTheme("dark");
-        document.documentElement.classList.add("dark");
-      }
+      nextTheme = saved;
+    } else if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
+      nextTheme = "dark";
     }
+    if (nextTheme === "dark") {
+      document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+    }
+    setTimeout(() => setTheme(nextTheme), 0);
   }, []);
 
   const toggleTheme = () => {

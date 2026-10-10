@@ -248,7 +248,7 @@ export async function notifyCronSyncCompleted(payload: CronSyncNotificationPaylo
     .join("\n\n");
 
   const sourcesBreakdown = Object.entries(payload.sources || {})
-    .filter(([_, count]) => count > 0)
+    .filter(([, count]) => count > 0)
     .map(([name, count]) => `• ${name}: <b>${count}</b>`)
     .join("\n");
 
