@@ -127,7 +127,9 @@ function formatStats() {
   } catch {}
 
   const catCount = {};
-  for (const j of jobs) {
+  const activeVerified = jobs.filter(j => j.status !== "pending_payment" && j.status !== "archived");
+
+  for (const j of activeVerified) {
     const cat = j.category || "other";
     catCount[cat] = (catCount[cat] || 0) + 1;
   }
@@ -141,7 +143,10 @@ function formatStats() {
   return [
     `📊 <b>RemoteWorkDaily Board Statistics:</b>`,
     `━━━━━━━━━━━━━━━━━━━━`,
-    `💼 <b>Total Active Listings:</b> ${jobs.length.toLocaleString()}`,
+    `💼 <b>Verified Active Jobs:</b> ${activeVerified.length.toLocaleString()}`,
+    activeVerified.length !== jobs.length
+      ? `📦 <b>Total Ingested Index:</b> ${jobs.length.toLocaleString()}`
+      : null,
     `📅 <b>Last Sync:</b> ${syncState?.lastSyncDate || "Recent"}`,
     syncState?.syncedCount ? `📥 <b>Last Batch:</b> +${syncState.syncedCount.toLocaleString()} jobs` : null,
     `━━━━━━━━━━━━━━━━━━━━`,

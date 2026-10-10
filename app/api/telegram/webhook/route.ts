@@ -6,6 +6,7 @@ import {
   notifyPaymentReceived,
 } from "@/lib/telegram";
 import { getAllJobs } from "@/lib/jobs-repository";
+import { filterJobs } from "@/lib/filter-jobs";
 import { getSyncState } from "@/lib/sync-tracker";
 import { runDailyJobIngestionPipeline } from "@/lib/scrapers/orchestrator";
 
@@ -98,16 +99,17 @@ function formatLatestJobsMessage(limit: number = 5): string {
     `━━━━━━━━━━━━━━━━━━━━`,
     jobRows,
     `━━━━━━━━━━━━━━━━━━━━`,
-    `🌐 <a href="https://www.remoteworkdaily.com">Browse all ${jobs.length.toLocaleString()}+ Jobs &rarr;</a>`,
+    `🌐 <a href="https://www.remoteworkdaily.com">Browse all ${filterJobs(jobs, {}).length.toLocaleString()}+ Verified Jobs &rarr;</a>`,
   ].join("\n");
 }
 
 function formatStatsMessage(): string {
-  const jobs = getAllJobs(true);
+  const allJobs = getAllJobs(true);
+  const activeVerified = filterJobs(allJobs, {});
   const syncState = getSyncState();
 
   const categoriesCount: Record<string, number> = {};
-  for (const j of jobs) {
+  for (const j of activeVerified) {
     const cat = j.category || "other";
     categoriesCount[cat] = (categoriesCount[cat] || 0) + 1;
   }
@@ -121,7 +123,10 @@ function formatStatsMessage(): string {
   return [
     `📊 <b>RemoteWorkDaily Board Statistics:</b>`,
     `━━━━━━━━━━━━━━━━━━━━`,
-    `💼 <b>Total Active Listings:</b> ${jobs.length.toLocaleString()}`,
+    `💼 <b>Verified Active Jobs:</b> ${activeVerified.length.toLocaleString()}`,
+    activeVerified.length !== allJobs.length
+      ? `📦 <b>Total Ingested Index:</b> ${allJobs.length.toLocaleString()}`
+      : null,
     `📅 <b>Last Sync:</b> ${syncState?.lastSyncDate || "Recent"}`,
     syncState?.syncedCount ? `📥 <b>Last Ingestion Batch:</b> ${syncState.syncedCount.toLocaleString()} jobs` : null,
     `━━━━━━━━━━━━━━━━━━━━`,
@@ -133,12 +138,16 @@ function formatStatsMessage(): string {
 
 function formatSyncMessage(): string {
   const syncState = getSyncState();
-  const jobs = getAllJobs(true);
+  const allJobs = getAllJobs(true);
+  const activeVerified = filterJobs(allJobs, {});
 
   return [
     `⏱ <b>Scraper & Sync Pipeline Status:</b>`,
     `━━━━━━━━━━━━━━━━━━━━`,
-    `💼 <b>Total Live Listings:</b> ${jobs.length.toLocaleString()}`,
+    `💼 <b>Verified Active Jobs:</b> ${activeVerified.length.toLocaleString()}`,
+    activeVerified.length !== allJobs.length
+      ? `📦 <b>Total Ingested Index:</b> ${allJobs.length.toLocaleString()}`
+      : null,
     `📅 <b>Last Sync Date:</b> ${syncState?.lastSyncDate || "N/A"}`,
     `🕒 <b>Last Run:</b> ${syncState?.lastSyncTimestamp ? new Date(syncState.lastSyncTimestamp).toUTCString() : "Recent"}`,
     `📥 <b>Last Batch Synced:</b> ${(syncState?.syncedCount || 0).toLocaleString()} jobs`,
