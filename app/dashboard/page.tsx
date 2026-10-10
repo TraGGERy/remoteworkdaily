@@ -161,7 +161,8 @@ export default function DashboardPage() {
     setIsDeleting(true);
     setDeleteError(null);
     try {
-      const res = await deleteAccount({ cancelPlanFirst });
+      const targetEmail = userEmail || employerEmail || emailInput || undefined;
+      const res = await deleteAccount({ cancelPlanFirst, email: targetEmail });
       if (!res.success) {
         setDeleteError(res.error || "Failed to delete account.");
         return;
@@ -607,6 +608,17 @@ export default function DashboardPage() {
                   <span>Subscription cancelled successfully. You will not be billed again.</span>
                 </div>
               )}
+
+              <div className="pt-2 text-[11px] text-neutral-500 dark:text-neutral-400 flex items-center justify-between border-t border-red-200/50 dark:border-red-900/30">
+                <span>Looking to permanently close your entire account?</span>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("settings")}
+                  className="font-bold text-red-600 dark:text-red-400 hover:underline"
+                >
+                  Go to Account Deletion →
+                </button>
+              </div>
             </div>
           )}
 

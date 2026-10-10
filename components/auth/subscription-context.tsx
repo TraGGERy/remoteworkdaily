@@ -17,7 +17,7 @@ interface SubscriptionContextType {
   refreshSubscription: () => Promise<void>;
   simulateSubscription: (active: boolean, plan?: string) => void;
   cancelSubscription: () => Promise<boolean>;
-  deleteAccount: (options?: { cancelPlanFirst?: boolean }) => Promise<{
+  deleteAccount: (options?: { cancelPlanFirst?: boolean; email?: string }) => Promise<{
     success: boolean;
     error?: string;
     hasActiveSubscription?: boolean;
@@ -252,7 +252,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
   }, [primaryEmail]);
 
   const deleteAccount = useCallback(
-    async (options?: { cancelPlanFirst?: boolean }): Promise<{
+    async (options?: { cancelPlanFirst?: boolean; email?: string }): Promise<{
       success: boolean;
       error?: string;
       hasActiveSubscription?: boolean;
@@ -262,7 +262,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
           ? localStorage.getItem("remotework_user_email") ||
             localStorage.getItem("remotework_employer_email")
           : null;
-      const emailToDelete = primaryEmail || storedEmail;
+      const emailToDelete = options?.email?.trim().toLowerCase() || primaryEmail || storedEmail;
 
       if (!emailToDelete) {
         return {

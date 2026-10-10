@@ -50,9 +50,22 @@ async function resolveAccountIdentity(req: Request): Promise<{
     }
   }
 
-  // Parse body if present for email override or cancelPlan flag
+  // Parse URL search parameters and JSON body for email and cancelPlan flags
   let bodyEmail: string | null = null;
   let cancelPlan = false;
+
+  try {
+    const url = new URL(req.url);
+    const queryEmail = url.searchParams.get("email");
+    if (queryEmail && queryEmail.includes("@")) {
+      bodyEmail = queryEmail.trim().toLowerCase();
+    }
+    if (url.searchParams.get("cancelPlan") === "true") {
+      cancelPlan = true;
+    }
+  } catch {
+    // Malformed URL or non-standard request
+  }
 
   try {
     const cloned = req.clone();
