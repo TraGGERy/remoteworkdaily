@@ -5,6 +5,7 @@ import { canSyncInterval } from "@/lib/sync-tracker";
 import { runDailyJobIngestionPipeline } from "@/lib/scrapers/orchestrator";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 60;
 
 let isBackgroundSyncing = false;
 
