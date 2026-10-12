@@ -19,7 +19,6 @@ const TMP_DATA_FILE = path.join(os.tmpdir(), "remotework-jobs.json");
 const CONFIG_FILE = path.join(process.cwd(), "data", "telegram-config.json");
 const SYNC_STATE_FILE = path.join(process.cwd(), "data", "sync-state.json");
 const TMP_SYNC_STATE_FILE = path.join(os.tmpdir(), "remotework-sync-state.json");
-const DEFAULT_TOKEN = "8593165155:AAEMBF_0UvlRHUjQb4AtvoG0GHgq8lLxgjM";
 
 // Load .env / .env.local
 for (const envName of [".env.local", ".env"]) {
@@ -39,7 +38,27 @@ for (const envName of [".env.local", ".env"]) {
   }
 }
 
-const TOKEN = process.env.TELEGRAM_BOT_TOKEN || DEFAULT_TOKEN;
+if (!process.env.TELEGRAM_BOT_TOKEN || !process.env.TELEGRAM_BOT_TOKEN.trim()) {
+  console.error("❌ ERROR: TELEGRAM_BOT_TOKEN is not defined in environment variables or .env.local.");
+  console.error("Please configure a valid TELEGRAM_BOT_TOKEN before launching the bot runner.");
+  process.exit(1);
+}
+
+const TOKEN = process.env.TELEGRAM_BOT_TOKEN.trim();
+
+function isTelegramAdmin(chatId) {
+  const adminId = (process.env.TELEGRAM_ADMIN_CHAT_ID || process.env.TELEGRAM_CHAT_ID || "").trim();
+  if (!adminId) {
+    if (fs.existsSync(CONFIG_FILE)) {
+      try {
+        const cfg = JSON.parse(fs.readFileSync(CONFIG_FILE, "utf8"));
+        if (cfg.chat_id) return String(chatId).trim() === String(cfg.chat_id).trim();
+      } catch {}
+    }
+    return false;
+  }
+  return String(chatId).trim() === adminId;
+}
 
 function escapeHtml(text) {
   return String(text || "")
@@ -48,7 +67,11 @@ function escapeHtml(text) {
     .replace(/>/g, "&gt;");
 }
 
-function saveChatId(chatId) {
+function saveChatId(chatId, force = false) {
+  if (!force && !isTelegramAdmin(chatId)) {
+    console.warn(`[Bot Security] Refusing to overwrite admin chat ID from unauthorized user: ${chatId}`);
+    return;
+  }
   try {
     const dir = path.dirname(CONFIG_FILE);
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
@@ -57,7 +80,7 @@ function saveChatId(chatId) {
       JSON.stringify({ chat_id: String(chatId), updated_at: new Date().toISOString() }, null, 2),
       "utf8"
     );
-    console.log(`[Bot] 💾 Saved chat_id ${chatId} to ${CONFIG_FILE}`);
+    console.log(`[Bot] 💾 Saved admin chat_id ${chatId} to ${CONFIG_FILE}`);
   } catch (err) {
     console.warn("[Bot] Failed to save chat_id:", err);
   }
@@ -335,15 +358,24 @@ async function startBot() {
             const cb = update.callback_query;
             const chatId = cb.message?.chat.id || cb.from.id;
             const action = cb.data;
+            const isAdmin = isTelegramAdmin(chatId);
             await answerCallback(cb.id);
 
             if (action === "cmd_scrape" || action === "cmd_sync") {
+              if (!isAdmin) {
+                await sendMessage(chatId, "🔒 <b>Admin Access Required</b>\n\nOnly verified administrators can trigger scraper ingestion runs.");
+                continue;
+              }
               await triggerScraperLocally(chatId);
             } else if (action === "cmd_latest") {
               await sendMessage(chatId, formatLatestJobs(5));
             } else if (action === "cmd_stats") {
               await sendMessage(chatId, formatStats());
             } else if (action === "cmd_testpay") {
+              if (!isAdmin) {
+                await sendMessage(chatId, "🔒 <b>Admin Access Required</b>\n\nOnly verified administrators can test payment notifications.");
+                continue;
+              }
               await sendMessage(chatId, formatCutePaymentMessage());
             }
             continue;
@@ -355,43 +387,74 @@ async function startBot() {
             const chatId = msg.chat.id;
             const text = msg.text.trim();
             const sender = msg.from?.first_name || msg.from?.username || "Friend";
+            const isAdmin = isTelegramAdmin(chatId);
 
-            console.log(`[Bot] Received message from ${sender} (chat ${chatId}): "${text}"`);
-            saveChatId(chatId);
+            console.log(`[Bot] Received message from ${sender} (chat ${chatId}, admin: ${isAdmin}): "${text}"`);
 
             const firstToken = text.split(/\s+/)[0].toLowerCase();
             const command = firstToken.replace(/^\//, "").split("@")[0];
 
             if (command === "start") {
-              const welcome = [
-                `👋 <b>Hello ${escapeHtml(sender)}!</b>`,
-                ``,
-                `Welcome to <b>RemoteWorkDaily Bot</b> (@${me.result.username})!`,
-                ``,
-                `✅ <b>Connected!</b> Your chat ID (<code>${chatId}</code>) is now registered to receive alerts:`,
-                `• 🚀 Daily Job Scraper & Cron sync notifications`,
-                `• 💼 Fresh verified remote job drops`,
-                `• 💰 Payment confirmations`,
-                ``,
-                `<b>Commands:</b>`,
-                `• /scrape — ⚡ <b>Trigger the job scrapers now</b>`,
-                `• /sync — 🔄 Trigger scraper ingestion pipeline`,
-                `• /latest — 5 latest remote job postings`,
-                `• /stats — Active database metrics`,
-                `• /status — Last scraper telemetry report`,
-                `• /testpay — 💖 Test cute payment notification`,
-                `• /help — Help & guide`,
-              ].join("\n");
-              await sendMessage(chatId, welcome);
+              if (isAdmin) {
+                saveChatId(chatId, true);
+                const adminWelcome = [
+                  `👋 <b>Hello ${escapeHtml(sender)} (Admin)!</b>`,
+                  ``,
+                  `Welcome to the <b>RemoteWorkDaily Bot</b> (@${me.result.username})!`,
+                  ``,
+                  `🔐 <b>Verified Administrator:</b> Your chat ID (<code>${chatId}</code>) is registered to receive:`,
+                  `• 🚀 Daily Job Scraper & Cron sync notifications`,
+                  `• 💼 Fresh verified remote job drops`,
+                  `• 💰 Real-time customer checkout alerts`,
+                  ``,
+                  `<b>Administrative Commands:</b>`,
+                  `• /scrape — ⚡ Trigger scrapers now`,
+                  `• /sync — 🔄 Trigger scraper ingestion pipeline`,
+                  `• /latest — 5 latest remote job postings`,
+                  `• /stats — Active database metrics`,
+                  `• /status — Last scraper telemetry report`,
+                  `• /testpay — 💖 Test cute payment notification`,
+                  `• /help — Help & guide`,
+                ].join("\n");
+                await sendMessage(chatId, adminWelcome);
+              } else {
+                const publicWelcome = [
+                  `👋 <b>Hello ${escapeHtml(sender)}!</b>`,
+                  ``,
+                  `Welcome to <b>RemoteWorkDaily</b> (@${me.result.username})!`,
+                  ``,
+                  `We help remote professionals find hand-verified remote jobs across software, product, design, marketing, and more.`,
+                  ``,
+                  `<b>Available Commands:</b>`,
+                  `• /latest — 🔥 View the latest 5 verified remote positions`,
+                  `• /stats — 📊 Job board database statistics`,
+                  `• /help — Help & usage guide`,
+                  ``,
+                  `🌐 <a href="https://remoteworkdaily.com">Browse 10,000+ Verified Remote Jobs &rarr;</a>`,
+                ].join("\n");
+                await sendMessage(chatId, publicWelcome);
+              }
             } else if (command === "scrape" || command === "sync" || command === "runsync" || command === "crawl" || command === "harvest") {
+              if (!isAdmin) {
+                await sendMessage(chatId, "🔒 <b>Admin Access Required</b>\n\nOnly verified administrators can run scraper ingestion commands.");
+                continue;
+              }
               await triggerScraperLocally(chatId);
             } else if (command === "latest" || command === "jobs") {
               await sendMessage(chatId, formatLatestJobs(5));
             } else if (command === "stats") {
               await sendMessage(chatId, formatStats());
             } else if (command === "testpay" || command === "pay" || command === "payment") {
+              if (!isAdmin) {
+                await sendMessage(chatId, "🔒 <b>Admin Access Required</b>\n\nPayment testing alerts are restricted to administrators.");
+                continue;
+              }
               await sendMessage(chatId, formatCutePaymentMessage());
             } else if (command === "status") {
+              if (!isAdmin) {
+                await sendMessage(chatId, "🔒 <b>Admin Access Required</b>\n\nScraper sync telemetry is restricted to administrators.");
+                continue;
+              }
               let syncState = null;
               try {
                 if (fs.existsSync(SYNC_STATE_FILE)) syncState = JSON.parse(fs.readFileSync(SYNC_STATE_FILE, "utf8"));

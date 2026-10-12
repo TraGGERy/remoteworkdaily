@@ -14,7 +14,22 @@ export const maxDuration = 300;
 
 export async function GET(request: Request) {
   const token = getTelegramBotToken();
+  if (!token) {
+    return NextResponse.json(
+      { status: "disabled", error: "TELEGRAM_BOT_TOKEN is not configured in environment variables." },
+      { status: 503 }
+    );
+  }
+
   const { searchParams } = new URL(request.url);
+  const webhookSecret = process.env.TELEGRAM_WEBHOOK_SECRET?.trim();
+  const providedSecret = searchParams.get("secret")?.trim();
+
+  // In production, require admin secret to access the test endpoint
+  if (process.env.NODE_ENV === "production" && webhookSecret && providedSecret !== webhookSecret) {
+    return NextResponse.json({ error: "Unauthorized access to Telegram test endpoint" }, { status: 401 });
+  }
+
   const explicitChatId = searchParams.get("chat_id");
 
   try {
@@ -22,53 +37,21 @@ export async function GET(request: Request) {
     await registerBotCommands();
 
     if (explicitChatId && explicitChatId.trim()) {
-      saveTelegramChatId(explicitChatId.trim());
+      saveTelegramChatId(explicitChatId.trim(), true);
     }
 
     // 1. Check getMe
     const meRes = await fetch(`https://api.telegram.org/bot${token}/getMe`);
     const meData = await meRes.json();
 
-    // 2. Check getUpdates to look for any fresh messages from user
-    const updatesRes = await fetch(`https://api.telegram.org/bot${token}/getUpdates`, {
-      next: { revalidate: 0 },
-    });
-    const updatesData = await updatesRes.json();
-
-    let discoveredChatId: string | null = explicitChatId ? explicitChatId.trim() : null;
-    let senderInfo: { username?: string; first_name?: string; id?: number } | null = null;
-
-    if (!discoveredChatId && updatesData.ok && Array.isArray(updatesData.result) && updatesData.result.length > 0) {
-      for (let i = updatesData.result.length - 1; i >= 0; i--) {
-        const update = updatesData.result[i];
-        const chat =
-          update.message?.chat ||
-          update.channel_post?.chat ||
-          update.my_chat_member?.chat ||
-          update.callback_query?.message?.chat;
-
-        if (chat?.id) {
-          discoveredChatId = String(chat.id);
-          senderInfo = {
-            username: chat.username,
-            first_name: chat.first_name,
-            id: chat.id,
-          };
-          saveTelegramChatId(discoveredChatId);
-          break;
-        }
-      }
-    }
-
-    const currentChatId = discoveredChatId || (await getTelegramChatId());
+    const currentChatId = explicitChatId?.trim() || (await getTelegramChatId());
 
     if (!currentChatId) {
       return NextResponse.json({
         status: "waiting_for_start",
         message:
-          "Bot is active, but no chat ID has been linked yet. Please open https://t.me/PandoraWorkBot in Telegram, click 'Start' or send any message, then reload this page to connect!",
+          "Bot is active, but no admin chat ID has been linked yet. Please configure TELEGRAM_ADMIN_CHAT_ID in .env.local or visit with ?chat_id=<your_chat_id> to connect!",
         bot: meData.result,
-        updatesFound: updatesData.result?.length || 0,
       });
     }
 
@@ -121,7 +104,6 @@ export async function GET(request: Request) {
       status: testResult.success ? "connected_and_tested" : "error",
       chatId: currentChatId,
       bot: meData.result,
-      senderInfo,
       messageSent: testResult.success,
       details: testResult,
     });

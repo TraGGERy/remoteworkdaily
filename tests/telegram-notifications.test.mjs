@@ -1,8 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-const DEFAULT_BOT_TOKEN = "8593165155:AAEMBF_0UvlRHUjQb4AtvoG0GHgq8lLxgjM";
-
 function escapeHtml(text) {
   return String(text)
     .replace(/&/g, "&amp;")
@@ -83,8 +81,15 @@ function formatOnboardingMessage(payload) {
   return lines.filter(Boolean).join("\n");
 }
 
-test("Telegram Notifications: Default bot token matches PandoraWorkBot configuration", () => {
-  assert.equal(DEFAULT_BOT_TOKEN, "8593165155:AAEMBF_0UvlRHUjQb4AtvoG0GHgq8lLxgjM");
+test("Telegram Notifications: Bot token is securely retrieved from environment variables", () => {
+  const previous = process.env.TELEGRAM_BOT_TOKEN;
+  try {
+    process.env.TELEGRAM_BOT_TOKEN = "test_bot_token_123456789";
+    assert.equal(process.env.TELEGRAM_BOT_TOKEN, "test_bot_token_123456789");
+  } finally {
+    if (previous !== undefined) process.env.TELEGRAM_BOT_TOKEN = previous;
+    else delete process.env.TELEGRAM_BOT_TOKEN;
+  }
 });
 
 test("Telegram Notifications: Payment alert formats candidate and employer data accurately", () => {

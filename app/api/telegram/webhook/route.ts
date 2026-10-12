@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import {
   getTelegramBotToken,
   saveTelegramChatId,
+  isTelegramAdmin,
   registerBotCommands,
   notifyPaymentReceived,
 } from "@/lib/telegram";
@@ -157,16 +158,30 @@ function formatSyncMessage(): string {
   ].join("\n");
 }
 
-function getMainMenuKeyboard() {
+function getMainMenuKeyboard(isAdmin = false) {
+  if (isAdmin) {
+    return {
+      inline_keyboard: [
+        [
+          { text: "⚡ Trigger Scraper Now", callback_data: "cmd_scrape" },
+          { text: "🔥 Latest 5 Jobs", callback_data: "cmd_latest" },
+        ],
+        [
+          { text: "📊 Board Stats", callback_data: "cmd_stats" },
+          { text: "💖 Test Payment Alert", callback_data: "cmd_testpay" },
+        ],
+        [
+          { text: "🌐 Open RemoteWorkDaily", url: "https://www.remoteworkdaily.com" },
+        ],
+      ],
+    };
+  }
+
   return {
     inline_keyboard: [
       [
-        { text: "⚡ Trigger Scraper Now", callback_data: "cmd_scrape" },
         { text: "🔥 Latest 5 Jobs", callback_data: "cmd_latest" },
-      ],
-      [
         { text: "📊 Board Stats", callback_data: "cmd_stats" },
-        { text: "💖 Test Payment Alert", callback_data: "cmd_testpay" },
       ],
       [
         { text: "🌐 Open RemoteWorkDaily", url: "https://www.remoteworkdaily.com" },
@@ -183,7 +198,7 @@ async function triggerScraperFromTelegram(token: string, chatId: number | string
       token,
       chatId,
       `⏳ <b>Scraper Already Running!</b>\n\nA job ingestion scrape is actively in progress right now. Please allow a few moments for it to finish.`,
-      getMainMenuKeyboard()
+      getMainMenuKeyboard(true)
     );
     return;
   }
@@ -234,7 +249,7 @@ async function triggerScraperFromTelegram(token: string, chatId: number | string
       .filter(Boolean)
       .join("\n");
 
-    await sendTelegramReply(token, chatId, completionMsg, getMainMenuKeyboard());
+    await sendTelegramReply(token, chatId, completionMsg, getMainMenuKeyboard(true));
   } catch (err: unknown) {
     const errorMsg = err instanceof Error ? err.message : String(err);
     console.error("[Telegram Webhook] Scraper execution error:", err);
@@ -242,7 +257,7 @@ async function triggerScraperFromTelegram(token: string, chatId: number | string
       token,
       chatId,
       `❌ <b>Scraper Execution Failed:</b>\n<code>${escapeHtml(errorMsg)}</code>\n\nPlease try again shortly.`,
-      getMainMenuKeyboard()
+      getMainMenuKeyboard(true)
     );
   } finally {
     isScrapeRunning = false;
@@ -257,7 +272,23 @@ function escapeHtml(text: string): string {
 }
 
 export async function POST(request: Request) {
+  // Validate webhook secret token if configured
+  const webhookSecret = process.env.TELEGRAM_WEBHOOK_SECRET?.trim();
+  if (webhookSecret) {
+    const headerSecret = request.headers.get("x-telegram-bot-api-secret-token")?.trim();
+    if (headerSecret !== webhookSecret) {
+      console.warn("[Telegram Webhook] Security rejection: Invalid x-telegram-bot-api-secret-token header");
+      return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+    }
+  }
+
   const token = getTelegramBotToken();
+  if (!token) {
+    return NextResponse.json(
+      { ok: false, error: "TELEGRAM_BOT_TOKEN is not configured" },
+      { status: 503 }
+    );
+  }
 
   try {
     const update = (await request.json()) as TelegramUpdate;
@@ -270,18 +301,37 @@ export async function POST(request: Request) {
       const cb = update.callback_query;
       const chatId = cb.message?.chat.id || cb.from.id;
       const data = cb.data || "";
+      const isAdmin = isTelegramAdmin(chatId);
 
       await answerCallbackQuery(token, cb.id);
 
       if (data === "cmd_scrape" || data === "cmd_sync") {
+        if (!isAdmin) {
+          await sendTelegramReply(
+            token,
+            chatId,
+            "🔒 <b>Admin Access Required</b>\n\nOnly verified administrators can trigger scraper ingestion runs.",
+            getMainMenuKeyboard(false)
+          );
+          return NextResponse.json({ ok: true });
+        }
         await triggerScraperFromTelegram(token, chatId);
       } else if (data === "cmd_latest") {
         const msg = formatLatestJobsMessage(5);
-        await sendTelegramReply(token, chatId, msg, getMainMenuKeyboard());
+        await sendTelegramReply(token, chatId, msg, getMainMenuKeyboard(isAdmin));
       } else if (data === "cmd_stats") {
         const msg = formatStatsMessage();
-        await sendTelegramReply(token, chatId, msg, getMainMenuKeyboard());
+        await sendTelegramReply(token, chatId, msg, getMainMenuKeyboard(isAdmin));
       } else if (data === "cmd_testpay") {
+        if (!isAdmin) {
+          await sendTelegramReply(
+            token,
+            chatId,
+            "🔒 <b>Admin Access Required</b>\n\nOnly verified administrators can test payment notifications.",
+            getMainMenuKeyboard(false)
+          );
+          return NextResponse.json({ ok: true });
+        }
         await notifyPaymentReceived({
           paymentType: "candidate_subscription",
           amount: 1799,
@@ -294,11 +344,11 @@ export async function POST(request: Request) {
           token,
           chatId,
           `💖 <b>Cute Payment Alert Sent!</b> Check the notification right above! ✨`,
-          getMainMenuKeyboard()
+          getMainMenuKeyboard(true)
         );
       } else if (data === "cmd_status") {
         const msg = formatSyncMessage();
-        await sendTelegramReply(token, chatId, msg, getMainMenuKeyboard());
+        await sendTelegramReply(token, chatId, msg, getMainMenuKeyboard(isAdmin));
       }
 
       return NextResponse.json({ ok: true });
@@ -313,9 +363,7 @@ export async function POST(request: Request) {
       }
       const chatId = msg.chat.id;
       const firstName = msg.from?.first_name || "there";
-
-      // Auto-save chat ID for real-time notifications
-      saveTelegramChatId(String(chatId));
+      const isAdmin = isTelegramAdmin(chatId);
 
       // Normalize command: handles "/start", "/start@PandoraWorkBot", "/sync@PandoraWorkBot", "sync", "latest", etc.
       const firstToken = rawText.split(/\s+/)[0].toLowerCase();
@@ -323,39 +371,88 @@ export async function POST(request: Request) {
 
       if (command === "start") {
         await registerBotCommands();
-        const welcomeText = [
-          `👋 <b>Hello ${escapeHtml(firstName)}!</b>`,
-          ``,
-          `Welcome to the official <b>RemoteWorkDaily Bot</b> (@PandoraWorkBot)!`,
-          ``,
-          `✅ <b>Connected!</b> Your chat ID (<code>${chatId}</code>) is registered to receive real-time updates:`,
-          `• 🚀 Daily job scraper & cron ingestion alerts`,
-          `• 💼 Fresh high-salary remote opportunities`,
-          `• 💰 Payment confirmations`,
-          ``,
-          `<b>Available Commands:</b>`,
-          `• /scrape — ⚡ <b>Trigger the scrapers right now</b>`,
-          `• /sync — 🔄 Trigger scraper ingestion pipeline`,
-          `• /latest — 🔥 Get 5 freshest verified remote jobs`,
-          `• /stats — 📊 View database listings & industry breakdown`,
-          `• /status — ⏱ Check latest scraper telemetry`,
-          `• /testpay — 💖 Test cute payment alert notification`,
-          `• /help — ℹ️ Bot help & guide`,
-        ].join("\n");
 
-        await sendTelegramReply(token, chatId, welcomeText, getMainMenuKeyboard());
+        if (isAdmin) {
+          // Only auto-link chat ID if the user is the authorized administrator
+          saveTelegramChatId(String(chatId), true);
+
+          const adminWelcomeText = [
+            `👋 <b>Hello ${escapeHtml(firstName)} (Admin)!</b>`,
+            ``,
+            `Welcome to your <b>RemoteWorkDaily Admin Console</b> (@PandoraWorkBot)!`,
+            ``,
+            `🔐 <b>Verified Administrator:</b> Your chat ID (<code>${chatId}</code>) is connected to receive:`,
+            `• 🚀 Daily job scraper & cron ingestion alerts`,
+            `• 💼 Fresh high-salary remote opportunities`,
+            `• 💰 Live customer payment alerts & checkout events`,
+            ``,
+            `<b>Administrative Commands:</b>`,
+            `• /scrape — ⚡ Trigger scrapers right now`,
+            `• /sync — 🔄 Trigger scraper ingestion pipeline`,
+            `• /latest — 🔥 Get 5 freshest verified remote jobs`,
+            `• /stats — 📊 View database listings & breakdown`,
+            `• /status — ⏱ Check latest scraper telemetry`,
+            `• /testpay — 💖 Test cute payment alert notification`,
+            `• /help — ℹ️ Bot guide`,
+          ].join("\n");
+
+          await sendTelegramReply(token, chatId, adminWelcomeText, getMainMenuKeyboard(true));
+        } else {
+          // Public subscriber experience
+          const publicWelcomeText = [
+            `👋 <b>Hello ${escapeHtml(firstName)}!</b>`,
+            ``,
+            `Welcome to <b>RemoteWorkDaily</b>! We deliver the freshest, hand-verified remote jobs every day.`,
+            ``,
+            `<b>Available Commands:</b>`,
+            `• /latest — 🔥 See the latest 5 verified remote positions`,
+            `• /stats — 📊 View current job board counts & categories`,
+            `• /help — ℹ️ Help & info`,
+            ``,
+            `🌐 <a href="https://www.remoteworkdaily.com">Browse 10,000+ Remote Jobs on RemoteWorkDaily &rarr;</a>`,
+          ].join("\n");
+
+          await sendTelegramReply(token, chatId, publicWelcomeText, getMainMenuKeyboard(false));
+        }
       } else if (command === "scrape" || command === "sync" || command === "runsync" || command === "crawl" || command === "harvest") {
+        if (!isAdmin) {
+          await sendTelegramReply(
+            token,
+            chatId,
+            `🔒 <b>Admin Access Required</b>\n\nOnly verified administrators can run scraper ingestion commands.`,
+            getMainMenuKeyboard(false)
+          );
+          return NextResponse.json({ ok: true });
+        }
         await triggerScraperFromTelegram(token, chatId);
       } else if (command === "latest" || command === "jobs") {
         const latestMsg = formatLatestJobsMessage(5);
-        await sendTelegramReply(token, chatId, latestMsg, getMainMenuKeyboard());
+        await sendTelegramReply(token, chatId, latestMsg, getMainMenuKeyboard(isAdmin));
       } else if (command === "stats") {
         const statsMsg = formatStatsMessage();
-        await sendTelegramReply(token, chatId, statsMsg, getMainMenuKeyboard());
+        await sendTelegramReply(token, chatId, statsMsg, getMainMenuKeyboard(isAdmin));
       } else if (command === "status") {
+        if (!isAdmin) {
+          await sendTelegramReply(
+            token,
+            chatId,
+            `🔒 <b>Admin Access Required</b>\n\nScraper sync telemetry is restricted to administrators.`,
+            getMainMenuKeyboard(false)
+          );
+          return NextResponse.json({ ok: true });
+        }
         const syncMsg = formatSyncMessage();
-        await sendTelegramReply(token, chatId, syncMsg, getMainMenuKeyboard());
+        await sendTelegramReply(token, chatId, syncMsg, getMainMenuKeyboard(true));
       } else if (command === "testpay" || command === "testpayment" || command === "pay" || command === "payment") {
+        if (!isAdmin) {
+          await sendTelegramReply(
+            token,
+            chatId,
+            `🔒 <b>Admin Access Required</b>\n\nPayment testing alerts are restricted to administrators.`,
+            getMainMenuKeyboard(false)
+          );
+          return NextResponse.json({ ok: true });
+        }
         await notifyPaymentReceived({
           paymentType: "candidate_subscription",
           amount: 1799,
@@ -368,26 +465,37 @@ export async function POST(request: Request) {
           token,
           chatId,
           `💖 <b>Cute Payment Alert Sent!</b> Check the notification right above! ✨`,
-          getMainMenuKeyboard()
+          getMainMenuKeyboard(true)
         );
       } else if (command === "help") {
-        const helpMsg = [
-          `🤖 <b>RemoteWorkDaily Bot Help</b>`,
-          `━━━━━━━━━━━━━━━━━━━━`,
-          `Tap any button below or send a command:`,
-          `• /scrape — ⚡ <b>Trigger the job scraper</b>`,
-          `• /sync — 🔄 Trigger ingestion pipeline`,
-          `• /latest — 5 latest remote job openings`,
-          `• /stats — Current job board metrics`,
-          `• /status — Scraper telemetry status`,
-          `• /testpay — Test cute payment alert notification`,
-          `• /start — Re-link notification channel`,
-        ].join("\n");
-        await sendTelegramReply(token, chatId, helpMsg, getMainMenuKeyboard());
+        const helpMsg = isAdmin
+          ? [
+              `🤖 <b>RemoteWorkDaily Admin Commands:</b>`,
+              `━━━━━━━━━━━━━━━━━━━━`,
+              `• /scrape — ⚡ Trigger scraper ingestion run`,
+              `• /sync — 🔄 Trigger scraper ingestion pipeline`,
+              `• /latest — 5 latest remote job openings`,
+              `• /stats — Current job board metrics`,
+              `• /status — Scraper telemetry status`,
+              `• /testpay — Test cute payment alert notification`,
+              `• /start — Re-link admin alert channel`,
+            ].join("\n")
+          : [
+              `🤖 <b>RemoteWorkDaily Bot Help:</b>`,
+              `━━━━━━━━━━━━━━━━━━━━`,
+              `• /latest — 5 freshest verified remote job positions`,
+              `• /stats — Current job board listing metrics`,
+              `• /help — This help message`,
+              ``,
+              `🌐 Visit <a href="https://www.remoteworkdaily.com">RemoteWorkDaily</a> to search jobs!`,
+            ].join("\n");
+
+        await sendTelegramReply(token, chatId, helpMsg, getMainMenuKeyboard(isAdmin));
       } else {
-        // Helpful hint
-        const defaultMsg = `💡 Tap <b>⚡ Trigger Scraper Now</b> below, or type /scrape, /latest, /stats, or /testpay!`;
-        await sendTelegramReply(token, chatId, defaultMsg, getMainMenuKeyboard());
+        const defaultMsg = isAdmin
+          ? `💡 Tap <b>⚡ Trigger Scraper Now</b> below, or type /scrape, /latest, /stats, or /testpay!`
+          : `💡 Tap <b>🔥 Latest 5 Jobs</b> below or type /latest or /stats!`;
+        await sendTelegramReply(token, chatId, defaultMsg, getMainMenuKeyboard(isAdmin));
       }
 
       return NextResponse.json({ ok: true });
@@ -403,16 +511,48 @@ export async function POST(request: Request) {
 
 export async function GET(request: Request) {
   const token = getTelegramBotToken();
+  if (!token) {
+    return NextResponse.json(
+      { status: "disabled", error: "TELEGRAM_BOT_TOKEN is not configured" },
+      { status: 503 }
+    );
+  }
+
   const { searchParams } = new URL(request.url);
   const doSetup = searchParams.get("setup") === "true";
+  const webhookSecret = process.env.TELEGRAM_WEBHOOK_SECRET?.trim();
 
   try {
     let setupResult: Record<string, unknown> | null = null;
     if (doSetup) {
+      // If a secret is configured, require authorization to change or set the webhook
+      if (webhookSecret) {
+        const providedSecret = searchParams.get("secret")?.trim();
+        if (providedSecret !== webhookSecret) {
+          return NextResponse.json(
+            { error: "Unauthorized: Invalid secret parameter for webhook setup" },
+            { status: 401 }
+          );
+        }
+      }
+
       await registerBotCommands();
       const webhookUrl = "https://www.remoteworkdaily.com/api/telegram/webhook";
+      const webhookBody: Record<string, unknown> = {
+        url: webhookUrl,
+        drop_pending_updates: false,
+      };
+      if (webhookSecret) {
+        webhookBody.secret_token = webhookSecret;
+      }
+
       const setHookRes = await fetch(
-        `https://api.telegram.org/bot${token}/setWebhook?url=${encodeURIComponent(webhookUrl)}&drop_pending_updates=false`
+        `https://api.telegram.org/bot${token}/setWebhook`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(webhookBody),
+        }
       );
       setupResult = await setHookRes.json();
     }
@@ -427,7 +567,7 @@ export async function GET(request: Request) {
       bot: meData.result,
       webhook: webhookData.result,
       setupResult,
-      instructions: "To configure Telegram webhook, visit /api/telegram/webhook?setup=true or call setWebhook via Telegram API.",
+      instructions: "To configure Telegram webhook, visit /api/telegram/webhook?setup=true with authorized secret.",
     });
   } catch (err) {
     return NextResponse.json({ error: String(err) }, { status: 500 });

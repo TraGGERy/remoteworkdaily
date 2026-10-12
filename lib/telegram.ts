@@ -2,42 +2,51 @@ import fs from "fs";
 import path from "path";
 import os from "os";
 
-const DEFAULT_BOT_TOKEN = "8593165155:AAEMBF_0UvlRHUjQb4AtvoG0GHgq8lLxgjM";
-const DEFAULT_CHAT_ID = "8518521254";
 const CONFIG_FILE = path.join(process.cwd(), "data", "telegram-config.json");
 const TMP_CONFIG_FILE = path.join(os.tmpdir(), "remotework-telegram-config.json");
 
 let inMemoryChatId: string | null = null;
 
+/**
+ * Retrieve the Telegram bot token strictly from environment variables.
+ * Never fall back to hardcoded production tokens.
+ */
 export function getTelegramBotToken(): string {
-  return process.env.TELEGRAM_BOT_TOKEN || DEFAULT_BOT_TOKEN;
+  return process.env.TELEGRAM_BOT_TOKEN?.trim() || "";
 }
 
 /**
- * Retrieve the active Telegram chat ID.
- * Hierarchy:
- * 1. Environment variable TELEGRAM_CHAT_ID
- * 2. In-memory cache
- * 3. Persistent configuration file data/telegram-config.json or /tmp
- * 4. Auto-discovery via Telegram getUpdates (finds whoever clicked /start on @PandoraWorkBot)
+ * Check whether Telegram notifications are configured and active.
  */
-export async function getTelegramChatId(): Promise<string | null> {
-  if (process.env.TELEGRAM_CHAT_ID && process.env.TELEGRAM_CHAT_ID.trim()) {
-    return process.env.TELEGRAM_CHAT_ID.trim();
+export function isTelegramConfigured(): boolean {
+  return Boolean(process.env.TELEGRAM_BOT_TOKEN?.trim());
+}
+
+/**
+ * Verify whether a given chat ID belongs to an authorized administrator.
+ */
+export function isTelegramAdmin(chatId: string | number): boolean {
+  const adminId = (
+    process.env.TELEGRAM_ADMIN_CHAT_ID ||
+    process.env.TELEGRAM_CHAT_ID ||
+    ""
+  ).trim();
+
+  if (!adminId) {
+    // If no admin ID is configured in env, check stored config file
+    const stored = getStoredChatId();
+    return Boolean(stored && String(chatId).trim() === stored.trim());
   }
 
-  if (inMemoryChatId) {
-    return inMemoryChatId;
-  }
+  return String(chatId).trim() === adminId;
+}
 
+function getStoredChatId(): string | null {
   try {
     if (fs.existsSync(CONFIG_FILE)) {
       const raw = fs.readFileSync(CONFIG_FILE, "utf8");
       const parsed = JSON.parse(raw);
-      if (parsed.chat_id) {
-        inMemoryChatId = String(parsed.chat_id);
-        return inMemoryChatId;
-      }
+      if (parsed.chat_id) return String(parsed.chat_id).trim();
     }
   } catch {
     // Read-only or missing
@@ -47,51 +56,57 @@ export async function getTelegramChatId(): Promise<string | null> {
     if (fs.existsSync(TMP_CONFIG_FILE)) {
       const raw = fs.readFileSync(TMP_CONFIG_FILE, "utf8");
       const parsed = JSON.parse(raw);
-      if (parsed.chat_id) {
-        inMemoryChatId = String(parsed.chat_id);
-        return inMemoryChatId;
-      }
+      if (parsed.chat_id) return String(parsed.chat_id).trim();
     }
   } catch {
     // Ephemeral fallback
   }
 
-  // Auto-discover from Telegram Bot API getUpdates
-  try {
-    const token = getTelegramBotToken();
-    const res = await fetch(`https://api.telegram.org/bot${token}/getUpdates`, {
-      signal: AbortSignal.timeout(10000),
-      next: { revalidate: 0 },
-    });
-    if (res.ok) {
-      const data = await res.json();
-      if (data.ok && Array.isArray(data.result) && data.result.length > 0) {
-        // Iterate backwards from latest update to find a message, channel_post, or callback
-        for (let i = data.result.length - 1; i >= 0; i--) {
-          const update = data.result[i];
-          const chatId =
-            update.message?.chat?.id ||
-            update.channel_post?.chat?.id ||
-            update.my_chat_member?.chat?.id ||
-            update.callback_query?.message?.chat?.id;
-
-          if (chatId) {
-            const resolvedId = String(chatId);
-            saveTelegramChatId(resolvedId);
-            return resolvedId;
-          }
-        }
-      }
-    }
-  } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : String(err);
-    console.warn("[Telegram] Auto-discovery via getUpdates notice:", msg);
-  }
-
-  return DEFAULT_CHAT_ID;
+  return null;
 }
 
-export function saveTelegramChatId(chatId: string): void {
+/**
+ * Retrieve the active administrator Telegram chat ID.
+ * Hierarchy:
+ * 1. Environment variable TELEGRAM_ADMIN_CHAT_ID
+ * 2. Environment variable TELEGRAM_CHAT_ID
+ * 3. In-memory admin cache
+ * 4. Stored configuration file data/telegram-config.json or /tmp
+ */
+export async function getTelegramChatId(): Promise<string | null> {
+  const envAdmin = (
+    process.env.TELEGRAM_ADMIN_CHAT_ID ||
+    process.env.TELEGRAM_CHAT_ID ||
+    ""
+  ).trim();
+
+  if (envAdmin) {
+    return envAdmin;
+  }
+
+  if (inMemoryChatId) {
+    return inMemoryChatId;
+  }
+
+  const stored = getStoredChatId();
+  if (stored) {
+    inMemoryChatId = stored;
+    return stored;
+  }
+
+  return null;
+}
+
+/**
+ * Persist administrator chat ID.
+ * Only saves if the caller is an authorized admin or force is explicitly set.
+ */
+export function saveTelegramChatId(chatId: string, force = false): boolean {
+  if (!force && !isTelegramAdmin(chatId)) {
+    console.warn(`[Telegram Security] Refusing to save unverified chat ID: ${chatId}`);
+    return false;
+  }
+
   inMemoryChatId = chatId;
   const payload = JSON.stringify(
     {
@@ -109,12 +124,15 @@ export function saveTelegramChatId(chatId: string): void {
       fs.mkdirSync(dir, { recursive: true });
     }
     fs.writeFileSync(CONFIG_FILE, payload);
+    return true;
   } catch {
     // Read-only filesystem fallback (e.g. AWS Lambda / Vercel Serverless)
     try {
       fs.writeFileSync(TMP_CONFIG_FILE, payload);
+      return true;
     } catch {
       // In-memory cache already updated
+      return true;
     }
   }
 }
@@ -134,13 +152,20 @@ export async function sendTelegramNotification(
 ): Promise<{ success: boolean; error?: string; chatId?: string }> {
   try {
     const token = getTelegramBotToken();
+    if (!token) {
+      return {
+        success: false,
+        error: "TELEGRAM_BOT_TOKEN is not configured in environment variables.",
+      };
+    }
+
     const chatId = options?.targetChatId || (await getTelegramChatId());
 
     if (!chatId) {
-      console.warn("[Telegram] Cannot send notification: No chat ID registered yet. Please send /start to @PandoraWorkBot.");
+      console.warn("[Telegram] Cannot send notification: No admin chat ID registered in environment variables.");
       return {
         success: false,
-        error: "No chat ID found. Open https://t.me/PandoraWorkBot in Telegram, click Start, and retry.",
+        error: "No admin chat ID configured. Set TELEGRAM_ADMIN_CHAT_ID or TELEGRAM_CHAT_ID.",
       };
     }
 
@@ -192,6 +217,7 @@ export async function sendTelegramNotification(
 export async function registerBotCommands(): Promise<boolean> {
   try {
     const token = getTelegramBotToken();
+    if (!token) return false;
     const res = await fetch(`https://api.telegram.org/bot${token}/setMyCommands`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },

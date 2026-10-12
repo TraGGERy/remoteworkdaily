@@ -602,32 +602,18 @@ async function runScrape() {
 
   // Dispatch real-time Telegram notification
   try {
-    const token = process.env.TELEGRAM_BOT_TOKEN || "8593165155:AAEMBF_0UvlRHUjQb4AtvoG0GHgq8lLxgjM";
-    let chatId = process.env.TELEGRAM_CHAT_ID;
-    const configPath = path.join(process.cwd(), "data", "telegram-config.json");
-    if (!chatId && fs.existsSync(configPath)) {
-      try {
-        const cfg = JSON.parse(fs.readFileSync(configPath, "utf8"));
-        if (cfg.chat_id) chatId = String(cfg.chat_id);
-      } catch {}
-    }
-
-    if (!chatId) {
-      try {
-        const updatesRes = await fetch(`https://api.telegram.org/bot${token}/getUpdates`);
-        const updatesData = await updatesRes.json();
-        if (updatesData.ok && Array.isArray(updatesData.result) && updatesData.result.length > 0) {
-          for (let i = updatesData.result.length - 1; i >= 0; i--) {
-            const chat = updatesData.result[i].message?.chat || updatesData.result[i].channel_post?.chat;
-            if (chat?.id) {
-              chatId = String(chat.id);
-              fs.writeFileSync(configPath, JSON.stringify({ chat_id: chatId, updated_at: new Date().toISOString() }, null, 2));
-              break;
-            }
-          }
-        }
-      } catch {}
-    }
+    const token = process.env.TELEGRAM_BOT_TOKEN?.trim();
+    if (!token) {
+      console.log("[Telegram] Notification skipped: TELEGRAM_BOT_TOKEN is not configured.");
+    } else {
+      let chatId = (process.env.TELEGRAM_ADMIN_CHAT_ID || process.env.TELEGRAM_CHAT_ID || "").trim();
+      const configPath = path.join(process.cwd(), "data", "telegram-config.json");
+      if (!chatId && fs.existsSync(configPath)) {
+        try {
+          const cfg = JSON.parse(fs.readFileSync(configPath, "utf8"));
+          if (cfg.chat_id) chatId = String(cfg.chat_id).trim();
+        } catch {}
+      }
 
     if (chatId) {
       console.log(`[Telegram] Dispatching sync alert to chat ${chatId}...`);
@@ -680,8 +666,9 @@ async function runScrape() {
       } else {
         console.warn(`[Telegram] Send failed: ${tgJson.description}`);
       }
-    } else {
-      console.log(`[Telegram] Notice: No TELEGRAM_CHAT_ID linked yet. Open https://t.me/PandoraWorkBot in Telegram and press Start to receive alerts.`);
+      } else {
+        console.log(`[Telegram] Notice: No TELEGRAM_CHAT_ID linked yet. Open https://t.me/PandoraWorkBot in Telegram and press Start to receive alerts.`);
+      }
     }
   } catch (tgErr) {
     console.warn(`[Telegram] Notification error:`, tgErr.message);
