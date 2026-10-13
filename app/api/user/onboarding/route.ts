@@ -112,7 +112,7 @@ export async function POST(req: Request) {
       salaryExpectation: `$${body.minSalary || 90000}+`,
       jobTypes: [workType],
       hasResume: body.resumeText ? "Yes (Uploaded)" : "No",
-      selectedPlan: body.isPro ? "Pro Candidate ($12/mo)" : "Free Plan",
+      selectedPlan: body.planId ? `${body.planId}` : body.isPro ? "monthly ($17/mo)" : "free",
     }).catch((err) => console.warn("[Telegram Lead Alert Notice]:", err));
 
     const matchCount = await getLiveMatchingJobsCount({

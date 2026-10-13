@@ -104,6 +104,59 @@ const SENIORITY_LEVELS = [
   { label: "Executive / VP", years: "12+ years exp" },
 ];
 
+export const ONBOARDING_PLANS = [
+  {
+    id: "weekly" as const,
+    name: "Weekly Sprint",
+    price: "$5.99",
+    period: "/week",
+    billingDesc: "$5.99 billed weekly • Cancel anytime",
+    badge: "Sprint Search",
+    isPopular: false,
+    description: "Ideal for active job seekers conducting a fast, focused application sprint.",
+    features: [
+      "🔥 6-Hour Early Access (Beat 500+ applicants)",
+      "📬 Unlocked Verified HR Contact Emails",
+      "✨ 1-Click AI Match & Custom Applications",
+      "🚀 Direct ATS Apply (Greenhouse, Lever, Ashby)",
+    ],
+  },
+  {
+    id: "monthly" as const,
+    name: "Monthly Pro",
+    price: "$17",
+    period: "/month",
+    billingDesc: "$17 billed monthly • Cancel anytime",
+    badge: "Most Popular",
+    isPopular: true,
+    description: "Our #1 plan for candidates navigating multi-stage interview and offer cycles.",
+    features: [
+      "🔥 6-Hour Early Access (Beat 500+ applicants)",
+      "📬 Unlocked Verified HR Contact Emails",
+      "✨ 1-Click AI Match & Custom Cover Letters",
+      "🚀 Direct ATS Apply (Greenhouse, Lever, Ashby)",
+      "📈 Priority Application Tracking & Negotiation Guides",
+    ],
+  },
+  {
+    id: "lifetime" as const,
+    name: "Lifetime Access",
+    price: "$49",
+    period: "once",
+    billingDesc: "$49 one-time payment • Never renews • Perpetual",
+    badge: "Best Value",
+    isPopular: false,
+    description: "Pay once and monitor the remote job market continuously throughout your entire career.",
+    features: [
+      "🔥 Permanent 6-Hour Early Access to all fresh roles",
+      "📬 Unlimited Verified HR & Recruiter Contact Emails",
+      "✨ Unlimited AI Cover Letter & Resume Generations",
+      "🚀 Direct ATS Apply links unlocked permanently",
+      "🛡️ All future upgrades & features included forever",
+    ],
+  },
+];
+
 export function MultiStepOnboarding() {
   const router = useRouter();
   const { userEmail, markOnboardingCompleted } = useSubscription();
@@ -114,6 +167,7 @@ export function MultiStepOnboarding() {
   const [isSaving, setIsSaving] = useState(false);
   const [customSkill, setCustomSkill] = useState("");
   const [isUpgrading, setIsUpgrading] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState<"weekly" | "monthly" | "lifetime">("monthly");
 
   // Fetch real-time matching jobs count whenever preferences change
   useEffect(() => {
@@ -187,9 +241,10 @@ export function MultiStepOnboarding() {
     }
   };
 
-  // Complete onboarding and optionally trigger Stripe checkout
-  const handleComplete = async (plan: "free" | "pro_monthly" | "pro_quarterly") => {
+  // Complete onboarding and trigger Stripe checkout
+  const handleComplete = async (plan: "weekly" | "monthly" | "lifetime" = selectedPlan) => {
     setIsSaving(true);
+    setIsUpgrading(true);
     try {
       // 1. Persist user preferences to Supabase & Clerk metadata
       const res = await fetch("/api/user/onboarding", {
@@ -205,7 +260,8 @@ export function MultiStepOnboarding() {
           minSalary: form.minSalary,
           hybridCity: form.hybridCity,
           resumeText: form.resumeText,
-          isPro: plan !== "free",
+          isPro: true,
+          planId: plan,
         }),
       });
 
@@ -213,27 +269,23 @@ export function MultiStepOnboarding() {
         await markOnboardingCompleted();
       }
 
-      // 2. If Pro plan selected, trigger Stripe checkout session
-      if (plan === "pro_monthly" || plan === "pro_quarterly") {
-        setIsUpgrading(true);
-        const email = userEmail || prompt("Enter your email address for Pro Access & Receipts:") || "candidate@example.com";
-        const checkoutRes = await fetch("/api/checkout/candidate", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            email,
-            planId: plan,
-          }),
-        });
-        const checkoutData = await checkoutRes.json();
-        if (checkoutData.url) {
-          window.location.href = checkoutData.url;
-          return;
-        }
+      // 2. Trigger Stripe checkout session
+      const email = userEmail || prompt("Enter your email address for Pro Access & Receipts:") || "candidate@example.com";
+      const checkoutRes = await fetch("/api/checkout/candidate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email,
+          planId: plan,
+        }),
+      });
+      const checkoutData = await checkoutRes.json();
+      if (checkoutData.url) {
+        window.location.href = checkoutData.url;
+        return;
       }
 
-      // 3. If Free plan, navigate directly to dashboard
-      router.push("/dashboard");
+      router.push(`/dashboard?subscription=success&plan=${plan}`);
     } catch (err) {
       console.error("Onboarding submission failed:", err);
       router.push("/dashboard");
@@ -598,120 +650,129 @@ export function MultiStepOnboarding() {
               </p>
             </div>
 
-            {/* Side-by-side Plan Comparison */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-              {/* Free Plan Card */}
-              <div className="p-5 rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50/50 dark:bg-neutral-900/40 flex flex-col justify-between">
-                <div>
-                  <div className="text-xs font-bold uppercase tracking-wider text-neutral-400">
-                    Standard Member
-                  </div>
-                  <div className="text-2xl font-black text-neutral-900 dark:text-white mt-1">
-                    Free Plan
-                  </div>
-                  <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1 mb-4">
-                    Basic access with standard delayed listings.
-                  </p>
-
-                  <ul className="space-y-2.5 text-xs text-neutral-600 dark:text-neutral-300">
-                    <li className="flex items-center gap-2">
-                      <span className="text-neutral-400">⏳</span>
-                      <span>6-Hour Delayed Job Feed</span>
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <span className="text-neutral-400">🔒</span>
-                      <span>Direct HR Emails Obfuscated</span>
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <span className="text-neutral-400">👥</span>
-                      <span>Competes with 500+ late applicants</span>
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <span className="text-neutral-400">📄</span>
-                      <span>Standard public listings preview</span>
-                    </li>
-                  </ul>
-                </div>
-
-                <div className="pt-6">
-                  <button
-                    type="button"
-                    disabled={isSaving}
-                    onClick={() => handleComplete("free")}
-                    className="w-full py-2.5 rounded-xl border border-neutral-300 dark:border-neutral-700 text-xs font-bold text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+            {/* 3-Plan Selection Grid: $5.99/wk, $17/mo, $49 once (Uniform with app) */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+              {ONBOARDING_PLANS.map((planItem) => {
+                const isSelected = selectedPlan === planItem.id;
+                return (
+                  <div
+                    key={planItem.id}
+                    onClick={() => setSelectedPlan(planItem.id)}
+                    className={`relative p-5 rounded-2xl border-2 cursor-pointer transition-all flex flex-col justify-between ${
+                      isSelected
+                        ? "border-[#FF4742] bg-red-50/20 dark:bg-red-950/20 shadow-lg scale-[1.02]"
+                        : "border-neutral-200 dark:border-neutral-800 hover:border-neutral-300 dark:hover:border-neutral-700 bg-neutral-50/50 dark:bg-neutral-900/40"
+                    }`}
                   >
-                    Continue with Free Plan (Delayed)
-                  </button>
-                </div>
-              </div>
+                    {planItem.badge && (
+                      <div
+                        className={`absolute -top-3 right-4 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${
+                          planItem.isPopular
+                            ? "bg-[#FF4742] text-white"
+                            : "bg-neutral-900 dark:bg-white text-white dark:text-neutral-900"
+                        }`}
+                      >
+                        {planItem.badge}
+                      </div>
+                    )}
 
-              {/* Pro Member Card (Highlighted) */}
-              <div className="relative p-5 rounded-2xl border-2 border-[#FF4742] bg-red-50/20 dark:bg-neutral-900 shadow-xl flex flex-col justify-between">
-                <div className="absolute -top-3 right-4 px-3 py-0.5 rounded-full bg-[#FF4742] text-white text-[10px] font-black uppercase tracking-wider">
-                  Recommended
-                </div>
+                    <div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold uppercase tracking-wider text-neutral-500 dark:text-neutral-400">
+                          {planItem.name}
+                        </span>
+                        <div
+                          className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
+                            isSelected
+                              ? "border-[#FF4742] bg-[#FF4742]"
+                              : "border-neutral-300 dark:border-neutral-700"
+                          }`}
+                        >
+                          {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                        </div>
+                      </div>
 
-                <div>
-                  <div className="text-xs font-bold uppercase tracking-wider text-[#FF4742]">
-                    Candidate Pro Member
+                      <div className="flex items-baseline gap-1 mt-2">
+                        <span className="text-3xl font-black text-neutral-900 dark:text-white">
+                          {planItem.price}
+                        </span>
+                        <span className="text-xs text-neutral-500 dark:text-neutral-400 font-medium">
+                          {planItem.period}
+                        </span>
+                      </div>
+
+                      <p className="text-[11px] text-neutral-500 dark:text-neutral-400 mt-1 mb-4">
+                        {planItem.billingDesc}
+                      </p>
+
+                      <ul className="space-y-2 text-xs text-neutral-700 dark:text-neutral-300">
+                        {planItem.features.map((feat, i) => (
+                          <li key={i} className="flex items-start gap-1.5">
+                            <Check className="w-3.5 h-3.5 text-[#FF4742] shrink-0 mt-0.5" />
+                            <span className="leading-tight">{feat}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+
+                    <div className="pt-5">
+                      <button
+                        type="button"
+                        disabled={isSaving || isUpgrading}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedPlan(planItem.id);
+                          handleComplete(planItem.id);
+                        }}
+                        className={`w-full py-2.5 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 ${
+                          isSelected
+                            ? "bg-[#FF4742] hover:bg-[#e03a35] text-white shadow-md shadow-red-500/20 active:scale-95"
+                            : "bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 hover:bg-neutral-800"
+                        }`}
+                      >
+                        <span>Select {planItem.name}</span>
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   </div>
-                  <div className="flex items-baseline gap-1 mt-1">
-                    <span className="text-3xl font-black text-neutral-900 dark:text-white">$12</span>
-                    <span className="text-xs text-neutral-500">/month or $29/quarter</span>
-                  </div>
-                  <p className="text-xs text-neutral-600 dark:text-neutral-400 mt-1 mb-4">
-                    First-mover advantage to land offers before public queues.
-                  </p>
+                );
+              })}
+            </div>
 
-                  <ul className="space-y-2.5 text-xs font-medium text-neutral-800 dark:text-neutral-200">
-                    <li className="flex items-center gap-2 font-bold text-emerald-600 dark:text-emerald-400">
-                      <Zap className="w-3.5 h-3.5 shrink-0" />
-                      <span>🔥 6-Hour Early Access (<span className="underline">Beat 500+ applicants</span>)</span>
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <Mail className="w-3.5 h-3.5 text-sky-500 shrink-0" />
-                      <span>📬 Unlocked Verified HR Contact Emails</span>
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <Sparkles className="w-3.5 h-3.5 text-amber-500 shrink-0" />
-                      <span>✨ 1-Click AI Match & Custom Cover Letters</span>
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <Check className="w-3.5 h-3.5 text-[#FF4742] shrink-0" />
-                      <span>Direct ATS Apply (Greenhouse, Lever, Ashby)</span>
-                    </li>
-                  </ul>
-                </div>
-
-                <div className="pt-6 space-y-2">
-                  <button
-                    type="button"
-                    disabled={isSaving || isUpgrading}
-                    onClick={() => handleComplete("pro_monthly")}
-                    className="w-full py-3.5 rounded-xl bg-[#FF4742] hover:bg-[#e03a35] text-white text-xs sm:text-sm font-black shadow-lg shadow-red-500/25 active:scale-95 transition-all flex items-center justify-center gap-2"
-                  >
-                    <span>Upgrade to Pro — $12/mo</span>
+            {/* Main Submit Action */}
+            <div className="space-y-3 mb-6">
+              <button
+                type="button"
+                disabled={isSaving || isUpgrading}
+                onClick={() => handleComplete(selectedPlan)}
+                className="w-full py-4 rounded-xl bg-[#FF4742] hover:bg-[#e03a35] text-white text-sm sm:text-base font-black shadow-xl shadow-red-500/25 active:scale-95 transition-all flex items-center justify-center gap-2"
+              >
+                {isSaving || isUpgrading ? (
+                  <span>Preparing Secure Checkout...</span>
+                ) : (
+                  <>
+                    <span>
+                      Unlock {matchCount} Matching Roles —{" "}
+                      {selectedPlan === "weekly"
+                        ? "$5.99/week"
+                        : selectedPlan === "monthly"
+                        ? "$17/month"
+                        : "$49 (One-Time)"}
+                    </span>
                     <ArrowRight className="w-4 h-4" />
-                  </button>
-
-                  <button
-                    type="button"
-                    disabled={isSaving || isUpgrading}
-                    onClick={() => handleComplete("pro_quarterly")}
-                    className="w-full py-2.5 rounded-xl bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 hover:bg-neutral-800 text-xs font-bold transition-all"
-                  >
-                    Save 20% with Pro Quarterly ($29/quarter)
-                  </button>
-                </div>
-              </div>
+                  </>
+                )}
+              </button>
             </div>
 
             {/* Refund & Guarantee Trust Badges */}
-            <div className="flex flex-wrap items-center justify-center gap-4 text-xs text-neutral-500 dark:text-neutral-400 font-medium border-t border-neutral-100 dark:border-neutral-800 pt-4">
+            <div className="flex flex-wrap items-center justify-center gap-3 text-xs text-neutral-500 dark:text-neutral-400 font-medium border-t border-neutral-100 dark:border-neutral-800 pt-4">
               <span className="flex items-center gap-1">
                 <Shield className="w-3.5 h-3.5 text-emerald-500" />
                 <span>7-Day 100% Unconditional Refund Guarantee</span>
               </span>
+              <span>•</span>
+              <span>256-bit Encrypted SSL Stripe Checkout</span>
               <span>•</span>
               <span>Cancel anytime with 1 click</span>
             </div>

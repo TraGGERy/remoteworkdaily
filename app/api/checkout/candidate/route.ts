@@ -70,7 +70,12 @@ export async function POST(request: Request) {
       paymentId: "dev_checkout",
     }).catch((err) => console.warn("[Telegram Alert Error]:", err));
 
-    return NextResponse.json({ success: true, mode: "dev_simulated", plan: planId });
+    return NextResponse.json({
+      success: true,
+      mode: "dev_simulated",
+      plan: planId,
+      url: `/dashboard?subscription=success&plan=${planId}`,
+    });
   } catch (error) {
     console.error("Candidate checkout error:", error);
     return NextResponse.json({ error: "Failed to initiate candidate checkout" }, { status: 500 });

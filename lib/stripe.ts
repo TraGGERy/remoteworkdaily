@@ -139,7 +139,7 @@ export async function createCandidateSubscriptionCheckoutSession(params: Candida
   const planId = params.planId || "monthly";
   const plan = CANDIDATE_PRICING.plans[planId] || CANDIDATE_PRICING.plans.monthly;
   const isSubscription = plan.billingType === "subscription";
-  const isCandidatePro = planId === "pro_monthly" || planId === "pro_quarterly";
+  const isCandidatePro = planId === "pro_monthly" || planId === "pro_quarterly" || planId === "weekly" || planId === "monthly" || planId === "lifetime";
   const metadataType = isCandidatePro ? "candidate_pro" : "candidate_subscription";
 
   const lineItem: Stripe.Checkout.SessionCreateParams.LineItem = {
