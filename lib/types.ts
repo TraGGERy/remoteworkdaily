@@ -30,6 +30,13 @@ export interface Job {
   status?: "active" | "pending_payment" | "archived";
   employerEmail?: string;
   canonicalHash?: string;
+  workArrangement?: "remote_global" | "remote_regional" | "hybrid_high_pay" | "on_site";
+  hybridCity?: string;
+  hybridCountry?: string;
+  daysInOffice?: string;
+  externalId?: string;
+  isFeatured?: boolean;
+  isActive?: boolean;
 }
 
 export interface Company {

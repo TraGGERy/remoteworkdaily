@@ -1,14 +1,20 @@
 import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
+import { clerkClient } from "@clerk/nextjs/server";
 import { stripe } from "@/lib/stripe";
-import { getJobById, insertJob } from "@/lib/jobs-repository";
+import { getJobById, insertJob, boostJob } from "@/lib/jobs-repository";
 import { saveCandidatePass, expireCandidatePass } from "@/lib/candidate-passes-repository";
+import {
+  getUserProfileByEmail,
+  setUserProStatus,
+  saveUserProfile,
+} from "@/lib/user-profiles-repository";
 import {
   sendCandidatePaymentConfirmationEmail,
   sendEmployerJobConfirmationEmail,
 } from "@/lib/email/resend";
-import { notifyPaymentReceived } from "@/lib/telegram";
+import { notifyPaymentReceived, sendTelegramNotification } from "@/lib/telegram";
 
 export async function POST(req: Request) {
 
@@ -40,7 +46,130 @@ export async function POST(req: Request) {
     const session = event.data.object as Stripe.Checkout.Session;
     const metadata = (session.metadata as Record<string, string>) || {};
 
-    // 1. Candidate Subscription / Hunter Pass Order Processing
+    // 1. Candidate Pro Subscription / Onboarding Pro Upgrade
+    if (metadata.type === "candidate_pro") {
+      const email = metadata.email || session.customer_email || session.customer_details?.email;
+      let userId = metadata.userId || metadata.clerk_user_id || metadata.clerkUserId;
+
+      if (!userId && email) {
+        const existingProf = await getUserProfileByEmail(email);
+        if (existingProf) {
+          userId = existingProf.clerk_user_id;
+        }
+      }
+
+      if (userId) {
+        await setUserProStatus(userId, true, metadata.planId || "pro_monthly");
+        try {
+          const client = await clerkClient();
+          await client.users.updateUserMetadata(userId, {
+            publicMetadata: {
+              isPro: true,
+              onboardingComplete: true,
+              proPlan: metadata.planId || "pro_monthly",
+            },
+          });
+        } catch (clerkErr) {
+          console.warn("[Stripe Webhook] Clerk update notice:", clerkErr);
+        }
+      } else if (email) {
+        await saveUserProfile({
+          clerk_user_id: `clerk_email_${email.toLowerCase().trim()}`,
+          email,
+          is_pro: true,
+          pro_plan: metadata.planId || "pro_monthly",
+          work_type: "100% Remote Anywhere",
+          work_arrangement: "remote_global",
+          target_roles: [],
+          skills: [],
+          seniority: "Mid-level",
+          min_salary: 90000,
+          onboarding_completed: true,
+        });
+      }
+
+      if (email) {
+        await saveCandidatePass({
+          email,
+          amount: (session.amount_total ?? 1200) / 100,
+          currency: (session.currency ?? "usd").toUpperCase(),
+          stripe_session_id: session.id,
+          stripe_payment_intent: typeof session.payment_intent === "string" ? session.payment_intent : null,
+          status: "active",
+          plan: metadata.planId || "pro_monthly",
+        });
+
+        sendCandidatePaymentConfirmationEmail({
+          email,
+          planId: metadata.planId || "pro_monthly",
+          amount: (session.amount_total ?? 1200) / 100,
+          currency: session.currency ?? "usd",
+          sessionId: session.id,
+        }).catch((err) => console.warn("[Resend Email Error - Candidate Pro]:", err));
+      }
+
+      // Alert private Admin Telegram Bot ("🎉 New Pro Subscriber ($12/mo)!")
+      const isQuarterly = metadata.planId === "pro_quarterly";
+      const planBadge = isQuarterly ? "$29/quarter" : "$12/mo";
+      const tgText = [
+        `🎉 <b>New Pro Subscriber (${planBadge})!</b>`,
+        `━━━━━━━━━━━━━━━━━━━━`,
+        email ? `👤 <b>Customer:</b> ${email}` : null,
+        `📦 <b>Plan:</b> ${metadata.planId || "pro_monthly"}`,
+        `💵 <b>Amount:</b> $${((session.amount_total ?? (isQuarterly ? 2900 : 1200)) / 100).toFixed(2)}`,
+        `🔖 <b>Session ID:</b> <code>${session.id}</code>`,
+      ].filter(Boolean).join("\n");
+
+      await sendTelegramNotification(tgText).catch((err) =>
+        console.warn("[Telegram Pro Alert Error]:", err)
+      );
+
+      return NextResponse.json({ received: true, type: "candidate_pro" });
+    }
+
+    // 2. Employer Job Boost Processing ($199)
+    if (metadata.type === "job_boost") {
+      const jobId = metadata.jobId;
+      if (jobId) {
+        const boosted = await boostJob(jobId, 30);
+        console.log(`[STRIPE WEBHOOK] Activated 30-day $199 job boost for job ${jobId}`);
+
+        const employerEmail = metadata.email || session.customer_email || session.customer_details?.email || boosted?.employerEmail;
+        if (employerEmail && boosted) {
+          sendEmployerJobConfirmationEmail({
+            email: employerEmail,
+            companyName: boosted.company,
+            jobTitle: boosted.title,
+            jobId: boosted.id,
+            jobSlug: boosted.slug,
+            amountPaid: 199,
+            currency: session.currency ?? "usd",
+            sticky: true,
+            featured: true,
+            sessionId: session.id,
+          }).catch((err) => console.warn("[Resend Email Error - Boost]:", err));
+        }
+
+        // Alert private Admin Telegram Bot ("💰 New $199 Employer Job Boost!")
+        const tgText = [
+          `💰 <b>New $199 Employer Job Boost!</b>`,
+          `━━━━━━━━━━━━━━━━━━━━`,
+          boosted ? `📌 <b>Job:</b> ${boosted.title}` : null,
+          boosted ? `🏢 <b>Company:</b> ${boosted.company}` : null,
+          employerEmail ? `👤 <b>Employer:</b> ${employerEmail}` : null,
+          `✨ <b>Featured:</b> 30 days active boost`,
+          `🔖 <b>Session ID:</b> <code>${session.id}</code>`,
+        ].filter(Boolean).join("\n");
+
+        await sendTelegramNotification(tgText).catch((err) =>
+          console.warn("[Telegram Job Boost Alert Error]:", err)
+        );
+
+        return NextResponse.json({ received: true, type: "job_boost" });
+      }
+    }
+
+    // 3. Candidate Subscription / Hunter Pass Order Processing
     if (metadata.type === "candidate_subscription" || metadata.type === "candidate_pass" || (metadata.email && !metadata.jobId)) {
       const email = metadata.email || session.customer_email || session.customer_details?.email;
       const planId = metadata.planId || "monthly";

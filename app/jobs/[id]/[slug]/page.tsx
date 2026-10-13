@@ -11,6 +11,9 @@ import {
 } from "lucide-react";
 import { WorkInformation } from "@/components/job-board/work-information";
 import { GatedApplyAction } from "@/components/job-board/gated-apply-action";
+import { HrContactCard } from "@/components/job-board/hr-contact-card";
+import { AiResumeTailor } from "@/components/job-board/ai-resume-tailor";
+import { Flame } from "lucide-react";
 
 const SITE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://remoteworkdaily.com";
 
@@ -70,6 +73,9 @@ export default async function JobDetailPage({ params }: PageProps) {
   const schema = generateJobPostingSchema(job);
   const breadcrumbSchema = generateJobBreadcrumbSchema(job);
   const salaryText = formatSalary(job.salaryMin, job.salaryMax, job.salaryCurrency);
+  const isEarlyAccess = Boolean(
+    job.postedAt && Date.now() - new Date(job.postedAt).getTime() < 6 * 3600 * 1000
+  );
 
   return (
     <main className="min-h-screen bg-neutral-50/50 dark:bg-neutral-950 py-8 px-4 sm:px-6">
@@ -110,12 +116,18 @@ export default async function JobDetailPage({ params }: PageProps) {
               </div>
 
               <div>
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-1.5 flex-wrap">
                   <span className="font-extrabold text-base text-neutral-900 dark:text-white">
                     {job.company}
                   </span>
                   {job.verified && (
                     <CheckCircle className="w-4 h-4 text-sky-500 fill-sky-500/20" />
+                  )}
+                  {isEarlyAccess && (
+                    <span className="inline-flex items-center gap-1 text-[11px] font-black uppercase px-2 py-0.5 rounded-full bg-red-100 dark:bg-red-950 text-[#FF4742] dark:text-red-400 border border-red-300 dark:border-red-800">
+                      <Flame className="w-3 h-3 fill-current" />
+                      <span>Early Access (&lt;6h)</span>
+                    </span>
                   )}
                 </div>
                 <h1 className="font-black text-xl sm:text-3xl text-neutral-900 dark:text-white tracking-tight">
@@ -130,6 +142,7 @@ export default async function JobDetailPage({ params }: PageProps) {
               company={job.company}
               applyUrl={job.applyUrl}
               variant="header"
+              isEarlyAccess={isEarlyAccess}
             />
           </div>
 
@@ -166,6 +179,14 @@ export default async function JobDetailPage({ params }: PageProps) {
               </span>
             ))}
           </div>
+
+          {/* AI Match & Resume Tailor */}
+          <AiResumeTailor
+            jobId={job.id}
+            jobTitle={job.title}
+            company={job.company}
+            description={job.description}
+          />
         </div>
 
         {/* Benefits Card */}
@@ -192,6 +213,13 @@ export default async function JobDetailPage({ params }: PageProps) {
           </div>
         )}
 
+        {/* Direct HR Contact Card */}
+        <HrContactCard
+          employerEmail={job.employerEmail}
+          companyName={job.company}
+          jobTitle={job.title}
+        />
+
         {/* Description Body & Work Information */}
         <div className="p-6 sm:p-8 rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow-sm space-y-6">
           <WorkInformation description={job.description} isGated={true} />
@@ -203,6 +231,7 @@ export default async function JobDetailPage({ params }: PageProps) {
               company={job.company}
               applyUrl={job.applyUrl}
               variant="inline"
+              isEarlyAccess={isEarlyAccess}
             />
           </div>
         </div>

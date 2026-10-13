@@ -3,6 +3,7 @@ import { Job } from "./types";
 import { insertJob } from "./jobs-repository";
 import { recordSyncCompleted } from "./sync-tracker";
 import crypto from "crypto";
+import { classifyJobArrangement, isJobExpired } from "./scrapers/hybrid-classifier";
 
 export function getApifyClient(): ApifyClient | null {
   const token = (process.env.APIFY_TOKEN || "").trim();
@@ -214,13 +215,27 @@ export function normalizeScrapedJob(raw: RawScrapedJob): Job {
   }
 
   const id = `job-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`;
-  const slug = `${title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${companySlug}`.replace(/--+/g, "-").slice(0, 80);
+  const baseSlug = `${title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${companySlug}`.replace(/--+/g, "-").replace(/^-|-$/g, "").slice(0, 70);
+  const idHash = crypto.createHash("md5").update(id).digest("hex").slice(0, 6);
+  const slug = `${baseSlug || "job"}-${idHash}`;
   let location = raw.candidate_required_location || raw.location || (workplaceType === "remote" ? "Worldwide" : "On-site");
   if (workplaceType === "on-site" && (!location || location.toLowerCase() === "worldwide")) {
     location = "In-Person / On-site";
   }
   const postedAt = raw.posted_at || raw.publication_date || new Date().toISOString();
   const companyLogo = raw.company_logo || raw.company_logo_url || "https://images.unsplash.com/photo-1572044162444-ad60f128bdea?w=128&h=128&fit=crop&q=80";
+
+  const classification = classifyJobArrangement({
+    title,
+    company,
+    location,
+    description: raw.description,
+    salaryMin,
+    salaryMax,
+    workplaceType,
+    companyWebsite: raw.url,
+  });
+  const isExpired = isJobExpired(postedAt);
 
   return {
     id,
@@ -252,8 +267,16 @@ export function normalizeScrapedJob(raw: RawScrapedJob): Job {
     source: raw.source || "apify",
     atsProvider: raw.ats_provider,
     isDirectCompanyPost: raw.is_direct_company_post || raw.source === "ats",
-    status: "active",
+    status: isExpired ? "archived" : "active",
     canonicalHash: generateCanonicalHash(company, title, applyUrl),
+    workArrangement: classification.workArrangement,
+    hybridCity: classification.hybridCity,
+    hybridCountry: classification.hybridCountry,
+    daysInOffice: classification.daysInOffice,
+    employerEmail: classification.employerEmail,
+    externalId: classification.externalId,
+    isFeatured: Math.random() > 0.85,
+    isActive: !isExpired,
   };
 }
 

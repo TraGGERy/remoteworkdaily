@@ -18,6 +18,30 @@ const middleware = isClerkConfigured
       if (isProtectedRoute(req)) {
         await auth.protect();
       }
+
+      const { userId, sessionClaims } = await auth();
+      if (userId) {
+        const claims = sessionClaims as Record<string, unknown> | undefined;
+        const metadata = (claims?.metadata || claims?.publicMetadata) as Record<string, unknown> | undefined;
+        const cookieCompleted =
+          req.cookies.get("onboarding_completed")?.value === "true" ||
+          req.cookies.get("rwd_onboarding_completed")?.value === "true";
+        const isOnboardingCompleted = metadata?.onboardingComplete === true || cookieCompleted;
+
+        const pathname = req.nextUrl.pathname;
+        const isExcluded =
+          pathname.startsWith("/onboarding") ||
+          pathname.startsWith("/api") ||
+          pathname.startsWith("/trpc") ||
+          pathname.startsWith("/sign-in") ||
+          pathname.startsWith("/sign-up") ||
+          pathname.startsWith("/_next");
+
+        if (!isOnboardingCompleted && !isExcluded) {
+          const onboardingUrl = new URL("/onboarding", req.url);
+          return NextResponse.redirect(onboardingUrl);
+        }
+      }
     })
   : function defaultMiddleware() {
       return NextResponse.next();

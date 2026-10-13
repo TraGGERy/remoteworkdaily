@@ -16,6 +16,9 @@ import {
 } from "lucide-react";
 import { WorkInformation } from "./work-information";
 import { GatedApplyAction } from "./gated-apply-action";
+import { HrContactCard } from "./hr-contact-card";
+import { AiResumeTailor } from "./ai-resume-tailor";
+import { Flame } from "lucide-react";
 
 interface JobDetailDrawerProps {
   job: Job;
@@ -34,6 +37,9 @@ export function JobDetailDrawer({
   const [bookmarked, setBookmarked] = useState(false);
 
   const salaryText = formatSalary(job.salaryMin, job.salaryMax, job.salaryCurrency);
+  const isEarlyAccess = Boolean(
+    job.postedAt && Date.now() - new Date(job.postedAt).getTime() < 6 * 3600 * 1000
+  );
 
   const handleCopyLink = () => {
     const url = `${window.location.origin}/jobs/${job.id}/${job.slug}`;
@@ -62,12 +68,18 @@ export function JobDetailDrawer({
           </div>
 
           <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <span className="font-extrabold text-base sm:text-lg text-neutral-900 dark:text-white truncate">
                 {job.company}
               </span>
               {job.verified && (
                 <CheckCircle className="w-4 h-4 text-sky-500 fill-sky-500/20 shrink-0" />
+              )}
+              {isEarlyAccess && (
+                <span className="inline-flex items-center gap-1 text-[11px] font-black uppercase px-2 py-0.5 rounded-full bg-red-100 dark:bg-red-950 text-[#FF4742] dark:text-red-400 border border-red-300 dark:border-red-800">
+                  <Flame className="w-3 h-3 fill-current" />
+                  <span>Early Access (&lt;6h)</span>
+                </span>
               )}
             </div>
             <h2 className="font-black text-lg sm:text-2xl text-neutral-900 dark:text-white tracking-tight break-words">
@@ -144,6 +156,14 @@ export function JobDetailDrawer({
         ))}
       </div>
 
+      {/* AI Profile Match & Resume Tailor */}
+      <AiResumeTailor
+        jobId={job.id}
+        jobTitle={job.title}
+        company={job.company}
+        description={job.description}
+      />
+
       {/* Benefits section if present */}
       {job.benefits && job.benefits.length > 0 && (
         <div className="py-4 border-b border-neutral-200 dark:border-neutral-800">
@@ -173,6 +193,13 @@ export function JobDetailDrawer({
         <WorkInformation description={job.description} isGated={true} />
       </div>
 
+      {/* Direct HR Recruiter Contact Card */}
+      <HrContactCard
+        employerEmail={job.employerEmail}
+        companyName={job.company}
+        jobTitle={job.title}
+      />
+
       {/* Inline Gated Application Action Box */}
       <div className="py-4">
         <GatedApplyAction
@@ -181,6 +208,7 @@ export function JobDetailDrawer({
           company={job.company}
           applyUrl={job.applyUrl}
           variant="inline"
+          isEarlyAccess={isEarlyAccess}
           onApplySuccess={onApply}
         />
       </div>
@@ -203,6 +231,7 @@ export function JobDetailDrawer({
             company={job.company}
             applyUrl={job.applyUrl}
             variant="floating"
+            isEarlyAccess={isEarlyAccess}
             onApplySuccess={onApply}
           />
 

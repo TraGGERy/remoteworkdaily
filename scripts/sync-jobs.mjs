@@ -14,10 +14,38 @@
 import fs from "fs";
 import path from "path";
 import crypto from "crypto";
+import { createClient } from "@supabase/supabase-js";
+
+// Load environment variables (.env.local, .env)
+for (const envName of [".env.local", ".env"]) {
+  const envPath = path.join(process.cwd(), envName);
+  if (fs.existsSync(envPath)) {
+    const lines = fs.readFileSync(envPath, "utf8").split("\n");
+    for (const l of lines) {
+      const trimmed = l.trim();
+      if (!trimmed || trimmed.startsWith("#")) continue;
+      const idx = trimmed.indexOf("=");
+      if (idx > 0) {
+        const k = trimmed.slice(0, idx).trim();
+        const v = trimmed.slice(idx + 1).trim();
+        if (!process.env[k]) process.env[k] = v;
+      }
+    }
+  }
+}
 
 const DATA_FILE = path.join(process.cwd(), "data", "jobs.json");
 const SYNC_STATE_FILE = path.join(process.cwd(), "data", "sync-state.json");
 const USER_AGENT = "RemoteWorkDailyScraper/2.0 (+https://remoteworkdaily.com; support@remoteworkdaily.com)";
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseKey =
+  process.env.SUPABASE_SERVICE_ROLE_KEY ||
+  process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const supabase = (supabaseUrl && supabaseKey)
+  ? createClient(supabaseUrl, supabaseKey, { auth: { persistSession: false, autoRefreshToken: false } })
+  : null;
 
 const args = process.argv.slice(2);
 const targetArg = args.find((a) => a.startsWith("--target="));
@@ -43,6 +71,148 @@ function cleanHtmlDescription(raw) {
     .replace(/\s+/g, " ")
     .trim();
   return clean.slice(0, 1500);
+}
+
+const EMAIL_REGEX = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
+const JUNK_EMAIL_DOMAINS = [
+  "example.com", "test.com", "domain.com", "sentry.io", "w3.org", "schema.org", "github.com",
+];
+const SENIOR_SPECIALIZED_ROLES = /\b(senior|lead|staff|principal|director|head of|vp|vice president|chief|architect|manager|engineer|developer|designer|product|data scientist|quantitative|analyst|finance|cfo|cto|controller|consultant|specialist|strategist)\b/i;
+const DAYS_IN_OFFICE_REGEX = /\b(\d(?:\s*-\s*\d)?\s*days?(?:\s*(?:a|\/|per)\s*week)?(?:\s*in(?:\s*the)?\s*office|\s*on-site)?)\b/i;
+
+function generateExternalId(company, title, location = "") {
+  const norm = `${(company || "").toLowerCase().trim()}:${(title || "").toLowerCase().trim()}:${(location || "").toLowerCase().trim()}`;
+  return crypto.createHash("sha256").update(norm).digest("hex").slice(0, 32);
+}
+
+function extractEmployerEmail(text = "", companyWebsite = "", companyName = "") {
+  if (text) {
+    const matches = text.match(EMAIL_REGEX);
+    if (matches && matches.length > 0) {
+      for (const m of matches) {
+        const lower = m.toLowerCase().trim();
+        const domain = lower.split("@")[1];
+        if (domain && !JUNK_EMAIL_DOMAINS.includes(domain) && !lower.endsWith(".png") && !lower.endsWith(".jpg")) {
+          return lower;
+        }
+      }
+    }
+  }
+
+  if (companyWebsite) {
+    try {
+      const url = new URL(companyWebsite.startsWith("http") ? companyWebsite : `https://${companyWebsite}`);
+      const host = url.hostname.replace(/^www\./, "");
+      if (host && host.includes(".") && !JUNK_EMAIL_DOMAINS.includes(host)) {
+        return `careers@${host}`;
+      }
+    } catch {}
+  }
+
+  if (companyName) {
+    const cleanCompany = companyName.toLowerCase().replace(/[^a-z0-9]/g, "");
+    if (cleanCompany.length >= 3) {
+      return `careers@${cleanCompany}.com`;
+    }
+  }
+
+  return undefined;
+}
+
+function extractHybridMetadata(description = "", location = "") {
+  let daysInOffice;
+  const matchDays = description.match(DAYS_IN_OFFICE_REGEX);
+  if (matchDays && matchDays[1]) {
+    daysInOffice = matchDays[1].trim();
+  }
+
+  let hybridCity;
+  let hybridCountry;
+  const loc = (location || "").trim();
+  if (loc && !loc.toLowerCase().includes("worldwide") && !loc.toLowerCase().includes("anywhere")) {
+    const parts = loc.split(",").map((p) => p.trim());
+    if (parts.length >= 2) {
+      hybridCity = parts[0];
+      hybridCountry = parts[1];
+    } else if (parts.length === 1) {
+      hybridCity = parts[0];
+    }
+  }
+
+  return { daysInOffice, hybridCity, hybridCountry };
+}
+
+function classifyJobArrangement(params) {
+  const { title, company, salaryMin = 0, salaryMax = 0 } = params;
+  const location = params.location || "";
+  const description = params.description || "";
+  const externalId = generateExternalId(company, title, location);
+  const email = extractEmployerEmail(description, params.companyWebsite, company);
+  const hybridMeta = extractHybridMetadata(description, location);
+
+  const titleLower = title.toLowerCase();
+  const descLower = description.toLowerCase();
+  const locLower = location.toLowerCase();
+
+  const isHybridMentioned =
+    params.workplaceType === "hybrid" ||
+    titleLower.includes("hybrid") ||
+    descLower.includes("hybrid") ||
+    locLower.includes("hybrid");
+
+  if (isHybridMentioned) {
+    const effectiveSalary = Math.max(salaryMin, salaryMax);
+    const hasHighSalary = effectiveSalary >= 90000;
+    const isSeniorSpecialized = SENIOR_SPECIALIZED_ROLES.test(title);
+
+    if (hasHighSalary || isSeniorSpecialized) {
+      return {
+        workArrangement: "hybrid_high_pay",
+        shouldIngest: true,
+        hybridCity: hybridMeta.hybridCity,
+        hybridCountry: hybridMeta.hybridCountry,
+        daysInOffice: hybridMeta.daysInOffice || "2-3 days in office",
+        employerEmail: email,
+        externalId,
+      };
+    } else {
+      return {
+        workArrangement: "on_site",
+        shouldIngest: false,
+        externalId,
+      };
+    }
+  }
+
+  const isRegional =
+    locLower.includes("us only") ||
+    locLower.includes("usa only") ||
+    locLower.includes("united states") ||
+    locLower.includes("europe") ||
+    locLower.includes("uk only") ||
+    locLower.includes("canada only") ||
+    locLower.includes("latam") ||
+    locLower.includes("apac") ||
+    locLower.includes("emea") ||
+    descLower.includes("must be based in") ||
+    descLower.includes("residents of");
+
+  const arrangement = isRegional ? "remote_regional" : "remote_global";
+
+  return {
+    workArrangement: arrangement,
+    shouldIngest: true,
+    employerEmail: email,
+    externalId,
+  };
+}
+
+function isJobExpired(postedAt) {
+  if (!postedAt) return false;
+  const time = new Date(postedAt).getTime();
+  if (isNaN(time)) return false;
+  const thirtyDaysMs = 30 * 24 * 60 * 60 * 1000;
+  return Date.now() - time > thirtyDaysMs;
 }
 
 function normalizeRawJob(raw) {
@@ -158,9 +328,30 @@ function normalizeRawJob(raw) {
   }
 
   const id = `job-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`;
-  const slug = `${title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${companySlug}`.replace(/--+/g, "-").slice(0, 80);
+  const baseSlug = `${title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${companySlug}`.replace(/--+/g, "-").replace(/^-|-$/g, "").slice(0, 70);
+  const idHash = crypto.createHash("md5").update(id).digest("hex").slice(0, 6);
+  const slug = `${baseSlug || "job"}-${idHash}`;
   let location = raw.candidate_required_location || raw.location || (workplaceType === "remote" ? "Worldwide" : "On-site");
+  const postedAt = raw.posted_at || new Date().toISOString();
+  const description = cleanHtmlDescription(raw.description) || `Join ${company} as ${title}. We offer competitive compensation with transparent salaries, generous benefits, and strong career progression.`;
+  const companyWebsite = raw.url || "https://remoteworkdaily.com";
 
+  const classification = classifyJobArrangement({
+    title,
+    company,
+    location,
+    description,
+    salaryMin,
+    salaryMax,
+    workplaceType,
+    companyWebsite,
+  });
+
+  if (!classification.shouldIngest) {
+    return null;
+  }
+
+  const expired = isJobExpired(postedAt);
   const companyLogo = raw.company_logo || raw.company_logo_url || "https://images.unsplash.com/photo-1572044162444-ad60f128bdea?w=128&h=128&fit=crop&q=80";
 
   return {
@@ -170,13 +361,20 @@ function normalizeRawJob(raw) {
     company,
     companySlug,
     companyLogo,
-    companyWebsite: raw.url || "https://remoteworkdaily.com",
+    companyWebsite,
     verified: true,
     featured: Math.random() > 0.85,
+    isFeatured: false,
     sticky: false,
     location,
     locationCode: location.toLowerCase().includes("us") ? "US" : location.toLowerCase().includes("germany") ? "DE" : "WW",
     workplaceType,
+    workArrangement: classification.workArrangement,
+    hybridCity: classification.hybridCity,
+    hybridCountry: classification.hybridCountry,
+    daysInOffice: classification.daysInOffice,
+    employerEmail: classification.employerEmail || raw.employer_email,
+    externalId: classification.externalId,
     category,
     tags: tags.slice(0, 6),
     benefits: workplaceType === "remote"
@@ -185,15 +383,16 @@ function normalizeRawJob(raw) {
     salaryMin,
     salaryMax,
     salaryCurrency: "USD",
-    description: cleanHtmlDescription(raw.description) || `Join ${company} as ${title}. We offer competitive compensation with transparent salaries, generous benefits, and strong career progression.`,
+    description,
     applyUrl,
-    postedAt: raw.posted_at || new Date().toISOString(),
+    postedAt,
     viewsCount: Math.floor(Math.random() * 300) + 20,
     appliesCount: Math.floor(Math.random() * 20) + 1,
     source: raw.source || "feed",
     atsProvider: raw.ats_provider,
     isDirectCompanyPost: raw.is_direct_company_post || raw.source === "ats",
-    status: "active",
+    status: expired ? "archived" : "active",
+    isActive: !expired,
     canonicalHash: generateCanonicalHash(company, title, applyUrl),
   };
 }
@@ -539,6 +738,7 @@ async function runScrape() {
   for (const raw of rawJobs) {
     if (!raw.title || (!raw.company && !raw.company_name)) continue;
     const normalized = normalizeRawJob(raw);
+    if (!normalized) continue;
     if (seenHashes.has(normalized.canonicalHash)) continue;
     seenHashes.add(normalized.canonicalHash);
     normalizedJobs.push(normalized);
@@ -600,6 +800,66 @@ async function runScrape() {
   console.log(`   ${pruned.length} total active verified listings in database`);
   console.log(`========================================================\n`);
 
+  // Sync newly ingested jobs to Supabase
+  if (supabase && normalizedJobs.length > 0) {
+    console.log(`[Supabase] Syncing ${normalizedJobs.length} ingested jobs to Supabase cloud...`);
+    const CHUNK_SIZE = 100;
+    let supaSuccess = 0;
+    for (let i = 0; i < normalizedJobs.length; i += CHUNK_SIZE) {
+      const chunk = normalizedJobs.slice(i, i + CHUNK_SIZE);
+      const records = chunk.map((job) => ({
+        id: job.id,
+        slug: job.slug,
+        title: job.title,
+        company: job.company,
+        company_slug: job.companySlug,
+        company_logo: job.companyLogo || null,
+        company_website: job.companyWebsite || null,
+        verified: job.verified ?? true,
+        featured: job.featured ?? false,
+        sticky: job.sticky ?? false,
+        location: job.location || "Worldwide",
+        location_code: job.locationCode || "WW",
+        workplace_type: job.workplaceType || "remote",
+        category: job.category || "dev",
+        tags: Array.isArray(job.tags) ? job.tags : [],
+        benefits: Array.isArray(job.benefits) ? job.benefits : [],
+        salary_min: job.salaryMin || null,
+        salary_max: job.salaryMax || null,
+        salary_currency: job.salaryCurrency || "USD",
+        description: job.description || "",
+        apply_url: job.applyUrl,
+        posted_at: job.postedAt || new Date().toISOString(),
+        views_count: job.viewsCount || 0,
+        applies_count: job.appliesCount || 0,
+        source: job.source || "feed",
+        status: job.status || "active",
+        employer_email: job.employerEmail || null,
+        canonical_hash: job.canonicalHash || null,
+        work_arrangement: job.workArrangement || (job.workplaceType === "hybrid" ? "hybrid_high_pay" : "remote_global"),
+        hybrid_city: job.hybridCity || null,
+        hybrid_country: job.hybridCountry || null,
+        days_in_office: job.daysInOffice || null,
+        external_id: job.externalId || job.canonicalHash || null,
+        is_featured: job.isFeatured ?? (job.featured || false),
+        is_active: job.isActive ?? (job.status === "active"),
+        updated_at: new Date().toISOString(),
+      }));
+
+      try {
+        const { error } = await supabase.from("jobs").upsert(records, { onConflict: "id" });
+        if (!error) {
+          supaSuccess += chunk.length;
+        } else {
+          console.warn(`[Supabase] Batch error:`, error.message);
+        }
+      } catch (sErr) {
+        console.warn(`[Supabase] Upsert exception:`, sErr.message);
+      }
+    }
+    console.log(`[Supabase] ✅ Successfully synced ${supaSuccess} jobs to Supabase!`);
+  }
+
   // Dispatch real-time Telegram notification
   try {
     const token = process.env.TELEGRAM_BOT_TOKEN?.trim();
@@ -616,28 +876,22 @@ async function runScrape() {
       }
 
     if (chatId) {
-      console.log(`[Telegram] Dispatching sync alert to chat ${chatId}...`);
-      const topJobs = normalizedJobs.slice(0, 5).map((j, i) => {
-        const wp = j.workplaceType ? `[${j.workplaceType.toUpperCase()}] ` : "";
-        const sal = j.salaryMin && j.salaryMax ? ` • 💰 $${j.salaryMin.toLocaleString()} - $${j.salaryMax.toLocaleString()}` : "";
-        const loc = j.location ? ` • 📍 ${j.location}` : "";
-        return `${i + 1}. <a href="https://remoteworkdaily.com/jobs/${j.id}/${j.slug}"><b>${j.title}</b></a>\n   🏢 <b>${j.company}</b> ${wp}${sal}${loc}`;
-      }).join("\n\n");
-
-      const srcBreakdown = Object.entries(sources).filter(([_, c]) => c > 0).map(([k, v]) => `• ${k}: <b>${v}</b>`).join("\n");
+      console.log(`[Telegram] Dispatching admin scrape summary to chat ${chatId}...`);
+      const isHybrid = (j) => j.workArrangement === "hybrid_high_pay" || j.workplaceType === "hybrid";
+      let remoteCount = 0;
+      let hybridCount = 0;
+      let emailsExtracted = 0;
+      for (const j of normalizedJobs) {
+        if (isHybrid(j)) hybridCount++;
+        else remoteCount++;
+        if (j.employerEmail) emailsExtracted++;
+      }
 
       const alertMsg = [
-        `🚀 <b>Remote Work Daily — Job Ingestion Completed!</b>`,
-        `━━━━━━━━━━━━━━━━━━━━`,
-        `📥 <b>Newly Ingested:</b> +${added} jobs`,
-        `🔄 <b>Updated / Refreshed:</b> ${updated} jobs`,
+        `🤖 <b>Scrape Complete:</b> +${remoteCount} Remote Jobs, +${hybridCount} High-Paying Hybrid Jobs added. ${emailsExtracted} Employer Emails extracted.`,
         `📊 <b>Total Active Listings:</b> ${pruned.length.toLocaleString()}`,
         `⏱ <b>Duration:</b> ${durationSec}s`,
-        `━━━━━━━━━━━━━━━━━━━━`,
-        topJobs ? `💼 <b>Top Fresh Roles Harvested:</b>\n\n${topJobs}\n━━━━━━━━━━━━━━━━━━━━` : null,
-        srcBreakdown ? `📈 <b>Harvested Sources:</b>\n${srcBreakdown}\n━━━━━━━━━━━━━━━━━━━━` : null,
-        `🌐 <a href="https://remoteworkdaily.com">Browse Live Job Board</a>`,
-      ].filter(Boolean).join("\n");
+      ].join("\n");
 
       const tgRes = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
         method: "POST",
@@ -650,11 +904,11 @@ async function runScrape() {
           reply_markup: {
             inline_keyboard: [
               [
-                { text: "🔥 View Latest Jobs", callback_data: "cmd_latest" },
-                { text: "📊 Stats", callback_data: "cmd_stats" },
+                { text: "👀 Review Pending Jobs", callback_data: "admin_review_jobs" },
+                { text: "📧 Blast $199 B2B Pitch to New Emails", callback_data: "admin_blast_b2b" },
               ],
               [
-                { text: "🌐 Open RemoteWorkDaily", url: "https://remoteworkdaily.com" },
+                { text: "📊 Today's Revenue & Signups", callback_data: "admin_revenue_stats" },
               ],
             ],
           },

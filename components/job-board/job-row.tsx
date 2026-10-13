@@ -3,7 +3,8 @@
 import React from "react";
 import { Job } from "@/lib/types";
 import { formatSalary, timeAgo, isRecentPost } from "@/lib/utils";
-import { CheckCircle, Globe, MapPin, DollarSign, Pin, Sparkles } from "lucide-react";
+import { CheckCircle, Globe, MapPin, DollarSign, Pin, Sparkles, Lock, Flame } from "lucide-react";
+import { useSubscription } from "@/components/auth/subscription-context";
 
 interface JobRowProps {
   job: Job;
@@ -13,9 +14,15 @@ interface JobRowProps {
 }
 
 export function JobRow({ job, isSelected, onToggleSelect, onTagClick }: JobRowProps) {
+  const { hasActiveSubscription, openUpgradeModal } = useSubscription();
   const salaryText = formatSalary(job.salaryMin, job.salaryMax, job.salaryCurrency);
   const isNewToday = isRecentPost(job.postedAt);
 
+  // 6-Hour Early Access check
+  const isEarlyAccess = Boolean(
+    job.postedAt && Date.now() - new Date(job.postedAt).getTime() < 6 * 3600 * 1000
+  );
+  const isLockedEarlyAccess = isEarlyAccess && !hasActiveSubscription;
 
   return (
     <div
@@ -27,6 +34,8 @@ export function JobRow({ job, isSelected, onToggleSelect, onTagClick }: JobRowPr
           ? "bg-amber-50/40 dark:bg-neutral-900/90 border-amber-300/80 dark:border-amber-700/60 hover:border-amber-400"
           : job.featured
           ? "bg-red-50/30 dark:bg-neutral-900/60 border-red-200/60 dark:border-red-950/80 hover:border-red-300"
+          : isEarlyAccess
+          ? "bg-orange-50/20 dark:bg-neutral-900/40 border-orange-200/80 dark:border-orange-950/80 hover:border-orange-400"
           : "bg-white dark:bg-neutral-900/40 border-neutral-200 dark:border-neutral-800 hover:border-neutral-400 dark:hover:border-neutral-700 hover:bg-neutral-50 dark:hover:bg-neutral-800/40"
       }`}
     >
@@ -34,7 +43,11 @@ export function JobRow({ job, isSelected, onToggleSelect, onTagClick }: JobRowPr
       <div className="flex items-center gap-3.5 w-full md:w-auto min-w-0">
         {/* Company Avatar */}
         <div className="relative w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center shrink-0 overflow-hidden border border-neutral-200 dark:border-neutral-700">
-          {job.companyLogo ? (
+          {isLockedEarlyAccess ? (
+            <div className="flex flex-col items-center justify-center text-amber-600 dark:text-amber-400">
+              <Lock className="w-4 h-4" />
+            </div>
+          ) : job.companyLogo ? (
             <img
               src={job.companyLogo}
               alt={job.company}
@@ -51,12 +64,28 @@ export function JobRow({ job, isSelected, onToggleSelect, onTagClick }: JobRowPr
         {/* Position & Company Info */}
         <div className="flex flex-col min-w-0 pr-2">
           <div className="flex items-center gap-1.5 flex-wrap">
-            <span className="font-semibold text-xs text-neutral-500 dark:text-neutral-400 truncate">
-              {job.company}
-            </span>
-            {job.verified && (
+            {isLockedEarlyAccess ? (
+              <span className="font-semibold text-xs text-neutral-400 truncate flex items-center gap-1">
+                <span className="blur-[3px] select-none">{job.company}</span>
+                <span className="text-[10px] text-amber-600 dark:text-amber-400 font-extrabold">(Pro Early Access)</span>
+              </span>
+            ) : (
+              <span className="font-semibold text-xs text-neutral-500 dark:text-neutral-400 truncate">
+                {job.company}
+              </span>
+            )}
+
+            {!isLockedEarlyAccess && job.verified && (
               <CheckCircle className="w-3.5 h-3.5 text-sky-500 fill-sky-500/20 shrink-0" />
             )}
+
+            {isEarlyAccess && (
+              <span className="inline-flex items-center gap-0.5 text-[10px] font-black uppercase px-1.5 py-0.5 rounded bg-red-100 dark:bg-red-950/80 text-[#FF4742] dark:text-red-400 border border-red-300 dark:border-red-800/80">
+                <Flame className="w-2.5 h-2.5 fill-current" />
+                <span>Early Access (&lt;6h)</span>
+              </span>
+            )}
+
             {job.workplaceType === "on-site" ? (
               <span className="inline-flex items-center gap-1 text-[10px] font-extrabold uppercase px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-950/80 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800/60">
                 🏢 On-site
@@ -70,13 +99,15 @@ export function JobRow({ job, isSelected, onToggleSelect, onTagClick }: JobRowPr
                 🌐 Remote
               </span>
             )}
+
             {job.sticky && (
               <span className="inline-flex items-center gap-0.5 text-[10px] font-extrabold uppercase px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-950/80 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800/60">
                 <Pin className="w-2.5 h-2.5" />
                 <span>Pinned</span>
               </span>
             )}
-            {isNewToday && (
+
+            {isNewToday && !isEarlyAccess && (
               <span className="inline-flex items-center gap-0.5 text-[10px] font-extrabold uppercase px-1.5 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800/70">
                 <Sparkles className="w-2.5 h-2.5" />
                 <span>Today</span>
@@ -142,11 +173,30 @@ export function JobRow({ job, isSelected, onToggleSelect, onTagClick }: JobRowPr
           <button
             onClick={(e) => {
               e.stopPropagation();
-              onToggleSelect();
+              if (isLockedEarlyAccess) {
+                openUpgradeModal();
+              } else {
+                onToggleSelect();
+              }
             }}
-            className="min-h-[40px] px-4 py-2 rounded-xl text-xs font-bold bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 hover:bg-[#FF4742] dark:hover:bg-[#FF4742] dark:hover:text-white transition-colors flex items-center justify-center active:scale-95"
+            className={`min-h-[40px] px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 active:scale-95 ${
+              isLockedEarlyAccess
+                ? "bg-gradient-to-r from-amber-500 to-[#FF4742] text-white shadow-md shadow-red-500/20"
+                : isSelected
+                ? "bg-[#FF4742] text-white"
+                : "bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 hover:bg-[#FF4742] dark:hover:bg-[#FF4742] dark:hover:text-white"
+            }`}
           >
-            {isSelected ? "Close" : "Apply"}
+            {isLockedEarlyAccess ? (
+              <>
+                <Lock className="w-3.5 h-3.5" />
+                <span>Unlock Early</span>
+              </>
+            ) : isSelected ? (
+              "Close"
+            ) : (
+              "Apply"
+            )}
           </button>
         </div>
       </div>

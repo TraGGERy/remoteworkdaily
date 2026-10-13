@@ -186,7 +186,7 @@ export const JOB_POSTING_PRICING = {
     remedyText: "If you do not receive at least 5 qualified applicants within 14 days, we will re-pin your job post to the top for 30 additional days at no charge.",
   },
 };
-export type CandidatePlanId = "weekly" | "monthly" | "lifetime";
+export type CandidatePlanId = "weekly" | "monthly" | "lifetime" | "pro_monthly" | "pro_quarterly";
 
 export interface CandidateSubscriptionPlan {
   id: CandidatePlanId;
@@ -208,6 +208,8 @@ export interface CandidateSubscriptionPlan {
  * - Weekly Sprint ($6.99/week, auto-renews, cancel anytime)
  * - Monthly Pro ($17.99/month, auto-renews, cancel anytime, Most Popular)
  * - Lifetime Access ($49.99, one-time payment, perpetual access)
+ * - Candidate Pro Monthly ($12/month, early access + HR emails + AI tailor)
+ * - Candidate Pro Quarterly ($29/quarter, save 20%)
  *
  * Backed by a 7-day unconditional money-back refund policy.
  */
@@ -266,6 +268,42 @@ export const CANDIDATE_PRICING = {
         "Priority Early-Bird Alerts & Reverse Candidate Spotlight",
         "Full Remote Salary Negotiation Playbook & Templates",
         "Never pay another subscription fee or renewal charge",
+      ],
+    },
+    pro_monthly: {
+      id: "pro_monthly" as CandidatePlanId,
+      name: "Candidate Pro Monthly",
+      price: 12.00,
+      interval: "month" as const,
+      billingType: "subscription" as const,
+      billingTerms: "$12.00 billed monthly • Auto-renews • Cancel anytime",
+      badge: "Most Popular",
+      isPopular: true,
+      description: "6-hour early access, verified HR contact emails, and 1-click AI resume tailoring.",
+      features: [
+        "🔥 6-Hour Early Access (Beat 500+ applicants)",
+        "📬 Direct HR / Hiring Manager verified emails & cold outreach templates",
+        "✨ 1-Click AI Match Score & custom tailored cover letters",
+        "🚀 Direct ATS application links (Greenhouse, Lever, Ashby)",
+        "🔔 Instant real-time job match alerts",
+      ],
+    },
+    pro_quarterly: {
+      id: "pro_quarterly" as CandidatePlanId,
+      name: "Candidate Pro Quarterly",
+      price: 29.00,
+      interval: "month" as const,
+      billingType: "subscription" as const,
+      billingTerms: "$29.00 billed every 3 months • Save 20% • Cancel anytime",
+      badge: "Best Value",
+      isPopular: false,
+      description: "Complete 3-month job search sprint with full Pro features and priority support.",
+      features: [
+        "🔥 6-Hour Early Access to every verified opening",
+        "📬 Full HR Email Unlock & 1-click cold outreach templates",
+        "✨ Unlimited AI Resume Tailor & Cover Letter generation",
+        "🎯 Both 100% Remote & High-Paying Hybrid roles",
+        "💰 Remote & Hybrid Salary Negotiation Playbook ($97 value)",
       ],
     },
   },

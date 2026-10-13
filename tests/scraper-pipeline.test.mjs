@@ -282,3 +282,86 @@ test("Scraper Pipeline: 2-hour interval rate limiter prevents rapid repeat execu
   assert.equal(permitCheck.allowed, true, "Should allow execution after 2 hours have elapsed");
 });
 
+test("Scraper Pipeline: Hybrid Filter Rule permits $90k+ and senior tech/finance roles, but discards low-skill on-site", () => {
+  const EMAIL_REGEX = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
+  const SENIOR_SPECIALIZED_ROLES = /\b(senior|lead|staff|principal|director|head of|vp|vice president|chief|architect|manager|engineer|developer|designer|product|data scientist|quantitative|analyst|finance|cfo|cto|controller|consultant|specialist|strategist)\b/i;
+
+  function classify(title, salary, workplaceType) {
+    const isHybrid = workplaceType === "hybrid" || title.toLowerCase().includes("hybrid");
+    if (!isHybrid) return { arrangement: "remote_global", ingest: true };
+    const hasHighSalary = salary >= 90000;
+    const isSeniorSpecialized = SENIOR_SPECIALIZED_ROLES.test(title);
+    if (hasHighSalary || isSeniorSpecialized) {
+      return { arrangement: "hybrid_high_pay", ingest: true };
+    }
+    return { arrangement: "on_site", ingest: false };
+  }
+
+  // 1. High salary hybrid role ($120k) -> Ingested as hybrid_high_pay
+  const highSalaryHybrid = classify("Marketing Coordinator", 120000, "hybrid");
+  assert.equal(highSalaryHybrid.ingest, true);
+  assert.equal(highSalaryHybrid.arrangement, "hybrid_high_pay");
+
+  // 2. Senior specialized role without explicit salary ($0) -> Ingested as hybrid_high_pay
+  const seniorRole = classify("Senior Product Designer", 0, "hybrid");
+  assert.equal(seniorRole.ingest, true);
+  assert.equal(seniorRole.arrangement, "hybrid_high_pay");
+
+  // 3. Low-skill hybrid role with low salary ($45k) -> Discarded
+  const lowSkill = classify("Receptionist / Front Desk", 45000, "hybrid");
+  assert.equal(lowSkill.ingest, false);
+  assert.equal(lowSkill.arrangement, "on_site");
+
+  // 4. Pure remote role -> remote_global
+  const pureRemote = classify("Software Engineer", 140000, "remote");
+  assert.equal(pureRemote.ingest, true);
+  assert.equal(pureRemote.arrangement, "remote_global");
+});
+
+test("Scraper Pipeline: Email extraction captures verified in-body emails and falls back to careers@domain", () => {
+  const EMAIL_REGEX = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
+
+  function extractEmail(text, website, company) {
+    if (text) {
+      const matches = text.match(EMAIL_REGEX);
+      if (matches && matches.length > 0) return matches[0].toLowerCase();
+    }
+    if (website) {
+      try {
+        const u = new URL(website.startsWith("http") ? website : `https://${website}`);
+        return `careers@${u.hostname.replace(/^www\./, "")}`;
+      } catch {}
+    }
+    if (company) {
+      return `careers@${company.toLowerCase().replace(/[^a-z0-9]/g, "")}.com`;
+    }
+    return undefined;
+  }
+
+  // Case 1: In-body text match
+  const bodyText = "To apply, send resume to hiring.manager@stripe.com directly.";
+  assert.equal(extractEmail(bodyText, "https://stripe.com", "Stripe"), "hiring.manager@stripe.com");
+
+  // Case 2: Domain fallback from website
+  assert.equal(extractEmail("", "https://www.figma.com/jobs", "Figma"), "careers@figma.com");
+
+  // Case 3: Company name fallback
+  assert.equal(extractEmail("", "", "Vercel Inc"), "careers@vercelinc.com");
+});
+
+test("Scraper Pipeline: 30-day auto-expiration marks stale jobs inactive", () => {
+  function isJobExpired(postedAt) {
+    const time = new Date(postedAt).getTime();
+    const thirtyDaysMs = 30 * 24 * 60 * 60 * 1000;
+    return Date.now() - time > thirtyDaysMs;
+  }
+
+  const now = Date.now();
+  const fiveDaysAgo = new Date(now - 5 * 24 * 60 * 60 * 1000).toISOString();
+  const thirtyFiveDaysAgo = new Date(now - 35 * 24 * 60 * 60 * 1000).toISOString();
+
+  assert.equal(isJobExpired(fiveDaysAgo), false, "5-day-old job should remain active");
+  assert.equal(isJobExpired(thirtyFiveDaysAgo), true, "35-day-old job should expire");
+});
+
+

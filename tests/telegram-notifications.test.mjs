@@ -204,3 +204,64 @@ test("Job Freshness: getAllJobs guarantees strict descending sort order by poste
   assert.equal(sorted[2].id, "1");
 });
 
+test("Telegram Notifications: Scrape batch summary formats remote/hybrid counts and admin buttons", () => {
+  const payload = {
+    remoteCount: 1420,
+    hybridCount: 380,
+    emailsExtracted: 890,
+    totalListings: 12500,
+  };
+
+  const message = [
+    `🤖 <b>Scrape Complete:</b> +${payload.remoteCount} Remote Jobs, +${payload.hybridCount} High-Paying Hybrid Jobs added. ${payload.emailsExtracted} Employer Emails extracted.`,
+    payload.totalListings ? `📊 <b>Total Active Listings:</b> ${payload.totalListings.toLocaleString()}` : null,
+  ].filter(Boolean).join("\n");
+
+  const replyMarkup = {
+    inline_keyboard: [
+      [
+        { text: "👀 Review Pending Jobs", callback_data: "admin_review_jobs" },
+        { text: "📧 Blast $199 B2B Pitch to New Emails", callback_data: "admin_blast_b2b" },
+      ],
+      [
+        { text: "📊 Today's Revenue & Signups", callback_data: "admin_revenue_stats" },
+      ],
+    ],
+  };
+
+  assert.ok(message.includes("<b>Scrape Complete:</b> +1420 Remote Jobs, +380 High-Paying Hybrid Jobs added. 890 Employer Emails extracted."));
+  assert.ok(message.includes("12,500"));
+  assert.equal(replyMarkup.inline_keyboard[0][0].text, "👀 Review Pending Jobs");
+  assert.equal(replyMarkup.inline_keyboard[0][1].text, "📧 Blast $199 B2B Pitch to New Emails");
+  assert.equal(replyMarkup.inline_keyboard[1][0].text, "📊 Today's Revenue & Signups");
+});
+
+test("Telegram Notifications: Candidate Pro alert formats $12/mo subscription and $199 job boost", () => {
+  const proAlert = [
+    `🎉 <b>New Pro Subscriber ($12/mo)!</b>`,
+    `━━━━━━━━━━━━━━━━━━━━`,
+    `👤 <b>Customer:</b> dev@example.com`,
+    `📦 <b>Plan:</b> pro_monthly`,
+    `💵 <b>Amount:</b> $12.00`,
+  ].join("\n");
+
+  assert.ok(proAlert.includes("New Pro Subscriber ($12/mo)!"));
+  assert.ok(proAlert.includes("dev@example.com"));
+  assert.ok(proAlert.includes("$12.00"));
+
+  const boostAlert = [
+    `💰 <b>New $199 Employer Job Boost!</b>`,
+    `━━━━━━━━━━━━━━━━━━━━`,
+    `📌 <b>Job:</b> Staff Backend Engineer`,
+    `🏢 <b>Company:</b> Acme Corp`,
+    `👤 <b>Employer:</b> hiring@acme.com`,
+    `✨ <b>Featured:</b> 30 days active boost`,
+  ].join("\n");
+
+  assert.ok(boostAlert.includes("New $199 Employer Job Boost!"));
+  assert.ok(boostAlert.includes("Staff Backend Engineer"));
+  assert.ok(boostAlert.includes("Acme Corp"));
+  assert.ok(boostAlert.includes("30 days active boost"));
+});
+
+

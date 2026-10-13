@@ -139,6 +139,8 @@ export async function createCandidateSubscriptionCheckoutSession(params: Candida
   const planId = params.planId || "monthly";
   const plan = CANDIDATE_PRICING.plans[planId] || CANDIDATE_PRICING.plans.monthly;
   const isSubscription = plan.billingType === "subscription";
+  const isCandidatePro = planId === "pro_monthly" || planId === "pro_quarterly";
+  const metadataType = isCandidatePro ? "candidate_pro" : "candidate_subscription";
 
   const lineItem: Stripe.Checkout.SessionCreateParams.LineItem = {
     price_data: {
@@ -152,6 +154,7 @@ export async function createCandidateSubscriptionCheckoutSession(params: Candida
         ? {
             recurring: {
               interval: plan.interval as "week" | "month",
+              ...(planId === "pro_quarterly" ? { interval_count: 3 } : {}),
             },
           }
         : {}),
@@ -167,7 +170,7 @@ export async function createCandidateSubscriptionCheckoutSession(params: Candida
     success_url: params.successUrl,
     cancel_url: params.cancelUrl,
     metadata: {
-      type: "candidate_subscription",
+      type: metadataType,
       planId: plan.id,
       email: params.email,
     },
@@ -176,7 +179,7 @@ export async function createCandidateSubscriptionCheckoutSession(params: Candida
   if (!isSubscription) {
     sessionCreateParams.payment_intent_data = {
       metadata: {
-        type: "candidate_subscription",
+        type: metadataType,
         planId: plan.id,
         email: params.email,
       },
@@ -184,7 +187,7 @@ export async function createCandidateSubscriptionCheckoutSession(params: Candida
   } else {
     sessionCreateParams.subscription_data = {
       metadata: {
-        type: "candidate_subscription",
+        type: metadataType,
         planId: plan.id,
         email: params.email,
       },
@@ -334,5 +337,56 @@ export async function createCustomerPortalSession(params: {
     return null;
   }
 }
+
+/**
+ * Creates a Stripe Checkout Session for $199 Employer Job Boost.
+ * Highlights role in Coral, pins to top for 30 days, and includes metadata.type = 'job_boost'.
+ */
+export async function createJobBoostCheckoutSession(params: {
+  jobId: string;
+  userEmail: string;
+  jobTitle?: string;
+  companyName?: string;
+  successUrl: string;
+  cancelUrl: string;
+}) {
+  const lineItem: Stripe.Checkout.SessionCreateParams.LineItem = {
+    price_data: {
+      currency: "usd",
+      product_data: {
+        name: `Remote Work Daily: 30-Day Featured Job Boost ($199)`,
+        description: `Pin "${params.jobTitle || "Job Listing"}" to top of the board with Coral row styling for 30 days.`,
+      },
+      unit_amount: 19900,
+    },
+    quantity: 1,
+  };
+
+  const session = await stripe.checkout.sessions.create({
+    mode: "payment",
+    payment_method_types: ["card"],
+    customer_email: params.userEmail,
+    line_items: [lineItem],
+    success_url: params.successUrl,
+    cancel_url: params.cancelUrl,
+    metadata: {
+      type: "job_boost",
+      jobId: params.jobId,
+      jobTitle: params.jobTitle || "",
+      companyName: params.companyName || "",
+      email: params.userEmail,
+    },
+    payment_intent_data: {
+      metadata: {
+        type: "job_boost",
+        jobId: params.jobId,
+        companyName: params.companyName || "",
+      },
+    },
+  });
+
+  return session;
+}
+
 
 

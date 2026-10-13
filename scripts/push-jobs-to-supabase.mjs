@@ -1,4 +1,4 @@
-﻿import fs from "fs";
+import fs from "fs";
 import path from "path";
 import { createClient } from "@supabase/supabase-js";
 
@@ -68,7 +68,15 @@ async function main() {
       salary_currency: job.salaryCurrency || "USD",
       description: job.description || "",
       apply_url: job.applyUrl,
-      posted_at: job.postedAt || new Date().toISOString(),
+      posted_at: (() => {
+        if (!job.postedAt) return new Date().toISOString();
+        if (/^\d{9,13}$/.test(String(job.postedAt).trim())) {
+          const num = Number(job.postedAt);
+          return new Date(num < 10000000000 ? num * 1000 : num).toISOString();
+        }
+        const d = new Date(job.postedAt);
+        return isNaN(d.getTime()) ? new Date().toISOString() : d.toISOString();
+      })(),
       views_count: job.viewsCount || 0,
       applies_count: job.appliesCount || 0,
       source: job.source || "direct",

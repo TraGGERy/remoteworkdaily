@@ -7,7 +7,7 @@ import { notifyPaymentReceived } from "@/lib/telegram";
 
 const CandidateCheckoutSchema = z.object({
   email: z.string().email("A valid email is required for early alerts"),
-  planId: z.enum(["weekly", "monthly", "lifetime"]).optional().default("monthly"),
+  planId: z.enum(["weekly", "monthly", "lifetime", "pro_monthly", "pro_quarterly"]).optional().default("pro_monthly"),
 });
 
 export async function POST(request: Request) {

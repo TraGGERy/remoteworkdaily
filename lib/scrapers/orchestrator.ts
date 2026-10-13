@@ -2,7 +2,7 @@ import { Job } from "../types";
 import { normalizeScrapedJob, RawScrapedJob } from "../apify";
 import { insertJobsBatch } from "../jobs-repository";
 import { recordSyncCompleted } from "../sync-tracker";
-import { notifyCronSyncCompleted } from "../telegram";
+import { notifyCronSyncCompleted, notifyScrapeBatchSummary } from "../telegram";
 import {
   fetchArbeitnowJobs,
   fetchWeWorkRemotelyJobs,
@@ -168,6 +168,32 @@ export async function runDailyJobIngestionPipeline(
   const durationMs = Date.now() - startTime;
   const durationSec = (durationMs / 1000).toFixed(1);
   console.log(`[Ingestion Pipeline] Completed in ${durationMs}ms: +${added} newly added, ${updated} updated, ${total} total active listings.`);
+
+  // Calculate Remote vs High-Paying Hybrid breakdown & Extracted Emails
+  let remoteCount = 0;
+  let hybridCount = 0;
+  let emailsExtracted = 0;
+
+  for (const j of normalizedJobs) {
+    if (j.workArrangement === "hybrid_high_pay" || j.workplaceType === "hybrid") {
+      hybridCount++;
+    } else {
+      remoteCount++;
+    }
+    if (j.employerEmail) {
+      emailsExtracted++;
+    }
+  }
+
+  // Send clean batch summary to private Admin Telegram Bot with interactive admin actions
+  notifyScrapeBatchSummary({
+    remoteCount,
+    hybridCount,
+    emailsExtracted,
+    totalListings: total,
+  }).catch((err) => {
+    console.warn("[Ingestion Pipeline] Telegram admin batch summary notice:", err);
+  });
 
   // Broadcast real-time sync notification to Telegram bot
   const topNewJobs = normalizedJobs.slice(0, 5).map((j) => ({

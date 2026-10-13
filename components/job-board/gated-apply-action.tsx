@@ -13,6 +13,7 @@ interface GatedApplyActionProps {
   company: string;
   applyUrl: string;
   variant?: "header" | "floating" | "inline";
+  isEarlyAccess?: boolean;
   onApplySuccess?: () => void;
 }
 
@@ -21,6 +22,7 @@ export function GatedApplyAction({
   company,
   applyUrl,
   variant = "inline",
+  isEarlyAccess = false,
   onApplySuccess,
 }: GatedApplyActionProps) {
   const { isConfigured } = useAppAuth();
@@ -105,7 +107,7 @@ export function GatedApplyAction({
           className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl text-sm font-black bg-gradient-to-r from-amber-500 to-[#FF4742] hover:opacity-95 text-white shadow-lg shadow-amber-500/25 active:scale-95 transition-all"
         >
           <Lock className="w-4 h-4" />
-          <span>Subscribe to Apply</span>
+          <span>{isEarlyAccess ? "Unlock Early Access (<6h)" : "Subscribe to Apply"}</span>
         </button>
       );
     }
@@ -118,7 +120,7 @@ export function GatedApplyAction({
           className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-6 py-3 rounded-lg text-sm font-extrabold bg-gradient-to-r from-amber-500 to-[#FF4742] hover:opacity-95 text-white shadow-lg shadow-amber-500/30 transition-transform active:scale-95"
         >
           <Lock className="w-4 h-4" />
-          <span>Subscribe to Apply</span>
+          <span>{isEarlyAccess ? "Unlock Early Access" : "Subscribe to Apply"}</span>
         </button>
       );
     }
@@ -132,13 +134,17 @@ export function GatedApplyAction({
         <div>
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 border border-amber-300/50 mb-2">
             <Sparkles className="w-3.5 h-3.5" />
-            <span>Direct ATS Subscription Required</span>
+            <span>{isEarlyAccess ? "🔥 Early Access (Posted < 6h ago)" : "Direct ATS Subscription Required"}</span>
           </div>
           <h3 className="text-xl font-black text-neutral-900 dark:text-white">
-            Unlock Direct Application to {company}
+            {isEarlyAccess
+              ? "Unlock Early Access & Beat 500+ Applicants"
+              : `Unlock Direct Application to ${company}`}
           </h3>
           <p className="text-xs sm:text-sm text-neutral-600 dark:text-neutral-400 max-w-md mx-auto mt-1">
-            Skip the 200+ applicant queue on LinkedIn. Members apply directly to {company}&apos;s internal hiring ATS with unlocked direct URLs, salary negotiation playbooks, and 2-hour early alerts.
+            {isEarlyAccess
+              ? `This verified opening was posted less than 6 hours ago. Pro members get immediate direct access to apply before LinkedIn and public job boards receive 500+ applications.`
+              : `Skip the 200+ applicant queue on LinkedIn. Members apply directly to ${company}'s internal hiring ATS with unlocked direct URLs, salary negotiation playbooks, and 2-hour early alerts.`}
           </p>
         </div>
 
@@ -149,7 +155,7 @@ export function GatedApplyAction({
             className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 sm:px-8 py-3.5 rounded-xl text-xs sm:text-sm font-black bg-[#FF4742] hover:bg-[#e03a35] text-white shadow-xl shadow-red-500/25 active:scale-95 transition-all text-center"
           >
             <Lock className="w-4 h-4 shrink-0" />
-            <span>Unlock Direct ATS Application (From $6.99/wk)</span>
+            <span>Unlock Early Access & Beat 500+ Applicants — Upgrade to Pro</span>
           </button>
         </div>
 
@@ -160,7 +166,7 @@ export function GatedApplyAction({
           </span>
           <span className="flex items-center gap-1">
             <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-            <span>Weekly & Monthly Plans • Cancel Anytime</span>
+            <span>$12/mo or $29/quarter • Cancel Anytime</span>
           </span>
         </div>
       </div>

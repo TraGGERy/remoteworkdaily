@@ -151,9 +151,16 @@ async function syncJobToSupabase(job: Job) {
       views_count: job.viewsCount ?? 0,
       applies_count: job.appliesCount ?? 0,
       source: job.source ?? "direct",
-      status: job.status ?? "pending_payment",
+      status: job.status ?? "active",
       employer_email: job.employerEmail ?? null,
       canonical_hash: job.canonicalHash ?? null,
+      work_arrangement: job.workArrangement ?? (job.workplaceType === "hybrid" ? "hybrid_high_pay" : "remote_global"),
+      hybrid_city: job.hybridCity ?? null,
+      hybrid_country: job.hybridCountry ?? null,
+      days_in_office: job.daysInOffice ?? null,
+      external_id: job.externalId ?? null,
+      is_featured: job.isFeatured ?? job.featured ?? false,
+      is_active: job.isActive ?? (job.status === "active"),
       updated_at: new Date().toISOString(),
     }, { onConflict: "id" });
   } catch (err) {
@@ -195,9 +202,16 @@ async function syncJobsBatchToSupabase(jobs: Job[]) {
       views_count: job.viewsCount ?? 0,
       applies_count: job.appliesCount ?? 0,
       source: job.source ?? "direct",
-      status: job.status ?? "pending_payment",
+      status: job.status ?? "active",
       employer_email: job.employerEmail ?? null,
       canonical_hash: job.canonicalHash ?? null,
+      work_arrangement: job.workArrangement ?? (job.workplaceType === "hybrid" ? "hybrid_high_pay" : "remote_global"),
+      hybrid_city: job.hybridCity ?? null,
+      hybrid_country: job.hybridCountry ?? null,
+      days_in_office: job.daysInOffice ?? null,
+      external_id: job.externalId ?? null,
+      is_featured: job.isFeatured ?? job.featured ?? false,
+      is_active: job.isActive ?? (job.status === "active"),
       updated_at: new Date().toISOString(),
     }));
 
@@ -275,6 +289,40 @@ export function insertJob(job: Job): Job {
 
   // Background sync to Supabase
   syncJobToSupabase(job).catch(() => {});
+
+  return job;
+}
+
+/**
+ * Promotes a job with Featured status (30-day Employer Boost).
+ * Updates both the local repository and Supabase cloud.
+ */
+export async function boostJob(jobId: string, days: number = 30): Promise<Job | null> {
+  const job = getJobById(jobId);
+  if (!job) return null;
+
+  job.featured = true;
+  job.isFeatured = true;
+  job.status = "active";
+  job.isActive = true;
+  insertJob(job);
+
+  if (isSupabaseConfigured()) {
+    try {
+      const sb = getSupabaseClient();
+      if (sb) {
+        await sb.from("jobs").update({
+          featured: true,
+          is_featured: true,
+          status: "active",
+          is_active: true,
+          updated_at: new Date().toISOString(),
+        }).eq("id", jobId);
+      }
+    } catch (err) {
+      console.warn("[Jobs Repo] Supabase boostJob update notice:", err);
+    }
+  }
 
   return job;
 }

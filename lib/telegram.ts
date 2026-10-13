@@ -425,6 +425,41 @@ export async function notifyUserOnboarding(payload: OnboardingNotificationPayloa
   return res.success;
 }
 
+export interface ScrapeBatchSummaryPayload {
+  remoteCount: number;
+  hybridCount: number;
+  emailsExtracted: number;
+  totalListings?: number;
+}
+
+/**
+ * Formatted private admin batch summary message with interactive action buttons.
+ */
+export async function notifyScrapeBatchSummary(payload: ScrapeBatchSummaryPayload): Promise<boolean> {
+  const message = [
+    `🤖 <b>Scrape Complete:</b> +${payload.remoteCount} Remote Jobs, +${payload.hybridCount} High-Paying Hybrid Jobs added. ${payload.emailsExtracted} Employer Emails extracted.`,
+    payload.totalListings ? `📊 <b>Total Active Listings:</b> ${payload.totalListings.toLocaleString()}` : null,
+    `⏱ <b>Timestamp:</b> ${new Date().toUTCString()}`,
+  ]
+    .filter(Boolean)
+    .join("\n");
+
+  const replyMarkup = {
+    inline_keyboard: [
+      [
+        { text: "👀 Review Pending Jobs", callback_data: "admin_review_jobs" },
+        { text: "📧 Blast $199 B2B Pitch to New Emails", callback_data: "admin_blast_b2b" },
+      ],
+      [
+        { text: "📊 Today's Revenue & Signups", callback_data: "admin_revenue_stats" },
+      ],
+    ],
+  };
+
+  const res = await sendTelegramNotification(message, { replyMarkup });
+  return res.success;
+}
+
 function escapeHtml(text: string): string {
   return text
     .replace(/&/g, "&amp;")
