@@ -169,7 +169,7 @@ async function syncJobToSupabase(job: Job) {
 }
 
 async function syncJobsBatchToSupabase(jobs: Job[]) {
-  if (!isSupabaseConfigured()) return;
+  if (!isSupabaseConfigured() || !process.env.SUPABASE_SERVICE_ROLE_KEY?.trim()) return;
   const supabase = getSupabaseClient();
   if (!supabase) return;
 
@@ -216,7 +216,7 @@ async function syncJobsBatchToSupabase(jobs: Job[]) {
     }));
 
     try {
-      await supabase.from("jobs").upsert(records, { onConflict: "id" });
+      await supabase.from("jobs").upsert(records, { onConflict: "canonical_hash" });
     } catch (err) {
       console.warn("[Supabase batch sync error]:", err);
     }
@@ -360,8 +360,17 @@ export function insertJobsBatch(newJobs: Job[]): { added: number; updated: numbe
       matchIdx = idToIdx.get(job.id);
     }
 
-    if (matchIdx !== undefined) {
-      existingJobs[matchIdx] = { ...existingJobs[matchIdx], ...job };
+    if (matchIdx !== undefined && matchIdx >= 0) {
+      const existing = existingJobs[matchIdx];
+      existingJobs[matchIdx] = {
+        ...existing,
+        ...job,
+        id: existing.id || job.id,
+        slug: existing.slug || job.slug,
+      };
+      updatedCount++;
+    } else if (matchIdx === -1) {
+      // Duplicate within incoming batch itself
       updatedCount++;
     } else {
       toPrepend.push(job);

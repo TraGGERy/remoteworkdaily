@@ -1,6 +1,6 @@
 import { Job } from "../types";
 import { normalizeScrapedJob, RawScrapedJob } from "../apify";
-import { insertJobsBatch } from "../jobs-repository";
+import { insertJobsBatch, getAllJobs } from "../jobs-repository";
 import { recordSyncCompleted } from "../sync-tracker";
 import { notifyCronSyncCompleted, notifyScrapeBatchSummary } from "../telegram";
 import {
@@ -139,6 +139,11 @@ export async function runDailyJobIngestionPipeline(
     if (!job.title || (!job.company && !job.company_name)) continue;
 
     const normalized = normalizeScrapedJob(job);
+    if (!normalized) continue;
+    // Skip low-skill local on-site jobs that did not pass the Remote / High-Paying Hybrid filter
+    if (normalized.workArrangement === "on_site" && normalized.workplaceType === "on-site") {
+      continue;
+    }
     if (normalized.canonicalHash && seenHashes.has(normalized.canonicalHash)) {
       continue; // Duplicate within the incoming batch
     }
@@ -185,36 +190,39 @@ export async function runDailyJobIngestionPipeline(
     }
   }
 
-  // Send clean batch summary to private Admin Telegram Bot with interactive admin actions
-  notifyScrapeBatchSummary({
-    remoteCount,
-    hybridCount,
-    emailsExtracted,
-    totalListings: total,
-  }).catch((err) => {
-    console.warn("[Ingestion Pipeline] Telegram admin batch summary notice:", err);
-  });
+  // Broadcast real-time sync notification and private admin batch summary to Telegram bot
+  // IMPORTANT: Must be awaited so serverless functions (Vercel Cron / Webhooks) do not terminate before Telegram API calls complete
+  const topNewJobs = getAllJobs()
+    .slice(0, 5)
+    .map((j) => ({
+      title: j.title,
+      company: j.company,
+      location: j.location,
+      salary: j.salaryMin && j.salaryMax ? `$${j.salaryMin.toLocaleString()} - $${j.salaryMax.toLocaleString()}` : undefined,
+      url: `https://www.remoteworkdaily.com/jobs/${j.id}/${j.slug}`,
+      workplaceType: j.workplaceType,
+    }));
 
-  // Broadcast real-time sync notification to Telegram bot
-  const topNewJobs = normalizedJobs.slice(0, 5).map((j) => ({
-    title: j.title,
-    company: j.company,
-    location: j.location,
-    salary: j.salaryMin && j.salaryMax ? `$${j.salaryMin.toLocaleString()} - $${j.salaryMax.toLocaleString()}` : undefined,
-    url: `https://remoteworkdaily.com/jobs/${j.id}/${j.slug}`,
-    workplaceType: j.workplaceType,
-  }));
-
-  notifyCronSyncCompleted({
-    added,
-    updated,
-    total,
-    durationSec,
-    sources: sourcesBreakdown,
-    topNewJobs,
-  }).catch((err) => {
-    console.warn("[Ingestion Pipeline] Telegram notification notice:", err);
-  });
+  await Promise.allSettled([
+    notifyScrapeBatchSummary({
+      remoteCount,
+      hybridCount,
+      emailsExtracted,
+      totalListings: total,
+    }).catch((err) => {
+      console.warn("[Ingestion Pipeline] Telegram admin batch summary notice:", err);
+    }),
+    notifyCronSyncCompleted({
+      added,
+      updated,
+      total,
+      durationSec,
+      sources: sourcesBreakdown,
+      topNewJobs,
+    }).catch((err) => {
+      console.warn("[Ingestion Pipeline] Telegram notification notice:", err);
+    }),
+  ]);
 
   return {
     success: true,

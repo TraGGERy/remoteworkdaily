@@ -1,17 +1,19 @@
 {
-  "lastSyncDate": "2026-10-13",
-  "lastSyncTimestamp": 1791925374684,
-  "syncedCount": 4811,
+  "lastSyncDate": "2026-10-16",
+  "lastSyncTimestamp": 1792129705044,
+  "syncedCount": 6531,
+  "addedCount": 2061,
+  "updatedCount": 4470,
   "source": "universal-multi-source",
   "targetCount": 5000,
   "sources": {
-    "arbeitnow": 0,
-    "wwr": 365,
-    "jobicy": 334,
+    "arbeitnow": 1677,
+    "wwr": 371,
+    "jobicy": 330,
     "remoteok": 99,
-    "remotive": 16,
-    "himalayas": 0,
+    "remotive": 14,
+    "himalayas": 20,
     "reliefweb": 20,
-    "ats": 4069
+    "ats": 4148
   }
 }

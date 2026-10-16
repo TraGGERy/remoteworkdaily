@@ -214,15 +214,26 @@ export function normalizeScrapedJob(raw: RawScrapedJob): Job {
     }
   }
 
-  const id = `job-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`;
+  const canonicalHash = generateCanonicalHash(company, title, applyUrl);
+  const id = `job-${canonicalHash.slice(0, 16)}`;
   const baseSlug = `${title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${companySlug}`.replace(/--+/g, "-").replace(/^-|-$/g, "").slice(0, 70);
-  const idHash = crypto.createHash("md5").update(id).digest("hex").slice(0, 6);
+  const idHash = canonicalHash.slice(0, 6);
   const slug = `${baseSlug || "job"}-${idHash}`;
   let location = raw.candidate_required_location || raw.location || (workplaceType === "remote" ? "Worldwide" : "On-site");
   if (workplaceType === "on-site" && (!location || location.toLowerCase() === "worldwide")) {
     location = "In-Person / On-site";
   }
-  const postedAt = raw.posted_at || raw.publication_date || new Date().toISOString();
+  let postedAt = raw.posted_at || raw.publication_date || new Date().toISOString();
+  try {
+    const parsedTime = new Date(postedAt).getTime();
+    if (isNaN(parsedTime) || parsedTime > Date.now() + 60000) {
+      postedAt = new Date().toISOString();
+    } else {
+      postedAt = new Date(parsedTime).toISOString();
+    }
+  } catch {
+    postedAt = new Date().toISOString();
+  }
   const companyLogo = raw.company_logo || raw.company_logo_url || "https://images.unsplash.com/photo-1572044162444-ad60f128bdea?w=128&h=128&fit=crop&q=80";
 
   const classification = classifyJobArrangement({

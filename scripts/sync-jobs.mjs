@@ -327,12 +327,23 @@ function normalizeRawJob(raw) {
     else { salaryMin = 70000; salaryMax = 110000; }
   }
 
-  const id = `job-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`;
+  const canonicalHash = generateCanonicalHash(company, title, applyUrl);
+  const id = `job-${canonicalHash.slice(0, 16)}`;
   const baseSlug = `${title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${companySlug}`.replace(/--+/g, "-").replace(/^-|-$/g, "").slice(0, 70);
-  const idHash = crypto.createHash("md5").update(id).digest("hex").slice(0, 6);
+  const idHash = canonicalHash.slice(0, 6);
   const slug = `${baseSlug || "job"}-${idHash}`;
   let location = raw.candidate_required_location || raw.location || (workplaceType === "remote" ? "Worldwide" : "On-site");
-  const postedAt = raw.posted_at || new Date().toISOString();
+  let postedAt = raw.posted_at || new Date().toISOString();
+  try {
+    const parsedTime = new Date(postedAt).getTime();
+    if (isNaN(parsedTime) || parsedTime > Date.now() + 60000) {
+      postedAt = new Date().toISOString();
+    } else {
+      postedAt = new Date(parsedTime).toISOString();
+    }
+  } catch {
+    postedAt = new Date().toISOString();
+  }
   const description = cleanHtmlDescription(raw.description) || `Join ${company} as ${title}. We offer competitive compensation with transparent salaries, generous benefits, and strong career progression.`;
   const companyWebsite = raw.url || "https://remoteworkdaily.com";
 
@@ -411,29 +422,42 @@ async function runScrape() {
   const rawJobs = [];
   const sources = { arbeitnow: 0, wwr: 0, jobicy: 0, remoteok: 0, remotive: 0, himalayas: 0, reliefweb: 0, ats: 0 };
 
-  // 1. Arbeitnow Multi-Page High-Capacity
-  const pagePromises = Array.from({ length: pagesNeeded }, (_, i) => i + 1).map(async (p) => {
-    try {
-      const res = await fetch(`https://arbeitnow.com/api/job-board-api?page=${p}`, {
-        headers: { "User-Agent": USER_AGENT },
-      });
-      if (!res.ok) return [];
-      const json = await res.json();
-      return (json.data || []).map((item) => ({
-        title: item.title,
-        company_name: item.company_name,
-        url: item.url,
-        apply_url: item.url,
-        tags: item.tags || [],
-        location: item.location || (item.remote ? "Worldwide" : "On-site"),
-        description: item.description,
-        posted_at: item.created_at ? new Date(item.created_at * 1000).toISOString() : undefined,
-        remote: Boolean(item.remote),
-      }));
-    } catch {
-      return [];
+  // 1. Arbeitnow Multi-Page High-Capacity (batched to avoid 429 rate limits)
+  const arbeitnowPromise = (async () => {
+    const out = [];
+    const pageNumbers = Array.from({ length: pagesNeeded }, (_, i) => i + 1);
+    const BATCH_SIZE = 3;
+    for (let i = 0; i < pageNumbers.length; i += BATCH_SIZE) {
+      const chunk = pageNumbers.slice(i, i + BATCH_SIZE);
+      const chunkRes = await Promise.all(
+        chunk.map(async (p) => {
+          try {
+            const res = await fetch(`https://arbeitnow.com/api/job-board-api?page=${p}`, {
+              headers: { "User-Agent": USER_AGENT, "Accept": "application/json" },
+              signal: AbortSignal.timeout(12000),
+            });
+            if (!res.ok) return [];
+            const json = await res.json();
+            return (json.data || []).map((item) => ({
+              title: item.title,
+              company_name: item.company_name,
+              url: item.url,
+              apply_url: item.url,
+              tags: item.tags || [],
+              location: item.location || (item.remote ? "Worldwide" : "On-site"),
+              description: item.description,
+              posted_at: item.created_at ? new Date(item.created_at * 1000).toISOString() : undefined,
+              remote: Boolean(item.remote),
+            }));
+          } catch {
+            return [];
+          }
+        })
+      );
+      for (const group of chunkRes) out.push(...group);
     }
-  });
+    return out;
+  })();
 
   // 2. WeWorkRemotely RSS (8 categories)
   const wwrPromise = (async () => {
@@ -686,24 +710,79 @@ async function runScrape() {
         }
       } catch {}
     }
+    const leverCompanies = [
+      { slug: "buffer", name: "Buffer" },
+      { slug: "kinsta", name: "Kinsta" },
+      { slug: "postman", name: "Postman" },
+      { slug: "sourcegraph", name: "Sourcegraph" },
+      { slug: "rover", name: "Rover" },
+    ];
+    for (const c of leverCompanies) {
+      try {
+        const res = await fetch(`https://api.lever.co/v0/postings/${c.slug}?mode=json`, { headers: { "User-Agent": USER_AGENT } });
+        if (!res.ok) continue;
+        const json = await res.json();
+        for (const it of (Array.isArray(json) ? json : [])) {
+          out.push({
+            title: it.text,
+            company_name: c.name,
+            url: it.hostedUrl || it.applyUrl,
+            apply_url: it.applyUrl || it.hostedUrl,
+            location: it.categories?.location || "Worldwide",
+            description: cleanHtmlDescription(it.descriptionPlain || it.description),
+            posted_at: it.createdAt ? new Date(it.createdAt).toISOString() : new Date().toISOString(),
+            remote: true,
+            source: "ats",
+            ats_provider: "lever",
+            is_direct_company_post: true,
+            tags: ["Direct ATS", "Company Careers", c.name],
+          });
+        }
+      } catch {}
+    }
+
     return out;
   })();
 
+  // 8. Himalayas
+  const himalayasPromise = (async () => {
+    try {
+      const res = await fetch("https://himalayas.app/jobs/api?limit=50", { headers: { "User-Agent": USER_AGENT } });
+      if (!res.ok) return [];
+      const json = await res.json();
+      return (json.jobs || []).map((it) => ({
+        title: it.title,
+        company_name: it.companyName,
+        url: it.applicationLink || it.url,
+        apply_url: it.applicationLink || it.url,
+        tags: it.categories || [],
+        location: Array.isArray(it.locationRestrictions) && it.locationRestrictions.length > 0 ? it.locationRestrictions.join(", ") : "Worldwide",
+        salary_min: it.minSalary,
+        salary_max: it.maxSalary,
+        description: it.description,
+        posted_at: it.pubDate,
+        remote: true,
+      }));
+    } catch {
+      return [];
+    }
+  })();
+
   // Run all in parallel
-  const [arbeitnowResults, wwrList, jobicyList, remoteokList, remotiveList, reliefWebList, atsList] = await Promise.all([
-    Promise.all(pagePromises),
+  const [arbeitnowList, wwrList, jobicyList, remoteokList, remotiveList, reliefWebList, atsList, himalayasList] = await Promise.all([
+    arbeitnowPromise,
     wwrPromise,
     jobicyPromise,
     remoteokPromise,
     remotivePromise,
     reliefWebPromise,
     atsPromise,
+    himalayasPromise,
   ]);
 
-  for (const group of arbeitnowResults) {
-    sources.arbeitnow += group.length;
-    for (const it of group) rawJobs.push(it);
-  }
+  sources.arbeitnow = arbeitnowList.length;
+  for (const it of arbeitnowList) rawJobs.push(it);
+
   sources.wwr = wwrList.length;
   for (const it of wwrList) rawJobs.push(it);
 
@@ -715,6 +794,9 @@ async function runScrape() {
 
   sources.remotive = remotiveList.length;
   for (const it of remotiveList) rawJobs.push(it);
+
+  sources.himalayas = himalayasList.length;
+  for (const it of himalayasList) rawJobs.push(it);
 
   sources.reliefweb = reliefWebList.length;
   for (const it of reliefWebList) rawJobs.push(it);
@@ -729,7 +811,8 @@ async function runScrape() {
   console.log(`      • Jobicy: ${sources.jobicy}`);
   console.log(`      • RemoteOK: ${sources.remoteok}`);
   console.log(`      • Remotive: ${sources.remotive}`);
-  console.log(`      • Direct ATS (Greenhouse/Ashby): ${sources.ats}`);
+  console.log(`      • Himalayas: ${sources.himalayas}`);
+  console.log(`      • Direct ATS (Greenhouse/Lever/Ashby): ${sources.ats}`);
 
   console.log(`[3/4] Normalizing data and deduplicating via SHA-256 canonicalHash...`);
   const seenHashes = new Set();
@@ -743,6 +826,9 @@ async function runScrape() {
     seenHashes.add(normalized.canonicalHash);
     normalizedJobs.push(normalized);
   }
+
+  // Sort newly scraped jobs newest first so topNewJobs in notifications are the freshest
+  normalizedJobs.sort((a, b) => (new Date(b.postedAt).getTime() || 0) - (new Date(a.postedAt).getTime() || 0));
 
   console.log(`[4/4] Writing ${normalizedJobs.length} deduplicated listings to database repository...`);
 
@@ -766,7 +852,13 @@ async function runScrape() {
   for (const job of normalizedJobs) {
     if (existingHashMap.has(job.canonicalHash)) {
       const idx = existingHashMap.get(job.canonicalHash);
-      existingJobs[idx] = { ...existingJobs[idx], ...job };
+      const existing = existingJobs[idx];
+      existingJobs[idx] = {
+        ...existing,
+        ...job,
+        id: existing.id || job.id,
+        slug: existing.slug || job.slug,
+      };
       updated++;
     } else {
       toPrepend.push(job);
@@ -775,6 +867,9 @@ async function runScrape() {
   }
 
   const merged = [...toPrepend, ...existingJobs];
+  // Strictly sort by postedAt descending so today's newest jobs are always at the top
+  merged.sort((a, b) => (new Date(b.postedAt).getTime() || 0) - (new Date(a.postedAt).getTime() || 0));
+
   // Sliding window of latest 12,000 active listings
   const MAX_JOBS = 12000;
   const pruned = merged.length > MAX_JOBS ? merged.slice(0, MAX_JOBS) : merged;
@@ -786,6 +881,8 @@ async function runScrape() {
     lastSyncDate: new Date().toISOString().split("T")[0],
     lastSyncTimestamp: Date.now(),
     syncedCount: normalizedJobs.length,
+    addedCount: added,
+    updatedCount: updated,
     source: "universal-multi-source",
     targetCount: TARGET_COUNT,
     sources,
@@ -800,8 +897,9 @@ async function runScrape() {
   console.log(`   ${pruned.length} total active verified listings in database`);
   console.log(`========================================================\n`);
 
-  // Sync newly ingested jobs to Supabase
-  if (supabase && normalizedJobs.length > 0) {
+  // Sync newly ingested jobs to Supabase (requires SUPABASE_SERVICE_ROLE_KEY or write RLS permission)
+  const hasServiceKey = Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY?.trim());
+  if (supabase && hasServiceKey && normalizedJobs.length > 0) {
     console.log(`[Supabase] Syncing ${normalizedJobs.length} ingested jobs to Supabase cloud...`);
     const CHUNK_SIZE = 100;
     let supaSuccess = 0;
@@ -847,7 +945,7 @@ async function runScrape() {
       }));
 
       try {
-        const { error } = await supabase.from("jobs").upsert(records, { onConflict: "id" });
+        const { error } = await supabase.from("jobs").upsert(records, { onConflict: "canonical_hash" });
         if (!error) {
           supaSuccess += chunk.length;
         } else {
@@ -876,7 +974,7 @@ async function runScrape() {
       }
 
     if (chatId) {
-      console.log(`[Telegram] Dispatching admin scrape summary to chat ${chatId}...`);
+      console.log(`[Telegram] Dispatching admin scrape summary & cron report to chat ${chatId}...`);
       const isHybrid = (j) => j.workArrangement === "hybrid_high_pay" || j.workplaceType === "hybrid";
       let remoteCount = 0;
       let hybridCount = 0;
@@ -887,28 +985,66 @@ async function runScrape() {
         if (j.employerEmail) emailsExtracted++;
       }
 
-      const alertMsg = [
-        `🤖 <b>Scrape Complete:</b> +${remoteCount} Remote Jobs, +${hybridCount} High-Paying Hybrid Jobs added. ${emailsExtracted} Employer Emails extracted.`,
+      const escapeHtml = (str) =>
+        String(str || "")
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;");
+
+      const topJobsFormatted = pruned
+        .slice(0, 5)
+        .map((j, i) => {
+          const wp = j.workplaceType ? `[${j.workplaceType.toUpperCase()}] ` : "";
+          const sal = j.salaryMin && j.salaryMax ? ` • 💰 <i>$${j.salaryMin.toLocaleString()} - $${j.salaryMax.toLocaleString()}</i>` : "";
+          const loc = j.location ? ` • 📍 ${escapeHtml(j.location)}` : "";
+          const url = `https://www.remoteworkdaily.com/jobs/${j.id}/${j.slug}`;
+          return `${i + 1}. <a href="${url}"><b>${escapeHtml(j.title)}</b></a>\n   🏢 <b>${escapeHtml(j.company)}</b> ${wp}${sal}${loc}`;
+        })
+        .join("\n\n");
+
+      const sourcesBreakdown = Object.entries(sources)
+        .filter(([, count]) => count > 0)
+        .map(([name, count]) => `• ${name}: <b>${count.toLocaleString()}</b>`)
+        .join("\n");
+
+      const cronSyncMsg = [
+        `🚀 <b>Remote Work Daily — Job Ingestion Completed!</b>`,
+        `━━━━━━━━━━━━━━━━━━━━`,
+        `📥 <b>Newly Ingested:</b> +${added.toLocaleString()} jobs`,
+        `🔄 <b>Updated / Refreshed:</b> ${updated.toLocaleString()} jobs`,
+        `🌐 <b>Breakdown:</b> +${remoteCount.toLocaleString()} Remote • +${hybridCount.toLocaleString()} Hybrid ($90k+)`,
+        `📧 <b>Employer Emails:</b> ${emailsExtracted.toLocaleString()} extracted`,
         `📊 <b>Total Active Listings:</b> ${pruned.length.toLocaleString()}`,
         `⏱ <b>Duration:</b> ${durationSec}s`,
-      ].join("\n");
+        `━━━━━━━━━━━━━━━━━━━━`,
+        topJobsFormatted ? `💼 <b>Top Fresh Roles Harvested:</b>\n\n${topJobsFormatted}\n━━━━━━━━━━━━━━━━━━━━` : null,
+        sourcesBreakdown ? `📈 <b>Harvested Sources:</b>\n${sourcesBreakdown}\n━━━━━━━━━━━━━━━━━━━━` : null,
+        `🌐 <a href="https://www.remoteworkdaily.com">Browse Latest Jobs on Board &rarr;</a>`,
+      ]
+        .filter(Boolean)
+        .join("\n");
 
       const tgRes = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           chat_id: chatId,
-          text: alertMsg,
+          text: cronSyncMsg,
           parse_mode: "HTML",
           disable_web_page_preview: true,
           reply_markup: {
             inline_keyboard: [
               [
-                { text: "👀 Review Pending Jobs", callback_data: "admin_review_jobs" },
-                { text: "📧 Blast $199 B2B Pitch to New Emails", callback_data: "admin_blast_b2b" },
+                { text: "⚡ Trigger Scraper Now", callback_data: "cmd_scrape" },
+                { text: "🔥 Latest 5 Jobs", callback_data: "cmd_latest" },
               ],
               [
-                { text: "📊 Today's Revenue & Signups", callback_data: "admin_revenue_stats" },
+                { text: "👀 Review Pending Jobs", callback_data: "admin_review_jobs" },
+                { text: "📧 Blast $199 B2B Pitch", callback_data: "admin_blast_b2b" },
+              ],
+              [
+                { text: "📊 Board Stats", callback_data: "cmd_stats" },
+                { text: "🌐 Open RemoteWorkDaily", url: "https://www.remoteworkdaily.com" },
               ],
             ],
           },

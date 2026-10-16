@@ -82,8 +82,8 @@ async function handleDailyDigest(request: Request) {
       }
     }
 
-    // Notify Telegram bot of daily digest delivery
-    sendTelegramNotification(
+    // Notify Telegram bot of daily digest delivery (awaited for serverless completion)
+    await sendTelegramNotification(
       `📬 <b>Daily Job Digest Dispatched!</b>\n` +
       `━━━━━━━━━━━━━━━━━━━━\n` +
       `👥 <b>Subscribers:</b> ${subscribers.length}\n` +
