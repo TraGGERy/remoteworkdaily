@@ -6,7 +6,6 @@ import { AppAuthProvider } from "@/components/auth/auth-provider";
 import { ThemeProvider } from "@/components/theme/theme-provider";
 import { SiteChrome } from "@/components/navigation/site-chrome";
 import { generateWebsiteSchema, generateFAQSchema } from "@/lib/seo";
-import { GoogleAnalytics } from "@next/third-parties/google";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -101,6 +100,22 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
+        {/* Google tag (gtag.js) */}
+        <script
+          async
+          src="https://www.googletagmanager.com/gtag/js?id=G-9ZNPVPWNT8"
+        />
+        <script
+          id="google-tag-init"
+          dangerouslySetInnerHTML={{
+            __html: `
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments);}
+              gtag('js', new Date());
+              gtag('config', 'G-9ZNPVPWNT8');
+            `,
+          }}
+        />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteSchema) }}
@@ -120,7 +135,6 @@ export default function RootLayout({
             </ThemeProvider>
           </AppAuthProvider>
         </ClerkProvider>
-        <GoogleAnalytics gaId="G-9ZNPVPWNT8" />
       </body>
     </html>
   );
