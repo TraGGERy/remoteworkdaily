@@ -56,6 +56,12 @@ export function Header() {
           >
             Product & Ops
           </Link>
+          <Link
+            href="/tools/cv-tailor"
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-red-50 dark:bg-red-950/60 border border-red-200 dark:border-red-900/60 text-xs font-bold text-[#FF4742] hover:bg-red-100 transition-colors"
+          >
+            <span>✨ AI CV Tailor</span>
+          </Link>
         </nav>
 
         {/* Right: Actions */}
@@ -115,6 +121,13 @@ export function Header() {
               className="p-3 min-h-[44px] flex items-center rounded-xl bg-neutral-50 dark:bg-neutral-900 font-semibold text-neutral-800 dark:text-neutral-200"
             >
               ⚡ Product & Ops
+            </Link>
+            <Link
+              href="/tools/cv-tailor"
+              onClick={() => setMobileMenuOpen(false)}
+              className="p-3 min-h-[44px] flex items-center gap-2 rounded-xl bg-red-50 dark:bg-red-950/40 font-bold text-[#FF4742] col-span-2 border border-red-200 dark:border-red-900/60"
+            >
+              <span>✨ AI CV & Cover Letter Studio (PDF)</span>
             </Link>
           </div>
           <div className="pt-3 border-t border-neutral-200 dark:border-neutral-800 flex justify-center">
