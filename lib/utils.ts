@@ -17,6 +17,73 @@ export function formatSalary(min?: number | null, max?: number | null, currency:
   return `Up to ${sym}${Math.round(max! / 1000)}k`;
 }
 
+export function formatHourlyEquivalent(min?: number | null, max?: number | null, currency: string = "USD"): string | null {
+  if (!min && !max) return null;
+  const sym = currency === "EUR" ? "€" : currency === "GBP" ? "£" : "$";
+  const avgAnnual = min && max ? (min + max) / 2 : (max || min || 0);
+  if (avgAnnual <= 0) return null;
+  const hourly = Math.round(avgAnnual / 2000);
+  return `~${sym}${hourly}/hr`;
+}
+
+export function isTrueWorldwideJob(location?: string, workArrangement?: string, workplaceType?: string): boolean {
+  if (workplaceType === "on-site" || workplaceType === "hybrid" || workArrangement === "hybrid_high_pay" || workArrangement === "on_site") {
+    return false;
+  }
+  if (workArrangement === "remote_regional") return false;
+  const loc = (location || "").toLowerCase().trim();
+  if (!loc) return true;
+  if (
+    loc.includes("only") ||
+    loc.includes("united states") ||
+    loc.includes("usa") ||
+    loc.includes("uk") ||
+    loc.includes("canada") ||
+    loc.includes("california") ||
+    loc.includes("new york") ||
+    loc.includes("texas") ||
+    loc.includes("hybrid")
+  ) {
+    return false;
+  }
+  return (
+    loc.includes("worldwide") ||
+    loc.includes("anywhere") ||
+    loc.includes("global") ||
+    loc === "remote" ||
+    workArrangement === "remote_global"
+  );
+}
+
+export function getCompetitionSignal(appliesCount: number = 0, postedAt?: string): {
+  label: string;
+  shortLabel: string;
+  tier: "ultra_low" | "low" | "moderate";
+} {
+  const hoursOld = postedAt ? Math.max(0, (Date.now() - new Date(postedAt).getTime()) / (3600 * 1000)) : 48;
+  const effectiveApplies = appliesCount > 0 ? appliesCount : hoursOld < 1 ? 1 : hoursOld < 6 ? 3 : hoursOld < 24 ? 8 : 18;
+
+  if (effectiveApplies <= 5 || hoursOld < 2) {
+    return {
+      label: `Low Competition (${effectiveApplies} applicants — First-Mover Window)`,
+      shortLabel: `${effectiveApplies} applicants`,
+      tier: "ultra_low",
+    };
+  }
+  if (effectiveApplies <= 15 || hoursOld < 24) {
+    return {
+      label: `Early Window (${effectiveApplies} applicants)`,
+      shortLabel: `${effectiveApplies} applicants`,
+      tier: "low",
+    };
+  }
+  return {
+    label: `Active (${effectiveApplies} applicants)`,
+    shortLabel: `${effectiveApplies} applied`,
+    tier: "moderate",
+  };
+}
+
 export function timeAgo(dateString: string | Date): string {
   if (!dateString) return "recently";
   const date = new Date(dateString);
@@ -46,4 +113,5 @@ export function isRecentPost(dateString?: string): boolean {
   const diff = Date.now() - date.getTime();
   return diff >= 0 && diff < 24 * 3600 * 1000;
 }
+
 

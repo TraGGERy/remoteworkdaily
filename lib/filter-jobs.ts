@@ -1,8 +1,9 @@
 import { Job, FilterState } from "./types";
+import { isTrueWorldwideJob } from "./utils";
 
 export function filterJobs(jobs: Job[], filters: Partial<FilterState>): Job[] {
   // Only display active jobs
-  let result = jobs.filter((job) => job.status !== "pending_payment" && job.status !== "archived");
+  let result = jobs.filter((job) => job.status !== "pending_payment" && job.status !== "archived" && job.isActive !== false);
 
   // 1. Search Query (title, company, description, tags)
   if (filters.query && filters.query.trim()) {
@@ -78,14 +79,43 @@ export function filterJobs(jobs: Job[], filters: Partial<FilterState>): Job[] {
     );
   }
 
-  // 6.6 Freshness Filter (e.g. 24h or 7d)
+  // 6.6 Freshness Filter (1h, 6h, 24h, or 7d — Minutes-Old Job Hack)
   if (filters.freshness && filters.freshness !== "all") {
     const now = Date.now();
-    const cutoffHours = filters.freshness === "24h" ? 24 : 168; // 24 hours or 7 days
+    const cutoffHours =
+      filters.freshness === "1h"
+        ? 1
+        : filters.freshness === "6h"
+        ? 6
+        : filters.freshness === "24h"
+        ? 24
+        : 168; // 7 days
     const cutoffMs = cutoffHours * 60 * 60 * 1000;
     result = result.filter((job) => {
       const jobTime = new Date(job.postedAt).getTime();
       return !isNaN(jobTime) && now - jobTime <= cutoffMs;
+    });
+  }
+
+  // 6.7 Transparent Pay Only (Eliminate hidden salary range jobs)
+  if (filters.transparentPayOnly) {
+    result = result.filter((job) => (job.salaryMin && job.salaryMin > 0) || (job.salaryMax && job.salaryMax > 0));
+  }
+
+  // 6.8 100% True Worldwide Only (No sneaky US-only or hybrid traps)
+  if (filters.worldwideOnly) {
+    result = result.filter((job) =>
+      isTrueWorldwideJob(job.location, job.workArrangement, job.workplaceType)
+    );
+  }
+
+  // 6.9 Low Competition Only (<15 applicants or posted in last 24h)
+  if (filters.lowCompetitionOnly) {
+    const now = Date.now();
+    result = result.filter((job) => {
+      const jobTime = new Date(job.postedAt).getTime();
+      const isUnder24h = !isNaN(jobTime) && now - jobTime <= 24 * 3600 * 1000;
+      return (job.appliesCount || 0) <= 15 || isUnder24h;
     });
   }
 

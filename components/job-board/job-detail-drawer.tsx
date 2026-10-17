@@ -2,7 +2,13 @@
 
 import React, { useState } from "react";
 import { Job } from "@/lib/types";
-import { formatSalary, timeAgo } from "@/lib/utils";
+import {
+  formatSalary,
+  formatHourlyEquivalent,
+  isTrueWorldwideJob,
+  getCompetitionSignal,
+  timeAgo,
+} from "@/lib/utils";
 import { BENEFITS_LIST } from "@/lib/constants";
 import {
   Bookmark,
@@ -13,6 +19,8 @@ import {
   X,
   Copy,
   Check,
+  ShieldCheck,
+  Users,
 } from "lucide-react";
 import { WorkInformation } from "./work-information";
 import { GatedApplyAction } from "./gated-apply-action";
@@ -37,6 +45,9 @@ export function JobDetailDrawer({
   const [bookmarked, setBookmarked] = useState(false);
 
   const salaryText = formatSalary(job.salaryMin, job.salaryMax, job.salaryCurrency);
+  const hourlyText = formatHourlyEquivalent(job.salaryMin, job.salaryMax, job.salaryCurrency);
+  const isWorldwide = isTrueWorldwideJob(job.location, job.workArrangement, job.workplaceType);
+  const competition = getCompetitionSignal(job.appliesCount, job.postedAt);
   const isEarlyAccess = Boolean(
     job.postedAt && Date.now() - new Date(job.postedAt).getTime() < 6 * 3600 * 1000
   );
@@ -89,11 +100,19 @@ export function JobDetailDrawer({
               <span className={`inline-flex items-center gap-1 font-bold px-2 py-0.5 rounded-md border text-[11px] ${
                 job.workplaceType === "on-site"
                   ? "bg-blue-50 dark:bg-blue-950/70 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800"
-                  : job.workplaceType === "hybrid"
+                  : job.workplaceType === "hybrid" || job.workArrangement === "hybrid_high_pay"
                   ? "bg-purple-50 dark:bg-purple-950/70 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800"
-                  : "bg-emerald-50 dark:bg-emerald-950/70 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800"
+                  : isWorldwide
+                  ? "bg-emerald-50 dark:bg-emerald-950/70 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800"
+                  : "bg-teal-50 dark:bg-teal-950/70 text-teal-800 dark:text-teal-300 border-teal-200 dark:border-teal-800"
               }`}>
-                {job.workplaceType === "on-site" ? "🏢 On-site" : job.workplaceType === "hybrid" ? "🔀 Hybrid" : "🌐 Remote"}
+                {job.workplaceType === "on-site"
+                  ? "🏢 On-site"
+                  : job.workplaceType === "hybrid" || job.workArrangement === "hybrid_high_pay"
+                  ? `🔀 Hybrid ${job.daysInOffice ? `(${job.daysInOffice})` : ""}`
+                  : isWorldwide
+                  ? "🌍 100% Worldwide (Anywhere)"
+                  : "📍 Regional Remote"}
               </span>
               <span className="flex items-center gap-1">
                 {job.workplaceType === "on-site" || job.workplaceType === "hybrid" ? (
@@ -106,6 +125,7 @@ export function JobDetailDrawer({
               <span>•</span>
               <span className="font-bold text-emerald-600 dark:text-emerald-400 tabular-nums">
                 {salaryText}
+                {hourlyText ? ` (${hourlyText})` : ""}
               </span>
               <span>•</span>
               <span>Posted {timeAgo(job.postedAt)}</span>
@@ -141,6 +161,59 @@ export function JobDetailDrawer({
           >
             <X className="w-4 h-4" />
           </button>
+        </div>
+      </div>
+
+      {/* Anti-Ghost Transparency & Competition Scorecard */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 py-4 border-b border-neutral-200 dark:border-neutral-800">
+        <div className="p-2.5 rounded-xl bg-neutral-50 dark:bg-neutral-950/60 border border-neutral-200/80 dark:border-neutral-800">
+          <div className="text-[10px] font-extrabold uppercase tracking-wider text-neutral-400">
+            Remote Truth Check
+          </div>
+          <div className="text-xs font-bold text-neutral-900 dark:text-white mt-0.5">
+            {job.workplaceType === "hybrid" || job.workArrangement === "hybrid_high_pay"
+              ? `🔀 Hybrid (${job.daysInOffice || "2-3d in office"})`
+              : isWorldwide
+              ? "🌍 100% Anywhere (Zero Geo Trap)"
+              : `📍 Regional (${job.location})`}
+          </div>
+        </div>
+
+        <div className="p-2.5 rounded-xl bg-neutral-50 dark:bg-neutral-950/60 border border-neutral-200/80 dark:border-neutral-800">
+          <div className="text-[10px] font-extrabold uppercase tracking-wider text-neutral-400">
+            Upfront Pay Rate
+          </div>
+          <div className="text-xs font-bold text-emerald-600 dark:text-emerald-400 mt-0.5 tabular-nums">
+            {salaryText} {hourlyText ? `• ${hourlyText}` : ""}
+          </div>
+        </div>
+
+        <div className="p-2.5 rounded-xl bg-neutral-50 dark:bg-neutral-950/60 border border-neutral-200/80 dark:border-neutral-800">
+          <div className="text-[10px] font-extrabold uppercase tracking-wider text-neutral-400">
+            Applicant Competition
+          </div>
+          <div
+            className={`text-xs font-bold mt-0.5 flex items-center gap-1 ${
+              competition.tier === "ultra_low"
+                ? "text-emerald-600 dark:text-emerald-400"
+                : competition.tier === "low"
+                ? "text-amber-600 dark:text-amber-400"
+                : "text-neutral-700 dark:text-neutral-300"
+            }`}
+          >
+            <Users className="w-3.5 h-3.5 shrink-0" />
+            <span className="truncate">{competition.shortLabel} (Early Window)</span>
+          </div>
+        </div>
+
+        <div className="p-2.5 rounded-xl bg-neutral-50 dark:bg-neutral-950/60 border border-neutral-200/80 dark:border-neutral-800">
+          <div className="text-[10px] font-extrabold uppercase tracking-wider text-neutral-400">
+            Application Portal
+          </div>
+          <div className="text-xs font-bold text-sky-600 dark:text-sky-400 mt-0.5 flex items-center gap-1">
+            <ShieldCheck className="w-3.5 h-3.5 shrink-0" />
+            <span className="truncate">Direct Career Portal (0 Fees)</span>
+          </div>
         </div>
       </div>
 

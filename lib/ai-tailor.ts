@@ -50,6 +50,22 @@ export interface InterviewBridgeItem {
   suggestedAnswer: string;
 }
 
+export interface LoomPitchData {
+  hook: string;
+  problemAndProof: string;
+  callToAction: string;
+  fullScript: string;
+  visualCues: string[];
+}
+
+export interface SniperOutreachData {
+  ceoDm: string;
+  hiringManagerEmail: string;
+  subjectLines: string[];
+  linkedinHiringManagerUrl: string;
+  linkedinRecruiterUrl: string;
+}
+
 export interface TailoredApplicationData {
   candidate: {
     fullName: string;
@@ -77,6 +93,8 @@ export interface TailoredApplicationData {
     drafterReviewerNotes: string[];
   };
   interviewPrep: InterviewBridgeItem[];
+  loomPitch?: LoomPitchData;
+  sniperOutreach?: SniperOutreachData;
   coverLetter: {
     date: string;
     recipientTitle: string;
@@ -955,6 +973,43 @@ export function tailorApplication(
 
   const interviewPrep = generateInterviewPrep(jobTitle, company, matchedKeywords, missingKeywords);
 
+  const topSkillsPhrase = formattedMatched.slice(0, 3).join(", ") || "scalable systems and distributed execution";
+  const primaryWinBullet =
+    experiences[0]?.bullets?.[0] ||
+    `architected and shipped production systems using ${topSkillsPhrase} with measurable improvements in reliability and delivery speed`;
+
+  const loomHook = `Hi ${company} team — I'm ${resolvedCandidate.fullName}. Instead of just dropping another static PDF into your inbox for the ${jobTitle} role, I wanted to share a 60-second walkthrough of how my background maps directly to what you're building.`;
+  const loomProblemAndProof = `Looking at your requirements around ${topSkillsPhrase}, this is the exact environment I thrive in. Recently, I ${primaryWinBullet.charAt(0).toLowerCase() + primaryWinBullet.slice(1)} I love working in high-ownership remote teams where clear written RFCs and fast iteration matter.`;
+  const loomCallToAction = `I've submitted my tailored CV and cover letter through your portal, and I have my screen open here to show a quick architecture example. I'd love to jump on a 10-minute intro call this week — thanks for watching!`;
+
+  const loomPitch: LoomPitchData = {
+    hook: loomHook,
+    problemAndProof: loomProblemAndProof,
+    callToAction: loomCallToAction,
+    fullScript: `[0:00 - 0:15 • THE HOOK]\n"${loomHook}"\n\n[0:15 - 0:45 • THE PROOF & EXECUTION]\n"${loomProblemAndProof}"\n\n[0:45 - 1:00 • CALL TO ACTION]\n"${loomCallToAction}"`,
+    visualCues: [
+      `0:00–0:15: Start with ${company}'s product homepage or job posting open on screen so the thumbnail immediately shows their brand.`,
+      `0:15–0:45: Switch tab to your tailored CV, GitHub repo, or live project highlighting ${topSkillsPhrase}.`,
+      `0:45–1:00: Smile, keep energy high, and paste the Loom link at the top of your Sniper DM or email.`
+    ]
+  };
+
+  const sniperOutreach: SniperOutreachData = {
+    ceoDm: `Hi [Name] — saw ${company} is hiring a ${jobTitle}. I've been shipping production systems with ${topSkillsPhrase} and recorded a quick 60-sec breakdown of how I can contribute in my first 30 days. Just applied via your portal — open to a quick 5-min chat this week? — ${resolvedCandidate.fullName}`,
+    hiringManagerEmail: `Hi [Hiring Manager Name],\n\nI just applied for the ${jobTitle} role at ${company} and wanted to reach out directly before your ATS queue fills up.\n\nMy recent work centers on ${topSkillsPhrase} — specifically, I ${primaryWinBullet.charAt(0).toLowerCase() + primaryWinBullet.slice(1)}\n\nI attached my tailored CV & cover letter (and can share a 60-second Loom walkthrough if helpful). Would love to connect for 10 minutes this week.\n\nBest regards,\n${resolvedCandidate.fullName}\n${resolvedCandidate.email} | ${resolvedCandidate.linkedinUrl}`,
+    subjectLines: [
+      `${jobTitle} at ${company} — ${topSkillsPhrase} & 30-Day Impact`,
+      `Quick 60s Loom for ${company}'s ${jobTitle} role (${resolvedCandidate.fullName})`,
+      `${resolvedCandidate.fullName} // ${jobTitle} Application (${matchScore}% Stack Match)`
+    ],
+    linkedinHiringManagerUrl: `https://www.linkedin.com/search/results/people/?keywords=${encodeURIComponent(
+      `${company} ("Head of Engineering" OR "Engineering Manager" OR "CTO" OR "VP" OR "Founder")`
+    )}`,
+    linkedinRecruiterUrl: `https://www.linkedin.com/search/results/people/?keywords=${encodeURIComponent(
+      `${company} ("Technical Recruiter" OR "Talent Acquisition" OR "Head of People")`
+    )}`
+  };
+
   return {
     candidate: resolvedCandidate,
     job: {
@@ -969,6 +1024,8 @@ export function tailorApplication(
     fitBreakdown,
     atsAnalysis,
     interviewPrep,
+    loomPitch,
+    sniperOutreach,
     coverLetter: {
       date: coverLetter.date,
       recipientTitle: `Hiring Team, ${company}`,

@@ -146,3 +146,17 @@ test("AI CV Tailor: jsPDF binary generator produces valid PDF with %PDF- header 
   assert.equal(header, "%PDF-", "Generated document starts with %PDF- magic bytes");
   assert.equal(doc.getNumberOfPages(), 2, "PDF has 2 pages (Cover letter + CV)");
 });
+
+test("Anti-Ghost & Unfair Advantage Suite: Loom pitch script, Sniper outreach, and transparency filters exist", () => {
+  const root = process.cwd();
+  const aiTailorSrc = fs.readFileSync(path.join(root, "lib/ai-tailor.ts"), "utf-8");
+  const filterBarSrc = fs.readFileSync(path.join(root, "components/job-board/filter-bar.tsx"), "utf-8");
+  const hrCardSrc = fs.readFileSync(path.join(root, "components/job-board/hr-contact-card.tsx"), "utf-8");
+  const hybridClassifierSrc = fs.readFileSync(path.join(root, "lib/scrapers/hybrid-classifier.ts"), "utf-8");
+
+  assert.ok(aiTailorSrc.includes("loomPitch") && aiTailorSrc.includes("sniperOutreach"), "lib/ai-tailor.ts generates 60s Loom pitch and Sniper outreach");
+  assert.ok(filterBarSrc.includes("worldwideOnly") && filterBarSrc.includes("transparentPayOnly") && filterBarSrc.includes("lowCompetitionOnly"), "FilterBar exposes Worldwide, Upfront Salary, and Low Competition toggles");
+  assert.ok(hrCardSrc.includes("hiringManagerSearchUrl") && hrCardSrc.includes("loom_pitch"), "HrContactCard includes LinkedIn Decision Maker search and Loom pitch template");
+  assert.ok(hybridClassifierSrc.includes("isSneakyHybridClause") && hybridClassifierSrc.includes("verifyJobUrlHealth"), "hybrid-classifier detects sneaky hybrid clauses and verifies ATS URL health");
+});
+

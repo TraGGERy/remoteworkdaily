@@ -2,8 +2,15 @@
 
 import React from "react";
 import { Job } from "@/lib/types";
-import { formatSalary, timeAgo, isRecentPost } from "@/lib/utils";
-import { CheckCircle, Globe, MapPin, DollarSign, Pin, Sparkles, Lock, Flame } from "lucide-react";
+import {
+  formatSalary,
+  formatHourlyEquivalent,
+  isTrueWorldwideJob,
+  getCompetitionSignal,
+  timeAgo,
+  isRecentPost,
+} from "@/lib/utils";
+import { CheckCircle, Globe, MapPin, DollarSign, Pin, Sparkles, Lock, Flame, Users, ShieldCheck } from "lucide-react";
 import { useSubscription } from "@/components/auth/subscription-context";
 
 interface JobRowProps {
@@ -16,6 +23,10 @@ interface JobRowProps {
 export function JobRow({ job, isSelected, onToggleSelect, onTagClick }: JobRowProps) {
   const { hasActiveSubscription, openUpgradeModal } = useSubscription();
   const salaryText = formatSalary(job.salaryMin, job.salaryMax, job.salaryCurrency);
+  const hourlyText = formatHourlyEquivalent(job.salaryMin, job.salaryMax, job.salaryCurrency);
+  const isWorldwide = isTrueWorldwideJob(job.location, job.workArrangement, job.workplaceType);
+  const competition = getCompetitionSignal(job.appliesCount, job.postedAt);
+  const isDirectAts = Boolean(job.source === "ats" || job.atsProvider || job.isDirectCompanyPost);
   const isNewToday = isRecentPost(job.postedAt);
 
   // 6-Hour Early Access check
@@ -90,13 +101,24 @@ export function JobRow({ job, isSelected, onToggleSelect, onTagClick }: JobRowPr
               <span className="inline-flex items-center gap-1 text-[10px] font-extrabold uppercase px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-950/80 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800/60">
                 🏢 On-site
               </span>
-            ) : job.workplaceType === "hybrid" ? (
+            ) : job.workplaceType === "hybrid" || job.workArrangement === "hybrid_high_pay" ? (
               <span className="inline-flex items-center gap-1 text-[10px] font-extrabold uppercase px-1.5 py-0.5 rounded bg-purple-100 dark:bg-purple-950/80 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800/60">
-                🔀 Hybrid
+                🔀 Hybrid {job.daysInOffice ? `(${job.daysInOffice})` : ""}
+              </span>
+            ) : isWorldwide ? (
+              <span className="inline-flex items-center gap-1 text-[10px] font-extrabold uppercase px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60">
+                🌍 100% Worldwide
               </span>
             ) : (
-              <span className="inline-flex items-center gap-1 text-[10px] font-extrabold uppercase px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60">
-                🌐 Remote
+              <span className="inline-flex items-center gap-1 text-[10px] font-extrabold uppercase px-1.5 py-0.5 rounded bg-teal-100 dark:bg-teal-950/80 text-teal-800 dark:text-teal-300 border border-teal-200 dark:border-teal-800/60">
+                📍 Regional Remote
+              </span>
+            )}
+
+            {isDirectAts && (
+              <span className="hidden sm:inline-flex items-center gap-0.5 text-[10px] font-bold px-1.5 py-0.5 rounded bg-sky-50 dark:bg-sky-950/70 text-sky-700 dark:text-sky-300 border border-sky-200 dark:border-sky-800/60">
+                <ShieldCheck className="w-2.5 h-2.5" />
+                <span>Direct ATS</span>
               </span>
             )}
 
@@ -119,7 +141,7 @@ export function JobRow({ job, isSelected, onToggleSelect, onTagClick }: JobRowPr
             {job.title}
           </h3>
 
-          <div className="flex items-center gap-2 mt-0.5 text-xs text-neutral-500 dark:text-neutral-400 min-w-0">
+          <div className="flex items-center gap-2 mt-0.5 text-xs text-neutral-500 dark:text-neutral-400 min-w-0 flex-wrap">
             <span className="flex items-center gap-1 min-w-0">
               {job.workplaceType === "on-site" || job.workplaceType === "hybrid" ? (
                 <MapPin className="w-3 h-3 text-neutral-400 shrink-0" />
@@ -131,6 +153,20 @@ export function JobRow({ job, isSelected, onToggleSelect, onTagClick }: JobRowPr
             <span className="shrink-0">•</span>
             <span className="font-medium text-emerald-600 dark:text-emerald-400 tabular-nums shrink-0">
               {salaryText}
+              {hourlyText ? <span className="text-[11px] opacity-80 ml-1">({hourlyText})</span> : null}
+            </span>
+            <span className="shrink-0 hidden sm:inline">•</span>
+            <span
+              className={`hidden sm:inline-flex items-center gap-1 text-[11px] font-semibold ${
+                competition.tier === "ultra_low"
+                  ? "text-emerald-600 dark:text-emerald-400"
+                  : competition.tier === "low"
+                  ? "text-amber-600 dark:text-amber-400"
+                  : "text-neutral-500"
+              }`}
+            >
+              <Users className="w-3 h-3" />
+              <span>{competition.shortLabel}</span>
             </span>
           </div>
         </div>
@@ -158,7 +194,9 @@ export function JobRow({ job, isSelected, onToggleSelect, onTagClick }: JobRowPr
         <div className="hidden lg:flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 text-xs font-bold tabular-nums shrink-0">
           <DollarSign className="w-3 h-3" />
           <span>{salaryText}</span>
+          {hourlyText && <span className="text-[10px] font-semibold opacity-75 ml-0.5">{hourlyText}</span>}
         </div>
+
 
         {/* Posted time & apply button */}
         <div className="flex items-center gap-3 shrink-0 ml-auto md:ml-2">

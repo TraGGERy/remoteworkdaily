@@ -48,11 +48,14 @@ export function FilterBar({
     (filters.workplaceType && filters.workplaceType !== "all") ||
     (filters.category && filters.category !== "all") ||
     (filters.freshness && filters.freshness !== "all") ||
-    filters.directAtsOnly;
+    filters.directAtsOnly ||
+    filters.transparentPayOnly ||
+    filters.worldwideOnly ||
+    filters.lowCompetitionOnly;
 
   return (
     <div className="sticky top-16 z-30 w-full bg-white/95 dark:bg-neutral-950/95 backdrop-blur-md border-b border-neutral-200 dark:border-neutral-800 py-2 sm:py-3 transition-colors shadow-sm">
-      <div className="max-w-7xl mx-auto px-3 sm:px-6 min-w-0">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 min-w-0 space-y-2">
         <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 min-w-0">
           {/* Search Input */}
           <div className="relative w-full sm:flex-1 sm:min-w-[200px] min-w-0">
@@ -81,6 +84,31 @@ export function FilterBar({
 
           {/* Filter Chips & Dropdowns */}
           <div className="w-full max-w-full min-w-0 flex items-center gap-1.5 sm:gap-2 overflow-x-auto no-scrollbar scroll-smooth sm:flex-wrap sm:overflow-visible py-0.5 -webkit-overflow-scrolling-touch">
+            {/* Freshness / Minutes-Old Hack Dropdown */}
+            <div className="relative shrink-0">
+              <select
+                value={filters.freshness || "all"}
+                onChange={(e) =>
+                  onUpdateFilters({
+                    freshness: e.target.value as FilterState["freshness"],
+                  })
+                }
+                aria-label="Filter by posting freshness"
+                className={`h-9 pl-3 pr-7 rounded-xl text-xs sm:text-sm font-semibold border transition-all cursor-pointer focus:outline-none appearance-none ${
+                  filters.freshness && filters.freshness !== "all"
+                    ? "bg-orange-50 dark:bg-orange-950/40 text-[#FF4742] dark:text-orange-300 border-[#FF4742] font-bold shadow-sm"
+                    : "bg-white dark:bg-neutral-900 text-neutral-700 dark:text-neutral-300 border-neutral-200 dark:border-neutral-800 hover:border-neutral-400 dark:hover:border-neutral-700"
+                }`}
+              >
+                <option value="all">⏱️ Posted: Any time</option>
+                <option value="1h">🔥 Under 1 Hour (0-5 Applicants)</option>
+                <option value="6h">⚡ Last 6 Hours (Early Bird)</option>
+                <option value="24h">🆕 Past 24 Hours</option>
+                <option value="7d">📅 Past 7 Days</option>
+              </select>
+              <ChevronDown className="w-3.5 h-3.5 text-neutral-400 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
+            </div>
+
             {/* Job Type Dropdown */}
             <div className="relative shrink-0">
               <select
@@ -197,7 +225,71 @@ export function FilterBar({
             )}
           </div>
         </div>
+
+        {/* Row 2: Anti-Ghost & High-Transparency Quick Toggles */}
+        <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto no-scrollbar py-0.5">
+          <span className="text-[10px] font-extrabold uppercase tracking-wider text-neutral-400 dark:text-neutral-500 shrink-0 mr-1 hidden sm:inline">
+            Anti-Ghost Filters:
+          </span>
+
+          {/* 100% True Worldwide Toggle */}
+          <button
+            type="button"
+            onClick={() => onUpdateFilters({ worldwideOnly: !filters.worldwideOnly })}
+            className={`h-7 px-2.5 rounded-lg text-[11px] font-bold inline-flex items-center gap-1 border transition-all shrink-0 whitespace-nowrap ${
+              filters.worldwideOnly
+                ? "bg-emerald-500 text-white border-emerald-500 shadow-xs"
+                : "bg-neutral-50 dark:bg-neutral-900/80 text-neutral-600 dark:text-neutral-400 border-neutral-200 dark:border-neutral-800 hover:border-emerald-400"
+            }`}
+            title="Show only 100% Anywhere in the World roles (no country or state residency traps)"
+          >
+            <span>🌍 100% Worldwide (No Geo Trap)</span>
+          </button>
+
+          {/* Upfront Salary / Transparent Pay Toggle */}
+          <button
+            type="button"
+            onClick={() => onUpdateFilters({ transparentPayOnly: !filters.transparentPayOnly })}
+            className={`h-7 px-2.5 rounded-lg text-[11px] font-bold inline-flex items-center gap-1 border transition-all shrink-0 whitespace-nowrap ${
+              filters.transparentPayOnly
+                ? "bg-emerald-500 text-white border-emerald-500 shadow-xs"
+                : "bg-neutral-50 dark:bg-neutral-900/80 text-neutral-600 dark:text-neutral-400 border-neutral-200 dark:border-neutral-800 hover:border-emerald-400"
+            }`}
+            title="Hide listings with undisclosed salary ranges"
+          >
+            <span>💰 Upfront Salary Only</span>
+          </button>
+
+          {/* Low Competition (<15 Applicants) Toggle */}
+          <button
+            type="button"
+            onClick={() => onUpdateFilters({ lowCompetitionOnly: !filters.lowCompetitionOnly })}
+            className={`h-7 px-2.5 rounded-lg text-[11px] font-bold inline-flex items-center gap-1 border transition-all shrink-0 whitespace-nowrap ${
+              filters.lowCompetitionOnly
+                ? "bg-[#FF4742] text-white border-[#FF4742] shadow-xs"
+                : "bg-neutral-50 dark:bg-neutral-900/80 text-neutral-600 dark:text-neutral-400 border-neutral-200 dark:border-neutral-800 hover:border-[#FF4742]"
+            }`}
+            title="Beat the 500+ applicant black hole: only show fresh roles with <15 applicants"
+          >
+            <span>🎯 Low Competition (&lt;15 Applicants)</span>
+          </button>
+
+          {/* Direct ATS Portal Toggle */}
+          <button
+            type="button"
+            onClick={() => onUpdateFilters({ directAtsOnly: !filters.directAtsOnly })}
+            className={`h-7 px-2.5 rounded-lg text-[11px] font-bold inline-flex items-center gap-1 border transition-all shrink-0 whitespace-nowrap ${
+              filters.directAtsOnly
+                ? "bg-sky-600 text-white border-sky-600 shadow-xs"
+                : "bg-neutral-50 dark:bg-neutral-900/80 text-neutral-600 dark:text-neutral-400 border-neutral-200 dark:border-neutral-800 hover:border-sky-400"
+            }`}
+            title="Only show direct company career portals (Greenhouse, Lever, Ashby, Workday) with zero middleman bidding"
+          >
+            <span>🛡️ Direct Company ATS</span>
+          </button>
+        </div>
       </div>
     </div>
   );
 }
+

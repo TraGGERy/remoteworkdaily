@@ -130,11 +130,17 @@ export function classifyJobArrangement(params: {
   const descLower = description.toLowerCase();
   const locLower = location.toLowerCase();
 
+  const isSneakyHybridClause =
+    /\b(occasional in-person|in-person collaboration|days? a week in (?:the )?office|return to office|commuting distance|must live within \d+ miles)\b/i.test(
+      description
+    );
+
   const isHybridMentioned =
     params.workplaceType === "hybrid" ||
     titleLower.includes("hybrid") ||
     descLower.includes("hybrid") ||
-    locLower.includes("hybrid");
+    locLower.includes("hybrid") ||
+    isSneakyHybridClause;
 
   if (isHybridMentioned) {
     // Hybrid Filter Rule:
@@ -163,7 +169,7 @@ export function classifyJobArrangement(params: {
     }
   }
 
-  // Check if regional remote
+  // Check if regional remote (including "must live in California" state-level traps)
   const isRegional =
     locLower.includes("us only") ||
     locLower.includes("usa only") ||
@@ -175,6 +181,8 @@ export function classifyJobArrangement(params: {
     locLower.includes("apac") ||
     locLower.includes("emea") ||
     descLower.includes("must be based in") ||
+    descLower.includes("must live in") ||
+    descLower.includes("must reside in") ||
     descLower.includes("residents of");
 
   const arrangement: WorkArrangement = isRegional ? "remote_regional" : "remote_global";
@@ -197,3 +205,37 @@ export function isJobExpired(postedAt: string | Date): boolean {
   const thirtyDaysMs = 30 * 24 * 60 * 60 * 1000;
   return Date.now() - time > thirtyDaysMs;
 }
+
+/**
+ * Verifies whether an external ATS or career portal URL is still live (Anti-Ghost Job Check).
+ * Returns false if the URL returns 404/410 or redirects to a closed-job indicator.
+ */
+export async function verifyJobUrlHealth(applyUrl: string, timeoutMs: number = 5000): Promise<boolean> {
+  if (!applyUrl || !applyUrl.startsWith("http")) return false;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch(applyUrl, {
+      method: "HEAD",
+      redirect: "follow",
+      signal: controller.signal,
+      headers: {
+        "User-Agent": "RemoteWorkDaily-LinkVerifier/1.0",
+      },
+    });
+    if (res.status === 404 || res.status === 410) {
+      return false;
+    }
+    const finalUrl = (res.url || "").toLowerCase();
+    if (finalUrl.includes("error=true") || finalUrl.includes("job-closed") || finalUrl.includes("not-found")) {
+      return false;
+    }
+    return true;
+  } catch {
+    // Network timeout or CORS block — assume active unless explicitly 404/410
+    return true;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+

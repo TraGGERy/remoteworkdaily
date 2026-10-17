@@ -17,7 +17,8 @@ import {
   AlertCircle,
   FileDown,
   Eye,
-  MessageSquare
+  MessageSquare,
+  Video
 } from "lucide-react";
 import { useSubscription } from "@/components/auth/subscription-context";
 import { TailoredApplicationData, sanitizeCoverLetterParagraphs } from "@/lib/ai-tailor";
@@ -40,7 +41,7 @@ export function AiResumeTailor({ jobId, jobTitle, company, description }: AiResu
   const { userEmail } = useSubscription();
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState<"cv" | "letter" | "ats" | "interview" | "profile">("cv");
+  const [activeTab, setActiveTab] = useState<"cv" | "letter" | "loom" | "ats" | "interview" | "profile">("cv");
   const [templateStyle, setTemplateStyle] = useState<PdfTemplateStyle>("executive");
 
   // Candidate profile state (persisted across jobs via localStorage)
@@ -57,6 +58,7 @@ export function AiResumeTailor({ jobId, jobTitle, company, description }: AiResu
   const [editableCoverLetter, setEditableCoverLetter] = useState("");
   const [copiedCoverLetter, setCopiedCoverLetter] = useState(false);
   const [copiedBullets, setCopiedBullets] = useState(false);
+  const [copiedLoom, setCopiedLoom] = useState(false);
   const [downloadingPdf, setDownloadingPdf] = useState(false);
 
   // Load saved candidate profile from localStorage on mount
@@ -365,6 +367,19 @@ export function AiResumeTailor({ jobId, jobTitle, company, description }: AiResu
 
                 <button
                   type="button"
+                  onClick={() => setActiveTab("loom")}
+                  className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-colors flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
+                    activeTab === "loom"
+                      ? "bg-[#FF4742] text-white"
+                      : "text-neutral-500 hover:text-neutral-900 dark:hover:text-white"
+                  }`}
+                >
+                  <Video className="w-3.5 h-3.5 text-red-400" />
+                  <span>60s Loom &amp; Sniper Pitch</span>
+                </button>
+
+                <button
+                  type="button"
                   onClick={() => setActiveTab("ats")}
                   className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-colors flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
                     activeTab === "ats"
@@ -571,6 +586,99 @@ export function AiResumeTailor({ jobId, jobTitle, company, description }: AiResu
                           </span>
                         )}
                       </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* TAB 3.5: 60-SECOND LOOM VIDEO PITCH & SNIPER OUTREACH */}
+              {activeTab === "loom" && tailoredData.loomPitch && tailoredData.sniperOutreach && (
+                <div className="p-4 sm:p-5 rounded-xl bg-white dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 space-y-4">
+                  <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-neutral-100 dark:border-neutral-800">
+                    <div>
+                      <span className="text-xs font-black uppercase tracking-wider text-[#FF4742] flex items-center gap-1.5">
+                        <Video className="w-4 h-4" />
+                        <span>60-Second Loom Video Pitch Script (5–10x Higher Callback Rate)</span>
+                      </span>
+                      <p className="text-[11px] text-neutral-500 mt-0.5">
+                        Record a 60-second screen-share video for {company} to bypass ATS recruiter fatigue.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigator.clipboard.writeText(tailoredData.loomPitch!.fullScript);
+                        setCopiedLoom(true);
+                        setTimeout(() => setCopiedLoom(false), 2000);
+                      }}
+                      className="px-3 py-1.5 rounded-lg text-xs font-bold bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 hover:bg-[#FF4742] dark:hover:bg-[#FF4742] dark:hover:text-white transition-colors flex items-center gap-1 cursor-pointer"
+                    >
+                      {copiedLoom ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                      <span>{copiedLoom ? "Copied Script!" : "Copy 60s Script"}</span>
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div className="p-3 rounded-xl bg-neutral-50 dark:bg-neutral-900 border border-neutral-200/70 dark:border-neutral-800">
+                      <div className="text-[10px] font-black uppercase text-[#FF4742] mb-1">0:00 – 0:15 • The Hook</div>
+                      <p className="text-xs text-neutral-700 dark:text-neutral-300 leading-relaxed">
+                        &ldquo;{tailoredData.loomPitch.hook}&rdquo;
+                      </p>
+                    </div>
+                    <div className="p-3 rounded-xl bg-neutral-50 dark:bg-neutral-900 border border-neutral-200/70 dark:border-neutral-800">
+                      <div className="text-[10px] font-black uppercase text-emerald-600 dark:text-emerald-400 mb-1">0:15 – 0:45 • Proof &amp; Stack</div>
+                      <p className="text-xs text-neutral-700 dark:text-neutral-300 leading-relaxed">
+                        &ldquo;{tailoredData.loomPitch.problemAndProof}&rdquo;
+                      </p>
+                    </div>
+                    <div className="p-3 rounded-xl bg-neutral-50 dark:bg-neutral-900 border border-neutral-200/70 dark:border-neutral-800">
+                      <div className="text-[10px] font-black uppercase text-sky-600 dark:text-sky-400 mb-1">0:45 – 1:00 • Call to Action</div>
+                      <p className="text-xs text-neutral-700 dark:text-neutral-300 leading-relaxed">
+                        &ldquo;{tailoredData.loomPitch.callToAction}&rdquo;
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="p-3.5 rounded-xl bg-amber-50/50 dark:bg-amber-950/20 border border-amber-200/70 dark:border-amber-800/60 space-y-1.5">
+                    <div className="text-[11px] font-black uppercase tracking-wider text-amber-800 dark:text-amber-300">
+                      🎥 What to Show on Your Screen While Recording
+                    </div>
+                    <ul className="space-y-1">
+                      {tailoredData.loomPitch.visualCues.map((cue, i) => (
+                        <li key={i} className="text-xs text-amber-900 dark:text-amber-200/90 flex items-start gap-1.5">
+                          <span className="font-bold text-[#FF4742]">•</span>
+                          <span>{cue}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  <div className="p-3.5 rounded-xl bg-sky-50/50 dark:bg-sky-950/20 border border-sky-200/70 dark:border-sky-800/60 space-y-2">
+                    <div className="text-[11px] font-black uppercase tracking-wider text-sky-800 dark:text-sky-300">
+                      ⚡ Direct CEO / Hiring Manager Sniper DM
+                    </div>
+                    <p className="text-xs text-neutral-700 dark:text-neutral-300 font-mono bg-white dark:bg-neutral-900 p-2.5 rounded-lg border border-neutral-200 dark:border-neutral-800">
+                      {tailoredData.sniperOutreach.ceoDm}
+                    </p>
+                    <div className="flex flex-wrap gap-2 pt-1">
+                      <a
+                        href={tailoredData.sniperOutreach.linkedinHiringManagerUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-3 py-1.5 rounded-lg bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold inline-flex items-center gap-1"
+                      >
+                        <span>Find {company} Hiring Manager on LinkedIn</span>
+                        <ExternalLink className="w-3 h-3" />
+                      </a>
+                      <a
+                        href={tailoredData.sniperOutreach.linkedinRecruiterUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-3 py-1.5 rounded-lg border border-sky-300 dark:border-sky-800 text-sky-700 dark:text-sky-300 text-xs font-bold inline-flex items-center gap-1"
+                      >
+                        <span>Find {company} Tech Recruiter</span>
+                        <ExternalLink className="w-3 h-3" />
+                      </a>
                     </div>
                   </div>
                 </div>

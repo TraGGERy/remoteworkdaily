@@ -60,8 +60,11 @@ export interface FilterState {
   benefits: string[];
   tags: string[];
   sortBy: "default" | "date" | "salary" | "views" | "applied" | "hot" | "benefits";
-  freshness?: "all" | "24h" | "7d";
+  freshness?: "all" | "1h" | "6h" | "24h" | "7d";
   directAtsOnly?: boolean;
+  transparentPayOnly?: boolean;
+  worldwideOnly?: boolean;
+  lowCompetitionOnly?: boolean;
 }
 
 export interface BenefitOption {

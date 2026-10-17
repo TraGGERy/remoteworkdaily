@@ -1413,10 +1413,84 @@ Bachelor of Science in Computer Science | State University | 2019`
               )}
 
               {/* ========================================================================= */}
-              {/* TAB 5: STAGE-SPECIFIC INTERVIEW PREP & BRIDGE ANSWERS                     */}
+              {/* TAB 5: STAGE-SPECIFIC INTERVIEW PREP, LOOM PITCH & SNIPER OUTREACH        */}
               {/* ========================================================================= */}
               {activeTab === "interview" && (
-                <div className="p-6 rounded-3xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow-sm space-y-4">
+                <div className="p-6 rounded-3xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow-sm space-y-6">
+                  {/* 60-Second Loom Video Pitch Section */}
+                  {tailoredData.loomPitch && tailoredData.sniperOutreach && (
+                    <div className="p-5 rounded-2xl bg-red-50/40 dark:bg-red-950/20 border border-red-200/80 dark:border-red-900/50 space-y-4">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div>
+                          <span className="text-xs font-black uppercase tracking-wider text-[#FF4742]">
+                            🎥 60-Second Loom Video Pitch Script (5–10x Callback Rate)
+                          </span>
+                          <p className="text-xs text-neutral-500 mt-0.5">
+                            Beat the 500+ applicant ATS black hole by sending a 60-second screen-share walkthrough to {company}.
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            navigator.clipboard.writeText(tailoredData.loomPitch!.fullScript);
+                          }}
+                          className="px-3 py-1.5 rounded-xl bg-[#FF4742] hover:bg-[#e03a35] text-white text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer"
+                        >
+                          <Copy className="w-3.5 h-3.5" />
+                          <span>Copy 60s Loom Script</span>
+                        </button>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <div className="p-3.5 rounded-xl bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800">
+                          <div className="text-[10px] font-black uppercase text-[#FF4742] mb-1">0:00 – 0:15 • The Hook</div>
+                          <p className="text-xs text-neutral-700 dark:text-neutral-300 leading-relaxed">
+                            &ldquo;{tailoredData.loomPitch.hook}&rdquo;
+                          </p>
+                        </div>
+                        <div className="p-3.5 rounded-xl bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800">
+                          <div className="text-[10px] font-black uppercase text-emerald-600 dark:text-emerald-400 mb-1">0:15 – 0:45 • Proof &amp; Stack</div>
+                          <p className="text-xs text-neutral-700 dark:text-neutral-300 leading-relaxed">
+                            &ldquo;{tailoredData.loomPitch.problemAndProof}&rdquo;
+                          </p>
+                        </div>
+                        <div className="p-3.5 rounded-xl bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800">
+                          <div className="text-[10px] font-black uppercase text-sky-600 dark:text-sky-400 mb-1">0:45 – 1:00 • Call to Action</div>
+                          <p className="text-xs text-neutral-700 dark:text-neutral-300 leading-relaxed">
+                            &ldquo;{tailoredData.loomPitch.callToAction}&rdquo;
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="p-3.5 rounded-xl bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 space-y-2">
+                        <div className="text-[11px] font-black uppercase tracking-wider text-sky-600 dark:text-sky-400">
+                          ⚡ Direct Founder / Hiring Manager Sniper DM
+                        </div>
+                        <p className="text-xs text-neutral-700 dark:text-neutral-300 font-mono bg-neutral-50 dark:bg-neutral-950 p-2.5 rounded-lg border border-neutral-100 dark:border-neutral-800">
+                          {tailoredData.sniperOutreach.ceoDm}
+                        </p>
+                        <div className="flex flex-wrap gap-2 pt-1">
+                          <a
+                            href={tailoredData.sniperOutreach.linkedinHiringManagerUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="px-3 py-1.5 rounded-lg bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold inline-flex items-center gap-1"
+                          >
+                            <span>🔍 Find {company} Hiring Manager on LinkedIn</span>
+                          </a>
+                          <a
+                            href={tailoredData.sniperOutreach.linkedinRecruiterUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="px-3 py-1.5 rounded-lg border border-sky-300 dark:border-sky-800 text-sky-700 dark:text-sky-300 text-xs font-bold inline-flex items-center gap-1"
+                          >
+                            <span>🎯 Find {company} Tech Recruiter</span>
+                          </a>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                   <div>
                     <h3 className="font-extrabold text-base text-neutral-900 dark:text-white">
                       Stage-Specific Interview Prep & Honest Gap Bridges

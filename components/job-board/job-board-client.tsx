@@ -80,6 +80,9 @@ export function JobBoardClient({
     sortBy: (searchParams.get("sort") as FilterState["sortBy"]) || "default",
     freshness: (searchParams.get("freshness") as FilterState["freshness"]) || "all",
     directAtsOnly: searchParams.get("direct") === "true",
+    transparentPayOnly: searchParams.get("transparent") === "true",
+    worldwideOnly: searchParams.get("worldwide") === "true",
+    lowCompetitionOnly: searchParams.get("lowcomp") === "true",
   });
 
   const updateFilters = (updates: Partial<FilterState>) => {
@@ -99,6 +102,9 @@ export function JobBoardClient({
       if (nextFilters.sortBy && nextFilters.sortBy !== "default") params.set("sort", nextFilters.sortBy);
       if (nextFilters.freshness && nextFilters.freshness !== "all") params.set("freshness", nextFilters.freshness);
       if (nextFilters.directAtsOnly) params.set("direct", "true");
+      if (nextFilters.transparentPayOnly) params.set("transparent", "true");
+      if (nextFilters.worldwideOnly) params.set("worldwide", "true");
+      if (nextFilters.lowCompetitionOnly) params.set("lowcomp", "true");
 
       const qs = params.toString();
       const targetUrl = qs ? `/?${qs}` : "/";
@@ -118,6 +124,9 @@ export function JobBoardClient({
       sortBy: "default",
       freshness: "all",
       directAtsOnly: false,
+      transparentPayOnly: false,
+      worldwideOnly: false,
+      lowCompetitionOnly: false,
     });
   };
 
