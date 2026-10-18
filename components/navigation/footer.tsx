@@ -30,6 +30,18 @@ export function Footer() {
             <Link href="/remote-marketing-jobs" className="hover:text-[#FF4742] transition-colors">
               Marketing
             </Link>
+            <Link href="/worldwide-remote-jobs" className="hover:text-[#FF4742] transition-colors font-semibold">
+              Worldwide Jobs
+            </Link>
+            <Link href="/remote-jobs-for-introverts" className="hover:text-[#FF4742] transition-colors">
+              Jobs for Introverts
+            </Link>
+            <Link href="/project-manager-titles" className="hover:text-[#FF4742] transition-colors">
+              PM Titles
+            </Link>
+            <Link href="/vs/careerhound" className="hover:text-[#FF4742] transition-colors">
+              CareerHound vs RWD
+            </Link>
             <Link href="/tools/remote-savings-calculator" className="hover:text-[#FF4742] transition-colors">
               WFH Savings Calculator
             </Link>

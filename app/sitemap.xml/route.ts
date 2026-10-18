@@ -12,6 +12,10 @@ export async function GET() {
     `<url><loc>${baseUrl}/tools/remote-savings-calculator</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>`,
     `<url><loc>${baseUrl}/ghost-job-listings-on-the-rise-how-to</loc><changefreq>weekly</changefreq><priority>0.85</priority></url>`,
     `<url><loc>${baseUrl}/10-best-virtual-secret-santa-ideas-for</loc><changefreq>weekly</changefreq><priority>0.85</priority></url>`,
+    `<url><loc>${baseUrl}/worldwide-remote-jobs</loc><changefreq>daily</changefreq><priority>0.9</priority></url>`,
+    `<url><loc>${baseUrl}/remote-jobs-for-introverts</loc><changefreq>daily</changefreq><priority>0.9</priority></url>`,
+    `<url><loc>${baseUrl}/project-manager-titles</loc><changefreq>daily</changefreq><priority>0.85</priority></url>`,
+    `<url><loc>${baseUrl}/vs/careerhound</loc><changefreq>weekly</changefreq><priority>0.85</priority></url>`,
     `<url><loc>${baseUrl}/llms.txt</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>`,
   ];
 

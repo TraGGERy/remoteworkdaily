@@ -16,6 +16,8 @@ interface JobBoardClientProps {
   initialCategory?: string;
   initialTag?: string;
   initialLocation?: string;
+  initialWorldwideOnly?: boolean;
+  initialQuery?: string;
 }
 
 export function JobBoardClient({
@@ -23,6 +25,8 @@ export function JobBoardClient({
   initialCategory = "",
   initialTag = "",
   initialLocation = "",
+  initialWorldwideOnly,
+  initialQuery = "",
 }: JobBoardClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -70,7 +74,7 @@ export function JobBoardClient({
   }, []);
 
   const [filters, setFilters] = useState<FilterState>({
-    query: searchParams.get("search") || "",
+    query: initialQuery || searchParams.get("search") || "",
     location: initialLocation || searchParams.get("location") || "",
     category: initialCategory || searchParams.get("category") || "",
     workplaceType: (searchParams.get("workplace") as FilterState["workplaceType"]) || "all",
@@ -81,7 +85,7 @@ export function JobBoardClient({
     freshness: (searchParams.get("freshness") as FilterState["freshness"]) || "all",
     directAtsOnly: searchParams.get("direct") === "true",
     transparentPayOnly: searchParams.get("transparent") === "true",
-    worldwideOnly: searchParams.get("worldwide") === "true",
+    worldwideOnly: initialWorldwideOnly !== undefined ? initialWorldwideOnly : searchParams.get("worldwide") === "true",
     lowCompetitionOnly: searchParams.get("lowcomp") === "true",
   });
 
