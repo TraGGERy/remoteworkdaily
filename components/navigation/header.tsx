@@ -57,6 +57,12 @@ export function Header() {
             Product & Ops
           </Link>
           <Link
+            href="/pro"
+            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-50 dark:bg-amber-950/60 border border-amber-300 dark:border-amber-800 text-xs font-extrabold text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/80 transition-colors"
+          >
+            <span>⚡ Pro Access</span>
+          </Link>
+          <Link
             href="/tools/cv-tailor"
             className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-red-50 dark:bg-red-950/60 border border-red-200 dark:border-red-900/60 text-xs font-bold text-[#FF4742] hover:bg-red-100 transition-colors"
           >
@@ -121,6 +127,13 @@ export function Header() {
               className="p-3 min-h-[44px] flex items-center rounded-xl bg-neutral-50 dark:bg-neutral-900 font-semibold text-neutral-800 dark:text-neutral-200"
             >
               ⚡ Product & Ops
+            </Link>
+            <Link
+              href="/pro"
+              onClick={() => setMobileMenuOpen(false)}
+              className="p-3 min-h-[44px] flex items-center gap-2 rounded-xl bg-amber-50 dark:bg-amber-950/40 font-bold text-amber-700 dark:text-amber-300 col-span-2 border border-amber-200 dark:border-amber-800/60"
+            >
+              <span>⚡ Pro Early Access Pass ($5.99/wk)</span>
             </Link>
             <Link
               href="/tools/cv-tailor"

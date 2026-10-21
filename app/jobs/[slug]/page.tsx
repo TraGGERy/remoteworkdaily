@@ -1,15 +1,6 @@
 import { Metadata } from "next";
-import { notFound } from "next/navigation";
-import Link from "next/link";
+import { notFound, permanentRedirect } from "next/navigation";
 import { getJobBySlug, getJobById } from "@/lib/jobs-repository";
-import { formatSalary, timeAgo } from "@/lib/utils";
-import { generateJobPostingSchema, generateJobBreadcrumbSchema } from "@/lib/seo";
-import { BENEFITS_LIST } from "@/lib/constants";
-import { CheckCircle, ArrowLeft, Flame } from "lucide-react";
-import { WorkInformation } from "@/components/job-board/work-information";
-import { GatedApplyAction } from "@/components/job-board/gated-apply-action";
-import { HrContactCard } from "@/components/job-board/hr-contact-card";
-import { AiResumeTailor } from "@/components/job-board/ai-resume-tailor";
 
 const SITE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://remoteworkdaily.com";
 
@@ -22,38 +13,15 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const job = getJobBySlug(slug) || getJobById(slug);
   if (!job) return { title: "Job Not Found | Remote Work Daily" };
 
-  const salary = formatSalary(job.salaryMin, job.salaryMax, job.salaryCurrency);
-  const jobUrl = `${SITE_URL}/jobs/${job.slug || job.id}`;
-  const ogImageUrl = `${SITE_URL}/api/og/job?id=${job.id}`;
+  const canonicalUrl = `${SITE_URL}/jobs/${job.id}/${job.slug || slug}`;
 
   return {
-    title: `${job.title} at ${job.company} (${salary}) | Remote Work Daily`,
-    description: `Apply for ${job.title} at ${job.company}. Salary: ${salary}. Location: ${job.location}. Verified 100% remote opportunity on Remote Work Daily.`,
     alternates: {
-      canonical: jobUrl,
+      canonical: canonicalUrl,
     },
-    openGraph: {
-      title: `${job.title} at ${job.company} (${salary})`,
-      description: `Verified remote role with ${job.company}. Salary: ${salary} • Location: ${job.location}. Apply directly via company ATS.`,
-      url: jobUrl,
-      siteName: "Remote Work Daily",
-      type: "article",
-      images: [
-        {
-          url: ogImageUrl,
-          width: 1200,
-          height: 630,
-          alt: `${job.title} at ${job.company} - Remote Work Daily`,
-          type: "image/png",
-        },
-      ],
-    },
-    twitter: {
-      card: "summary_large_image",
-      title: `${job.title} at ${job.company} (${salary})`,
-      description: `Verified remote position with ${job.company}. Salary: ${salary}. Apply directly.`,
-      images: [ogImageUrl],
-      creator: "@remoteworkdaily",
+    robots: {
+      index: false,
+      follow: true,
     },
   };
 }
@@ -66,172 +34,5 @@ export default async function JobDetailSlugPage({ params }: PageProps) {
     notFound();
   }
 
-  const schema = generateJobPostingSchema(job);
-  const breadcrumbSchema = generateJobBreadcrumbSchema(job);
-  const salaryText = formatSalary(job.salaryMin, job.salaryMax, job.salaryCurrency);
-  const isEarlyAccess = Boolean(
-    job.postedAt && Date.now() - new Date(job.postedAt).getTime() < 6 * 3600 * 1000
-  );
-
-  return (
-    <main className="min-h-screen bg-neutral-50/50 dark:bg-neutral-950 py-8 px-4 sm:px-6">
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
-      />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
-      />
-
-      <div className="max-w-4xl mx-auto space-y-6">
-        <Link
-          href="/"
-          className="inline-flex items-center gap-1.5 text-xs font-semibold text-neutral-500 hover:text-neutral-900 dark:hover:text-white transition-colors"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          <span>Back to all jobs</span>
-        </Link>
-
-        {/* Job Header Card */}
-        <div className="p-6 sm:p-8 rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow-sm space-y-6">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div className="flex items-center gap-4">
-              <div className="w-16 h-16 rounded-2xl bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center shrink-0 overflow-hidden border border-neutral-200 dark:border-neutral-700">
-                {job.companyLogo ? (
-                  <img
-                    src={job.companyLogo}
-                    alt={job.company}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <span className="font-extrabold text-2xl text-neutral-600 dark:text-neutral-300">
-                    {job.company.charAt(0)}
-                  </span>
-                )}
-              </div>
-
-              <div>
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  <span className="font-extrabold text-base text-neutral-900 dark:text-white">
-                    {job.company}
-                  </span>
-                  {job.verified && (
-                    <CheckCircle className="w-4 h-4 text-sky-500 fill-sky-500/20" />
-                  )}
-                  {isEarlyAccess && (
-                    <span className="inline-flex items-center gap-1 text-[11px] font-black uppercase px-2 py-0.5 rounded-full bg-red-100 dark:bg-red-950 text-[#FF4742] dark:text-red-400 border border-red-300 dark:border-red-800">
-                      <Flame className="w-3 h-3 fill-current" />
-                      <span>Early Access (&lt;6h)</span>
-                    </span>
-                  )}
-                </div>
-                <h1 className="font-black text-xl sm:text-3xl text-neutral-900 dark:text-white tracking-tight">
-                  {job.title}
-                </h1>
-              </div>
-            </div>
-
-            <GatedApplyAction
-              jobId={job.id}
-              jobTitle={job.title}
-              company={job.company}
-              applyUrl={job.applyUrl}
-              variant="header"
-              isEarlyAccess={isEarlyAccess}
-            />
-          </div>
-
-          {/* Quick Stats Grid */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-4 border-t border-neutral-100 dark:border-neutral-800 text-xs">
-            <div className="p-3 rounded-xl bg-neutral-50 dark:bg-neutral-800/60 border border-neutral-100 dark:border-neutral-800">
-              <div className="text-neutral-400 font-medium">Verified Salary</div>
-              <div className="font-extrabold text-emerald-600 dark:text-emerald-400 text-sm mt-0.5 tabular-nums">
-                {salaryText}
-              </div>
-            </div>
-            <div className="p-3 rounded-xl bg-neutral-50 dark:bg-neutral-800/60 border border-neutral-100 dark:border-neutral-800">
-              <div className="text-neutral-400 font-medium">Location</div>
-              <div className="font-bold text-neutral-900 dark:text-white text-sm mt-0.5 truncate">
-                {job.location}
-              </div>
-            </div>
-            <div className="p-3 rounded-xl bg-neutral-50 dark:bg-neutral-800/60 border border-neutral-100 dark:border-neutral-800 col-span-2 sm:col-span-1">
-              <div className="text-neutral-400 font-medium">Published</div>
-              <div className="font-bold text-neutral-900 dark:text-white text-sm mt-0.5">
-                {timeAgo(job.postedAt)}
-              </div>
-            </div>
-          </div>
-
-          {/* Tags */}
-          <div className="flex flex-wrap gap-2 pt-2">
-            {job.tags.map((tag) => (
-              <span
-                key={tag}
-                className="px-3 py-1 text-xs font-semibold rounded-full bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 border border-neutral-200 dark:border-neutral-700"
-              >
-                {tag}
-              </span>
-            ))}
-          </div>
-
-          {/* AI Match & Resume Tailor */}
-          <AiResumeTailor
-            jobId={job.id}
-            jobTitle={job.title}
-            company={job.company}
-            description={job.description}
-          />
-        </div>
-
-        {/* Benefits Card */}
-        {job.benefits && job.benefits.length > 0 && (
-          <div className="p-6 rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow-sm">
-            <h2 className="text-xs font-bold uppercase tracking-wider text-neutral-400 mb-3">
-              Perks & Benefits
-            </h2>
-            <div className="flex flex-wrap gap-2">
-              {job.benefits.map((bId) => {
-                const b = BENEFITS_LIST.find((item) => item.id === bId);
-                if (!b) return null;
-                return (
-                  <span
-                    key={b.id}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800"
-                  >
-                    <span>{b.icon}</span>
-                    <span>{b.label}</span>
-                  </span>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* Direct HR Contact Card */}
-        <HrContactCard
-          employerEmail={job.employerEmail}
-          companyName={job.company}
-          jobTitle={job.title}
-        />
-
-        {/* Description Body & Work Information */}
-        <div className="p-6 sm:p-8 rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow-sm space-y-6">
-          <WorkInformation description={job.description} isGated={true} />
-
-          <div className="pt-6 border-t border-neutral-100 dark:border-neutral-800">
-            <GatedApplyAction
-              jobId={job.id}
-              jobTitle={job.title}
-              company={job.company}
-              applyUrl={job.applyUrl}
-              variant="inline"
-              isEarlyAccess={isEarlyAccess}
-            />
-          </div>
-        </div>
-      </div>
-    </main>
-  );
+  permanentRedirect(`/jobs/${job.id}/${job.slug || slug}`);
 }

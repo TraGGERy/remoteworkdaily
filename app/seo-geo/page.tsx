@@ -3,6 +3,10 @@ import Link from "next/link";
 import { ArrowLeft, Cpu, Globe2, CheckCircle2, ShieldCheck, Zap, Sparkles } from "lucide-react";
 
 export const metadata: Metadata = {
+  robots: {
+    index: false,
+    follow: false,
+  },
   title: "GEO Guide: Generative Engine Optimization for Jobs | Remote Work Daily",
   description:
     "Master Generative Engine Optimization (GEO) for remote careers. How AI engines cite jobs posted on company websites with llms.txt and schema markup.",

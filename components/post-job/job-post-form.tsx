@@ -771,7 +771,7 @@ export function JobPostForm() {
 
             <div className="mt-6 p-5 rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 text-xs text-neutral-600 dark:text-neutral-400 space-y-2.5">
               <h3 className="font-extrabold text-sm text-neutral-900 dark:text-white">
-                Why post on RemoteOK?
+                Why post on Remote Work Daily?
               </h3>
               <ul className="space-y-2">
                 <li className="flex items-center gap-2">

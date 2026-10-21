@@ -3,6 +3,10 @@ import Link from "next/link";
 import { ArrowLeft, Tag, CheckCircle2, Sparkles, Sliders, ExternalLink } from "lucide-react";
 
 export const metadata: Metadata = {
+  robots: {
+    index: false,
+    follow: false,
+  },
   title: "SEO Meta Optimizer: High-CTR Job Posting Metadata | Remote Work Daily",
   description:
     "Master SEO metadata for remote job posts. Formulas for 50-60 character titles, 150-160 character meta descriptions, and verified salary snippets.",

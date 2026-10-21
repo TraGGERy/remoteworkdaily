@@ -18,6 +18,17 @@ export function filterJobs(jobs: Job[], filters: Partial<FilterState>): Job[] {
     );
   }
 
+  // 1.5 Company
+  if (filters.company && filters.company.trim()) {
+    const comp = filters.company.toLowerCase().trim();
+    result = result.filter(
+      (job) =>
+        (job.companySlug && job.companySlug.toLowerCase() === comp) ||
+        (job.company && job.company.toLowerCase() === comp) ||
+        (job.company && job.company.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") === comp)
+    );
+  }
+
   // 2. Category
   if (filters.category && filters.category !== "all" && filters.category !== "") {
     result = result.filter((job) => job.category === filters.category);

@@ -34,13 +34,13 @@ export const metadata: Metadata = {
     "program manager titles",
   ],
   alternates: {
-    canonical: "https://www.remoteworkdaily.com/project-manager-titles",
+    canonical: "https://remoteworkdaily.com/project-manager-titles",
   },
   openGraph: {
     title: "Another Word for Project Manager: 40+ Job Titles & Salaries (2026)",
     description:
       "Comprehensive breakdown of project management synonyms, hierarchy levels, average remote compensation, and active remote PM openings.",
-    url: "https://www.remoteworkdaily.com/project-manager-titles",
+    url: "https://remoteworkdaily.com/project-manager-titles",
     siteName: "Remote Work Daily",
     type: "article",
   },
@@ -111,13 +111,13 @@ export default function ProjectManagerTitlesPage() {
         "@type": "ListItem",
         position: 1,
         name: "Home",
-        item: "https://www.remoteworkdaily.com",
+        item: "https://remoteworkdaily.com",
       },
       {
         "@type": "ListItem",
         position: 2,
         name: "Project Manager Titles",
-        item: "https://www.remoteworkdaily.com/project-manager-titles",
+        item: "https://remoteworkdaily.com/project-manager-titles",
       },
     ],
   };

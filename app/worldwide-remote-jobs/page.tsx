@@ -33,13 +33,13 @@ export const metadata: Metadata = {
     "borderless remote work",
   ],
   alternates: {
-    canonical: "https://www.remoteworkdaily.com/worldwide-remote-jobs",
+    canonical: "https://remoteworkdaily.com/worldwide-remote-jobs",
   },
   openGraph: {
     title: "Worldwide Remote Jobs (2026) — Work From Anywhere",
     description:
       "Stop wasting hours on jobs that secretly require US residency. Discover 100% verified worldwide remote roles with transparent salaries and direct ATS links.",
-    url: "https://www.remoteworkdaily.com/worldwide-remote-jobs",
+    url: "https://remoteworkdaily.com/worldwide-remote-jobs",
     siteName: "Remote Work Daily",
     type: "website",
   },
@@ -104,13 +104,13 @@ export default function WorldwideRemoteJobsPage() {
         "@type": "ListItem",
         position: 1,
         name: "Home",
-        item: "https://www.remoteworkdaily.com",
+        item: "https://remoteworkdaily.com",
       },
       {
         "@type": "ListItem",
         position: 2,
         name: "Worldwide Remote Jobs",
-        item: "https://www.remoteworkdaily.com/worldwide-remote-jobs",
+        item: "https://remoteworkdaily.com/worldwide-remote-jobs",
       },
     ],
   };

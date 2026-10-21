@@ -28,7 +28,7 @@ export async function createJobPostingCheckoutSession(params: CheckoutParams) {
         currency: "usd",
         product_data: {
           name: `Remote Job Post: ${params.jobTitle}`,
-          description: `30-day listing on RemoteOK for ${params.companyName}`,
+          description: `30-day listing on Remote Work Daily for ${params.companyName}`,
         },
         unit_amount: JOB_POSTING_PRICING.basePrice * 100,
       },

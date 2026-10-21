@@ -15,6 +15,9 @@ export const metadata: Metadata = {
     "wfh salary raise equivalent",
     "remote salary calculator",
   ],
+  alternates: {
+    canonical: "https://remoteworkdaily.com/tools/remote-savings-calculator",
+  },
   openGraph: {
     title: "How Much Do You Actually Save Working From Home? | Free WFH Calculator",
     description:

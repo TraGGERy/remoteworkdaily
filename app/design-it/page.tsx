@@ -3,6 +3,10 @@ import Link from "next/link";
 import { ArrowLeft, Palette, Layout, Eye, Layers, Sparkles } from "lucide-react";
 
 export const metadata: Metadata = {
+  robots: {
+    index: false,
+    follow: false,
+  },
   title: "Design System & UI Standards | Remote Work Daily",
   description:
     "Explore Remote Work Daily's UI design philosophy. Built with Minimalist Slate palette, 60-30-10 color balance, and clean typography.",

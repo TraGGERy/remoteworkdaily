@@ -15,6 +15,9 @@ export const metadata: Metadata = {
     siteName: "Remote Work Daily",
     type: "website",
   },
+  alternates: {
+    canonical: "https://remoteworkdaily.com/contact",
+  },
   twitter: {
     card: "summary_large_image",
     title: "Contact Remote Work Daily",

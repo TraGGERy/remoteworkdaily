@@ -13,6 +13,9 @@ export const metadata: Metadata = {
     siteName: "Remote Work Daily",
     type: "website",
   },
+  alternates: {
+    canonical: "https://remoteworkdaily.com/privacy-policy",
+  },
   twitter: {
     card: "summary_large_image",
     title: "Privacy Policy | Remote Work Daily",

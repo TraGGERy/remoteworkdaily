@@ -1,5 +1,5 @@
-import { getAllJobs } from "@/lib/jobs-repository";
-import { ROLE_CATEGORIES, REGIONS_AND_COUNTRIES } from "@/lib/constants";
+import { getAllJobs, getTopCompanies } from "@/lib/jobs-repository";
+import { ROLE_CATEGORIES, REGIONS_AND_COUNTRIES, POPULAR_TAGS } from "@/lib/constants";
 
 export async function GET() {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://remoteworkdaily.com";
@@ -8,10 +8,12 @@ export async function GET() {
   const urls: string[] = [
     `<url><loc>${baseUrl}/</loc><changefreq>hourly</changefreq><priority>1.0</priority></url>`,
     `<url><loc>${baseUrl}/hire-remotely</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>`,
+    `<url><loc>${baseUrl}/pro</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>`,
+    `<url><loc>${baseUrl}/companies</loc><changefreq>daily</changefreq><priority>0.9</priority></url>`,
     `<url><loc>${baseUrl}/remote-jobs.json</loc><changefreq>hourly</changefreq><priority>0.85</priority></url>`,
-    `<url><loc>${baseUrl}/tools/remote-savings-calculator</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>`,
+    `<url><loc>${baseUrl}/tools/remote-savings-calculator</loc><changefreq>weekly</changefreq><priority>0.85</priority></url>`,
+    `<url><loc>${baseUrl}/tools/cv-tailor</loc><changefreq>weekly</changefreq><priority>0.85</priority></url>`,
     `<url><loc>${baseUrl}/ghost-job-listings-on-the-rise-how-to</loc><changefreq>weekly</changefreq><priority>0.85</priority></url>`,
-    `<url><loc>${baseUrl}/10-best-virtual-secret-santa-ideas-for</loc><changefreq>weekly</changefreq><priority>0.85</priority></url>`,
     `<url><loc>${baseUrl}/worldwide-remote-jobs</loc><changefreq>daily</changefreq><priority>0.9</priority></url>`,
     `<url><loc>${baseUrl}/remote-jobs-for-introverts</loc><changefreq>daily</changefreq><priority>0.9</priority></url>`,
     `<url><loc>${baseUrl}/project-manager-titles</loc><changefreq>daily</changefreq><priority>0.85</priority></url>`,
@@ -19,11 +21,33 @@ export async function GET() {
     `<url><loc>${baseUrl}/llms.txt</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>`,
   ];
 
-  // Category & Role Pages
+  // Role & Category Hubs
   ROLE_CATEGORIES.forEach((cat) => {
     if (cat.tag) {
       urls.push(
         `<url><loc>${baseUrl}/remote-${cat.tag}-jobs</loc><changefreq>daily</changefreq><priority>0.85</priority></url>`
+      );
+    }
+  });
+
+  // Top Tech Stack & Skill Hubs
+  const seenSkillSlugs = new Set<string>();
+  POPULAR_TAGS.forEach((tag) => {
+    const slug = tag.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+    if (slug && !seenSkillSlugs.has(slug)) {
+      seenSkillSlugs.add(slug);
+      urls.push(
+        `<url><loc>${baseUrl}/remote-${slug}-jobs</loc><changefreq>daily</changefreq><priority>0.8</priority></url>`
+      );
+    }
+  });
+
+  // Top Employer Company Hubs (Stripe, OpenAI, Elastic, GitLab, etc.)
+  const topCompanies = getTopCompanies(100);
+  topCompanies.forEach((company) => {
+    if (company.count >= 2) {
+      urls.push(
+        `<url><loc>${baseUrl}/companies/${company.slug}</loc><changefreq>daily</changefreq><priority>0.85</priority></url>`
       );
     }
   });

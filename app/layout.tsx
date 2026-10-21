@@ -61,9 +61,6 @@ export const metadata: Metadata = {
     address: false,
     telephone: false,
   },
-  alternates: {
-    canonical: "/",
-  },
   openGraph: {
     title: "Remote Work Daily — Verified Remote Jobs with Transparent Pay",
     description: "Looking for a verified remote job? Discover high-paying remote roles updated daily with 100% transparent compensation.",

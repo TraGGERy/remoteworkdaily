@@ -53,6 +53,7 @@ export interface Company {
 
 export interface FilterState {
   query: string;
+  company?: string;
   location: string;
   category: string;
   workplaceType?: "all" | "remote" | "hybrid" | "on-site";

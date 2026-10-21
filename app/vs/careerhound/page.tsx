@@ -30,20 +30,20 @@ export const metadata: Metadata = {
     "careerhound pricing",
   ],
   alternates: {
-    canonical: "https://www.remoteworkdaily.com/vs/careerhound",
+    canonical: "https://remoteworkdaily.com/vs/careerhound",
   },
   openGraph: {
     title: "CareerHound Review (2026): Is CareerHound.io Legit or Paid Paywall?",
     description:
       "Honest breakdown of CareerHound features, subscription fees, candidate reviews, and how Remote Work Daily provides 100% transparent remote jobs with direct ATS access.",
-    url: "https://www.remoteworkdaily.com/vs/careerhound",
+    url: "https://remoteworkdaily.com/vs/careerhound",
     siteName: "Remote Work Daily",
     type: "article",
     publishedTime: "2026-10-17T00:00:00Z",
     authors: ["Remote Work Daily Editorial Team"],
     images: [
       {
-        url: "https://www.remoteworkdaily.com/api/og",
+        url: "https://remoteworkdaily.com/api/og",
         width: 1200,
         height: 630,
         alt: "CareerHound Review and Comparison Guide",

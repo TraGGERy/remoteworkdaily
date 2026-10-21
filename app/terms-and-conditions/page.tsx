@@ -13,6 +13,9 @@ export const metadata: Metadata = {
     siteName: "Remote Work Daily",
     type: "website",
   },
+  alternates: {
+    canonical: "https://remoteworkdaily.com/terms-and-conditions",
+  },
   twitter: {
     card: "summary_large_image",
     title: "Terms of Service | Remote Work Daily",

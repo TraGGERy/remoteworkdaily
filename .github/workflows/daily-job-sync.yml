@@ -1,9 +1,9 @@
-name: Automated 2-Hour Job Ingestion & Telegram Alert Pipeline
+name: Automated Hourly Job Ingestion & Telegram Alert Pipeline
 
 on:
   schedule:
-    # Runs every 2 hours to harvest fresh remote & high-paying hybrid jobs
-    - cron: '0 */2 * * *'
+    # Runs every hour so fresh jobs land on the board (and Telegram) before competitors
+    - cron: '7 * * * *'
   workflow_dispatch:
     inputs:
       target_jobs:
@@ -11,10 +11,21 @@ on:
         required: false
         default: '5000'
 
+# Required so the bot can push the refreshed dataset (without this, every push failed with 403
+# and the committed jobs.json silently stayed stale).
+permissions:
+  contents: write
+
+# Never let two ingestion runs race on data/jobs.json
+concurrency:
+  group: job-ingestion
+  cancel-in-progress: false
+
 jobs:
   ingest-jobs:
     name: Harvest Verified Remote & Hybrid Jobs
     runs-on: ubuntu-latest
+    timeout-minutes: 40
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -46,9 +57,16 @@ jobs:
           git config --local user.name "RemoteWorkDaily Ingestion Engine"
           git add data/jobs.json data/sync-state.json
           if ! git diff --staged --quiet; then
-            git commit -m "chore(data): automated ingestion of fresh remote jobs [skip ci]" \
-                       -m "Harvested verified remote & high-paying hybrid listings from multi-source pipeline."
-            git push origin main
+            # No [skip ci]: Vercel must redeploy so every serverless instance serves the same fresh dataset.
+            git commit -m "chore(data): automated ingestion of fresh remote jobs" \
+                       -m "Harvested verified remote & high-paying hybrid listings from multi-source pipeline." \
+                       -m "How to test:
+          - Open https://www.remoteworkdaily.com and note the job count
+          - In Telegram, tap 'Review Pending Jobs' on the latest scrape alert
+          - Expected: 'Live on Website' matches the site count and 'Newest Job Posted' is within the last few hours"
+            # Rebase onto any commits pushed while scraping, then push
+            git pull --rebase -X theirs origin main || git pull --rebase origin main
+            git push origin HEAD:main
           else
             echo "No new jobs detected to commit."
           fi

@@ -350,21 +350,29 @@ export async function POST(request: Request) {
         const msg = formatSyncMessage();
         await sendTelegramReply(token, chatId, msg, getMainMenuKeyboard(isAdmin));
       } else if (data === "admin_review_jobs") {
-        const allJobs = getAllJobs();
+        // Force reload + same visibility filter the website uses, so counts match the live board.
+        const ingested = getAllJobs(true);
+        const allJobs = filterJobs(ingested, {});
+        const pendingCount = ingested.filter((j) => j.status === "pending_payment").length;
         const remoteCount = allJobs.filter((j) => j.workArrangement === "remote_global" || j.workArrangement === "remote_regional" || j.workplaceType === "remote").length;
         const hybridCount = allJobs.filter((j) => j.workArrangement === "hybrid_high_pay" || j.workplaceType === "hybrid").length;
+        const syncState = getSyncState();
+        const newestPostedAt = allJobs[0]?.postedAt ? new Date(allJobs[0].postedAt).toUTCString() : "N/A";
         const reviewText = [
           `👀 <b>Admin Job Ingestion Review</b>`,
           `━━━━━━━━━━━━━━━━━━━━`,
-          `🌐 <b>Remote Global & Regional:</b> ${remoteCount.toLocaleString()} listings`,
+          `🌐 <b>Remote Global &amp; Regional:</b> ${remoteCount.toLocaleString()} listings`,
           `🏢 <b>High-Paying Hybrid ($90k+):</b> ${hybridCount.toLocaleString()} listings`,
-          `📊 <b>Total Active Database:</b> ${allJobs.length.toLocaleString()} listings`,
+          `💼 <b>Live on Website:</b> ${allJobs.length.toLocaleString()} listings`,
+          `⏳ <b>Pending Payment:</b> ${pendingCount.toLocaleString()} listings`,
+          `🆕 <b>Newest Job Posted:</b> ${newestPostedAt}`,
+          `📅 <b>Last Sync:</b> ${syncState?.lastSyncTimestamp ? new Date(syncState.lastSyncTimestamp).toUTCString() : "N/A"}`,
           ``,
           `🔗 <a href="https://remoteworkdaily.com">Inspect Live Job Stream &rarr;</a>`,
         ].join("\n");
         await sendTelegramReply(token, chatId, reviewText);
       } else if (data === "admin_blast_b2b") {
-        const allJobs = getAllJobs();
+        const allJobs = getAllJobs(true);
         const withEmail = allJobs.filter((j) => j.employerEmail && !j.employerEmail.includes("placeholder"));
         const uniqueEmails = Array.from(new Set(withEmail.map((j) => j.employerEmail?.toLowerCase().trim()).filter(Boolean)));
         const blastText = [
@@ -378,7 +386,7 @@ export async function POST(request: Request) {
         ].join("\n");
         await sendTelegramReply(token, chatId, blastText);
       } else if (data === "admin_revenue_stats") {
-        const allJobs = getAllJobs();
+        const allJobs = filterJobs(getAllJobs(true), {});
         const revenueText = [
           `📊 <b>Today's Revenue & Conversion Telemetry</b>`,
           `━━━━━━━━━━━━━━━━━━━━`,

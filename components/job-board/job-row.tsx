@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import Link from "next/link";
 import { Job } from "@/lib/types";
 import {
   formatSalary,
@@ -138,7 +139,18 @@ export function JobRow({ job, isSelected, onToggleSelect, onTagClick }: JobRowPr
           </div>
 
           <h3 className="font-bold text-sm sm:text-base text-neutral-900 dark:text-white group-hover:text-[#FF4742] transition-colors line-clamp-1 leading-snug">
-            {job.title}
+            <Link
+              href={`/jobs/${job.id}/${job.slug}`}
+              onClick={(e) => {
+                if (!e.metaKey && !e.ctrlKey && !e.shiftKey) {
+                  e.preventDefault();
+                  onToggleSelect();
+                }
+              }}
+              className="hover:underline"
+            >
+              {job.title}
+            </Link>
           </h3>
 
           <div className="flex items-center gap-2 mt-0.5 text-xs text-neutral-500 dark:text-neutral-400 min-w-0 flex-wrap">

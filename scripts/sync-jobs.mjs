@@ -870,11 +870,15 @@ async function runScrape() {
   // Strictly sort by postedAt descending so today's newest jobs are always at the top
   merged.sort((a, b) => (new Date(b.postedAt).getTime() || 0) - (new Date(a.postedAt).getTime() || 0));
 
-  // Sliding window of latest 12,000 active listings
-  const MAX_JOBS = 12000;
+  // Sliding window of latest 20,000 active listings.
+  // MUST match MAX_LOCAL_JOBS in lib/jobs-repository.ts — a lower cap here (12,000) truncated the
+  // committed dataset while the live site kept more, so Telegram and the website reported
+  // different totals. 20k compact JSON ≈ 60 MB, safely under GitHub's 100 MB file limit.
+  const MAX_JOBS = 20000;
   const pruned = merged.length > MAX_JOBS ? merged.slice(0, MAX_JOBS) : merged;
 
-  fs.writeFileSync(DATA_FILE, JSON.stringify(pruned, null, 2), "utf8");
+  // Compact JSON (no indentation) keeps the committed file small enough for git/Vercel bundles
+  fs.writeFileSync(DATA_FILE, JSON.stringify(pruned), "utf8");
 
   // Write sync state
   const syncState = {

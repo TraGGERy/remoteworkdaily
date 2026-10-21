@@ -18,6 +18,7 @@ interface JobBoardClientProps {
   initialLocation?: string;
   initialWorldwideOnly?: boolean;
   initialQuery?: string;
+  initialCompany?: string;
 }
 
 export function JobBoardClient({
@@ -27,6 +28,7 @@ export function JobBoardClient({
   initialLocation = "",
   initialWorldwideOnly,
   initialQuery = "",
+  initialCompany = "",
 }: JobBoardClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -75,6 +77,7 @@ export function JobBoardClient({
 
   const [filters, setFilters] = useState<FilterState>({
     query: initialQuery || searchParams.get("search") || "",
+    company: initialCompany || searchParams.get("company") || "",
     location: initialLocation || searchParams.get("location") || "",
     category: initialCategory || searchParams.get("category") || "",
     workplaceType: (searchParams.get("workplace") as FilterState["workplaceType"]) || "all",

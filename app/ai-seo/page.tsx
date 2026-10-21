@@ -3,6 +3,10 @@ import Link from "next/link";
 import { ArrowLeft, Sparkles, Bot, Search, HelpCircle } from "lucide-react";
 
 export const metadata: Metadata = {
+  robots: {
+    index: false,
+    follow: false,
+  },
   title: "AI SEO Guide: How AI Search Finds Remote Jobs | Remote Work Daily",
   description:
     "Learn how AI search engines like ChatGPT, Perplexity, and Google AI Overviews discover verified remote jobs posted directly on company websites.",

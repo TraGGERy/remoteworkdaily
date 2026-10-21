@@ -17,6 +17,9 @@ export const metadata: Metadata = {
     "remote job application generator",
     "star method resume generator"
   ],
+  alternates: {
+    canonical: "https://remoteworkdaily.com/tools/cv-tailor",
+  },
   openGraph: {
     title: "AI CV & Cover Letter Generator | Remote Work Daily",
     description:

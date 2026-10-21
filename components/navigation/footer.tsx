@@ -33,6 +33,9 @@ export function Footer() {
             <Link href="/worldwide-remote-jobs" className="hover:text-[#FF4742] transition-colors font-semibold">
               Worldwide Jobs
             </Link>
+            <Link href="/companies" className="hover:text-[#FF4742] transition-colors font-semibold">
+              Companies
+            </Link>
             <Link href="/remote-jobs-for-introverts" className="hover:text-[#FF4742] transition-colors">
               Jobs for Introverts
             </Link>
@@ -42,8 +45,14 @@ export function Footer() {
             <Link href="/vs/careerhound" className="hover:text-[#FF4742] transition-colors">
               CareerHound vs RWD
             </Link>
+            <Link href="/pro" className="hover:text-[#FF4742] transition-colors font-bold text-amber-600 dark:text-amber-400">
+              ⚡ Pro Early Access
+            </Link>
             <Link href="/tools/remote-savings-calculator" className="hover:text-[#FF4742] transition-colors">
               WFH Savings Calculator
+            </Link>
+            <Link href="/tools/cv-tailor" className="hover:text-[#FF4742] transition-colors font-semibold">
+              AI Resume Tailor
             </Link>
             <Link href="/ghost-job-listings-on-the-rise-how-to" className="hover:text-[#FF4742] transition-colors">
               Ghost Jobs Guide

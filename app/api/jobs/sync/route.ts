@@ -20,7 +20,7 @@ async function handleSync(request: Request) {
     const url = new URL(request.url);
     const isForced = url.searchParams.get("force") === "true";
     const targetParam = url.searchParams.get("target");
-    const targetCount = targetParam ? Math.min(Math.max(parseInt(targetParam, 10) || 5000, 50), 12000) : 5000;
+    const targetCount = targetParam ? Math.min(Math.max(parseInt(targetParam, 10) || 5000, 50), 20000) : 5000;
 
     // 1. Production Cron / Admin Authorization Check
     const cronSecret = process.env.CRON_SECRET;

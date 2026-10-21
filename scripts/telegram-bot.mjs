@@ -150,7 +150,8 @@ function formatStats() {
   } catch {}
 
   const catCount = {};
-  const activeVerified = jobs.filter(j => j.status !== "pending_payment" && j.status !== "archived");
+  // Same visibility rule as lib/filter-jobs.ts so counts match the website exactly
+  const activeVerified = jobs.filter(j => j.status !== "pending_payment" && j.status !== "archived" && j.isActive !== false);
 
   for (const j of activeVerified) {
     const cat = j.category || "other";
@@ -378,7 +379,10 @@ async function startBot() {
               }
               await sendMessage(chatId, formatCutePaymentMessage());
             } else if (action === "admin_review_jobs") {
-              const allJobs = loadJobs();
+              const ingested = loadJobs();
+              // Same visibility rule as lib/filter-jobs.ts so counts match the website
+              const allJobs = ingested.filter((j) => j.status !== "pending_payment" && j.status !== "archived" && j.isActive !== false);
+              const pendingCount = ingested.filter((j) => j.status === "pending_payment").length;
               const remoteCount = allJobs.filter((j) => j.workArrangement === "remote_global" || j.workArrangement === "remote_regional" || j.workplaceType === "remote").length;
               const hybridCount = allJobs.filter((j) => j.workArrangement === "hybrid_high_pay" || j.workplaceType === "hybrid").length;
               await sendMessage(
@@ -386,9 +390,10 @@ async function startBot() {
                 [
                   `👀 <b>Admin Job Ingestion Review</b>`,
                   `━━━━━━━━━━━━━━━━━━━━`,
-                  `🌐 <b>Remote Global & Regional:</b> ${remoteCount.toLocaleString()} listings`,
+                  `🌐 <b>Remote Global &amp; Regional:</b> ${remoteCount.toLocaleString()} listings`,
                   `🏢 <b>High-Paying Hybrid ($90k+):</b> ${hybridCount.toLocaleString()} listings`,
-                  `📊 <b>Total Active Database:</b> ${allJobs.length.toLocaleString()} listings`,
+                  `💼 <b>Live on Website:</b> ${allJobs.length.toLocaleString()} listings`,
+                  `⏳ <b>Pending Payment:</b> ${pendingCount.toLocaleString()} listings`,
                   ``,
                   `🔗 <a href="https://www.remoteworkdaily.com">Inspect Live Job Stream &rarr;</a>`,
                 ].join("\n")

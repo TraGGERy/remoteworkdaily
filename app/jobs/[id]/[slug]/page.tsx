@@ -76,6 +76,7 @@ export default async function JobDetailPage({ params }: PageProps) {
   const isEarlyAccess = Boolean(
     job.postedAt && Date.now() - new Date(job.postedAt).getTime() < 6 * 3600 * 1000
   );
+  const companySlug = job.companySlug || job.company.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 
   return (
     <main className="min-h-screen bg-neutral-50/50 dark:bg-neutral-950 py-8 px-4 sm:px-6">
@@ -117,9 +118,12 @@ export default async function JobDetailPage({ params }: PageProps) {
 
               <div>
                 <div className="flex items-center gap-1.5 flex-wrap">
-                  <span className="font-extrabold text-base text-neutral-900 dark:text-white">
+                  <Link
+                    href={`/companies/${companySlug}`}
+                    className="font-extrabold text-base text-neutral-900 dark:text-white hover:text-[#FF4742] dark:hover:text-[#FF4742] transition-colors hover:underline"
+                  >
                     {job.company}
-                  </span>
+                  </Link>
                   {job.verified && (
                     <CheckCircle className="w-4 h-4 text-sky-500 fill-sky-500/20" />
                   )}

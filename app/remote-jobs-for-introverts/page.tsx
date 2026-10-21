@@ -36,13 +36,13 @@ export const metadata: Metadata = {
     "asynchronous remote jobs",
   ],
   alternates: {
-    canonical: "https://www.remoteworkdaily.com/remote-jobs-for-introverts",
+    canonical: "https://remoteworkdaily.com/remote-jobs-for-introverts",
   },
   openGraph: {
     title: "Best Remote Jobs for Introverts (2026) — Low Stress, High Pay",
     description:
       "Tired of 8 hours of Zoom calls? Discover high-paying remote roles with asynchronous culture, minimal client interaction, and verified direct ATS links.",
-    url: "https://www.remoteworkdaily.com/remote-jobs-for-introverts",
+    url: "https://remoteworkdaily.com/remote-jobs-for-introverts",
     siteName: "Remote Work Daily",
     type: "article",
   },
@@ -114,13 +114,13 @@ export default function RemoteJobsForIntrovertsPage() {
         "@type": "ListItem",
         position: 1,
         name: "Home",
-        item: "https://www.remoteworkdaily.com",
+        item: "https://remoteworkdaily.com",
       },
       {
         "@type": "ListItem",
         position: 2,
         name: "Remote Jobs for Introverts",
-        item: "https://www.remoteworkdaily.com/remote-jobs-for-introverts",
+        item: "https://remoteworkdaily.com/remote-jobs-for-introverts",
       },
     ],
   };

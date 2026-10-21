@@ -277,6 +277,46 @@ export function getJobBySlug(slug: string): Job | undefined {
   return jobs.find((j) => j.slug === slug || j.id === slug);
 }
 
+export function getJobsByCompanySlug(companySlug: string): Job[] {
+  const jobs = getAllJobs();
+  const normalized = companySlug.toLowerCase();
+  return jobs.filter(
+    (j) =>
+      (j.companySlug || "").toLowerCase() === normalized ||
+      (j.company || "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") === normalized
+  );
+}
+
+export function getTopCompanies(limit: number = 100): { slug: string; name: string; count: number; logo?: string; website?: string }[] {
+  const jobs = getAllJobs();
+  const map = new Map<string, { slug: string; name: string; count: number; logo?: string; website?: string }>();
+
+  for (const j of jobs) {
+    if (!j.company) continue;
+    const slug = j.companySlug || j.company.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+    if (!slug) continue;
+
+    if (!map.has(slug)) {
+      map.set(slug, {
+        slug,
+        name: j.company,
+        count: 0,
+        logo: j.companyLogo,
+        website: j.companyWebsite,
+      });
+    }
+
+    const entry = map.get(slug)!;
+    entry.count++;
+    if (!entry.logo && j.companyLogo) entry.logo = j.companyLogo;
+    if (!entry.website && j.companyWebsite) entry.website = j.companyWebsite;
+  }
+
+  return Array.from(map.values())
+    .sort((a, b) => b.count - a.count)
+    .slice(0, limit);
+}
+
 export function insertJob(job: Job): Job {
   const jobs = getAllJobs();
   const idx = jobs.findIndex((j) => j.id === job.id || (job.canonicalHash && j.canonicalHash === job.canonicalHash));
@@ -385,8 +425,9 @@ export function insertJobsBatch(newJobs: Job[]): { added: number; updated: numbe
   const merged = [...toPrepend, ...existingJobs];
   merged.sort((a, b) => (new Date(b.postedAt).getTime() || 0) - (new Date(a.postedAt).getTime() || 0));
 
-  // Keep sliding window of latest 25,000 active jobs to maximize job diversity and capacity
-  const MAX_LOCAL_JOBS = 25000;
+  // Keep sliding window of latest 20,000 active jobs.
+  // MUST match MAX_JOBS in scripts/sync-jobs.mjs so the website and Telegram report identical totals.
+  const MAX_LOCAL_JOBS = 20000;
   const pruned = merged.length > MAX_LOCAL_JOBS ? merged.slice(0, MAX_LOCAL_JOBS) : merged;
 
   saveJobs(pruned);

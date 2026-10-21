@@ -62,6 +62,11 @@ export async function GET(request: Request) {
     directAtsOnly,
   });
 
+  // Lightweight mode for UI counters (e.g. onboarding "N matching jobs") — avoids shipping the full payload
+  if (searchParams.get("countOnly") === "true") {
+    return NextResponse.json({ count: filtered.length, syncedAt: new Date().toISOString() });
+  }
+
   return NextResponse.json({
     count: filtered.length,
     jobs: filtered,
