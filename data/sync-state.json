@@ -1,9 +1,9 @@
 {
-  "lastSyncDate": "2026-10-22",
-  "lastSyncTimestamp": 1792707308264,
-  "syncedCount": 6819,
-  "addedCount": 221,
-  "updatedCount": 6598,
+  "lastSyncDate": "2026-10-23",
+  "lastSyncTimestamp": 1792718644383,
+  "syncedCount": 6826,
+  "addedCount": 98,
+  "updatedCount": 6728,
   "source": "universal-multi-source",
   "targetCount": 5000,
   "sources": {
@@ -14,6 +14,6 @@
     "remotive": 10,
     "himalayas": 20,
     "reliefweb": 0,
-    "ats": 4195
+    "ats": 4197
   }
 }
