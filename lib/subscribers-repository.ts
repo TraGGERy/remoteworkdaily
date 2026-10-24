@@ -9,6 +9,8 @@ export interface SubscriberRecord {
   status: "active" | "unsubscribed";
   created_at: string;
   updated_at: string;
+  last_digest_sent_at?: string | null;
+  is_pro?: boolean;
 }
 
 const DATA_FILE = path.join(process.cwd(), "data", "subscribers.json");
@@ -68,6 +70,8 @@ export async function saveSubscriber(sub: {
     status: sub.status || existing?.status || "active",
     created_at: existing?.created_at || now,
     updated_at: now,
+    last_digest_sent_at: existing?.last_digest_sent_at || null,
+    is_pro: existing?.is_pro || false,
   };
 
   // 1. Instant local persistence
@@ -153,4 +157,26 @@ export async function deleteSubscriber(email: string): Promise<boolean> {
 
   return true;
 }
+
+/**
+ * Updates the last digest sent timestamp for a newsletter subscriber.
+ */
+export async function updateSubscriberDigestSent(
+  email: string,
+  sentAt?: string
+): Promise<boolean> {
+  if (!email) return false;
+  const normalizedEmail = email.toLowerCase().trim();
+  const cache = ensureCache();
+  const existing = cache.get(normalizedEmail);
+
+  if (existing) {
+    existing.last_digest_sent_at = sentAt || new Date().toISOString();
+    existing.updated_at = new Date().toISOString();
+    persistToDisk();
+    return true;
+  }
+  return false;
+}
+
 

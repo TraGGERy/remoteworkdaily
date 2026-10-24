@@ -23,6 +23,9 @@ import {
   AlertTriangle,
   RefreshCw,
   Trash2,
+  Mail,
+  Clock,
+  Sparkles,
 } from "lucide-react";
 
 type DashboardTab = "employer" | "subscription" | "settings";
@@ -69,6 +72,14 @@ export default function DashboardPage() {
   const [dailyDigest, setDailyDigest] = useState(true);
   const [instantAlerts, setInstantAlerts] = useState(true);
   const [settingsSaved, setSettingsSaved] = useState(false);
+
+  // 3-Day Pro Curated Digest State
+  const [selectedRoles, setSelectedRoles] = useState<string[]>(["Developer", "Marketing"]);
+  const [lastDigestSent, setLastDigestSent] = useState<string | null>(null);
+  const [nextDigestDue, setNextDigestDue] = useState<string | null>(null);
+  const [digestMatchCount, setDigestMatchCount] = useState<number>(0);
+  const [isSendingTestDigest, setIsSendingTestDigest] = useState(false);
+  const [testDigestStatus, setTestDigestStatus] = useState<string | null>(null);
 
   // Initialize employer email from user context or localStorage
   useEffect(() => {
@@ -122,6 +133,70 @@ export default function DashboardPage() {
     const clean = emailInput.trim().toLowerCase();
     setEmployerEmail(clean);
     localStorage.setItem("remotework_employer_email", clean);
+  };
+
+  const activeCandidateEmail =
+    userEmail ||
+    employerEmail ||
+    emailInput ||
+    (typeof window !== "undefined" ? localStorage.getItem("remotework_user_email") || "" : "");
+
+  // Load 3-day digest preferences for active candidate
+  useEffect(() => {
+    if (!activeCandidateEmail || !activeCandidateEmail.includes("@")) return;
+    fetch(`/api/user/digest-preferences?email=${encodeURIComponent(activeCandidateEmail.trim())}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.preferences) {
+          if (Array.isArray(data.preferences.target_roles) && data.preferences.target_roles.length > 0) {
+            setSelectedRoles(data.preferences.target_roles);
+          }
+          setLastDigestSent(data.preferences.last_digest_sent_at || null);
+          setNextDigestDue(data.preferences.next_digest_at || null);
+          setDigestMatchCount(data.preferences.matching_jobs_count || 0);
+        }
+      })
+      .catch((err) => console.error("Error loading digest preferences:", err));
+  }, [activeCandidateEmail]);
+
+  const toggleTargetRole = (role: string) => {
+    setSelectedRoles((prev) => {
+      const exists = prev.includes(role);
+      const updated = exists ? prev.filter((r) => r !== role) : [...prev, role];
+      return updated.length > 0 ? updated : [role]; // keep at least 1 role
+    });
+  };
+
+  const handleSendTestDigest = async () => {
+    if (!activeCandidateEmail) {
+      alert("Please enter your account email first.");
+      return;
+    }
+    setIsSendingTestDigest(true);
+    setTestDigestStatus(null);
+    try {
+      const res = await fetch("/api/user/digest-preferences", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: activeCandidateEmail,
+          target_roles: selectedRoles,
+          action: "send_test_digest",
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setTestDigestStatus(`Digest successfully delivered to ${activeCandidateEmail} (${data.jobsCount || 0} matching jobs)!`);
+        setLastDigestSent(new Date().toISOString());
+      } else {
+        setTestDigestStatus(`Notice: ${data.error || data.message || "Failed to dispatch digest."}`);
+      }
+    } catch (err) {
+      console.error(err);
+      setTestDigestStatus("Network error triggering test digest.");
+    } finally {
+      setIsSendingTestDigest(false);
+    }
   };
 
   const handleCancelSubscription = async () => {
@@ -221,8 +296,22 @@ export default function DashboardPage() {
     }
   };
 
-  const handleSaveSettings = (e: React.FormEvent) => {
+  const handleSaveSettings = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (activeCandidateEmail && activeCandidateEmail.includes("@")) {
+      try {
+        await fetch("/api/user/digest-preferences", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email: activeCandidateEmail,
+            target_roles: selectedRoles,
+          }),
+        });
+      } catch (err) {
+        console.error("Error saving digest preferences:", err);
+      }
+    }
     setSettingsSaved(true);
     setTimeout(() => setSettingsSaved(false), 2500);
   };
@@ -768,6 +857,140 @@ export default function DashboardPage() {
                   className="mt-1 w-4 h-4 accent-[#FF4742]"
                 />
               </label>
+            </div>
+
+            {/* 3-Day Curated Job Digest for Active Subscribers */}
+            <div className="space-y-4 pt-4 border-t border-neutral-100 dark:border-neutral-800">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-extrabold text-sm sm:text-base text-neutral-900 dark:text-white flex items-center gap-2">
+                      <Mail className="w-4 h-4 text-[#FF4742]" />
+                      <span>3-Day Curated Job Digest (Active Subscribers)</span>
+                    </h3>
+                    <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-900">
+                      Every 72 Hours
+                    </span>
+                  </div>
+                  <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">
+                    Subscribers receive an automated email every three days with their hand-picked target roles and verified direct ATS links.
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2 shrink-0">
+                  <span
+                    className={`text-[11px] font-bold px-2.5 py-1 rounded-full ${
+                      hasActiveSubscription
+                        ? "bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border border-emerald-300/40"
+                        : "bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-200 border border-amber-300/40"
+                    }`}
+                  >
+                    {hasActiveSubscription ? "Active Pro Subscriber" : "Preview Mode"}
+                  </span>
+                </div>
+              </div>
+
+              {/* Roles selection chips */}
+              <div className="space-y-2">
+                <label className="block text-xs font-bold text-neutral-700 dark:text-neutral-300">
+                  Select Your Target Roles to Include in Your 3-Day Digest:
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    "Developer",
+                    "Designer",
+                    "Marketing",
+                    "Executive",
+                    "Product",
+                    "Sales",
+                    "Customer Support",
+                    "Finance",
+                    "Operations",
+                    "AI & Machine Learning",
+                  ].map((role) => {
+                    const isSelected = selectedRoles.includes(role);
+                    return (
+                      <button
+                        key={role}
+                        type="button"
+                        onClick={() => toggleTargetRole(role)}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+                          isSelected
+                            ? "bg-[#FF4742] text-white shadow-sm ring-2 ring-red-500/20"
+                            : "bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-700 border border-neutral-200 dark:border-neutral-700"
+                        }`}
+                      >
+                        {isSelected && <CheckCircle2 className="w-3.5 h-3.5" />}
+                        <span>{role}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Cadence and Schedule Info Card */}
+              <div className="p-4 rounded-2xl bg-neutral-50 dark:bg-neutral-800/50 border border-neutral-200 dark:border-neutral-800 grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                <div>
+                  <span className="text-[11px] text-neutral-500 dark:text-neutral-400 block font-medium">Cadence</span>
+                  <span className="font-bold text-neutral-900 dark:text-white flex items-center gap-1 mt-0.5">
+                    <Clock className="w-3.5 h-3.5 text-blue-500" />
+                    Once every 3 days (72h)
+                  </span>
+                </div>
+
+                <div>
+                  <span className="text-[11px] text-neutral-500 dark:text-neutral-400 block font-medium">Last Sent</span>
+                  <span className="font-bold text-neutral-900 dark:text-white mt-0.5 block">
+                    {lastDigestSent ? new Date(lastDigestSent).toLocaleDateString() : "Never sent yet"}
+                  </span>
+                </div>
+
+                <div>
+                  <span className="text-[11px] text-neutral-500 dark:text-neutral-400 block font-medium">Target Matches</span>
+                  <span className="font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1 mt-0.5">
+                    <Sparkles className="w-3.5 h-3.5 text-emerald-500" />
+                    {digestMatchCount > 0 ? `${digestMatchCount} jobs matching now` : "Searching verified catalog..."}
+                  </span>
+                </div>
+              </div>
+
+              {/* Test send feedback banner */}
+              {testDigestStatus && (
+                <div
+                  className={`p-3 rounded-xl text-xs font-semibold flex items-center gap-2 ${
+                    testDigestStatus.includes("successfully") || testDigestStatus.includes("delivered")
+                      ? "bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-200 border border-emerald-200 dark:border-emerald-800"
+                      : "bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-200 border border-amber-200 dark:border-amber-800"
+                  }`}
+                >
+                  <CheckCircle2 className="w-4 h-4 shrink-0" />
+                  <span>{testDigestStatus}</span>
+                </div>
+              )}
+
+              {/* Action Buttons */}
+              <div className="flex flex-wrap items-center gap-3 pt-1">
+                {hasActiveSubscription ? (
+                  <button
+                    type="button"
+                    disabled={isSendingTestDigest}
+                    onClick={handleSendTestDigest}
+                    className="px-4 py-2 rounded-xl text-xs font-bold bg-neutral-900 text-white dark:bg-white dark:text-neutral-900 hover:opacity-90 active:scale-95 transition-all flex items-center gap-2 shadow-sm disabled:opacity-50"
+                  >
+                    <Send className="w-3.5 h-3.5" />
+                    <span>{isSendingTestDigest ? "Sending Curated Digest..." : "Send Test Digest to My Email Now"}</span>
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={openUpgradeModal}
+                    className="px-4 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-amber-500 to-[#FF4742] text-white hover:opacity-90 active:scale-95 transition-all flex items-center gap-2 shadow-sm"
+                  >
+                    <Zap className="w-3.5 h-3.5" />
+                    <span>Activate Pro Subscription for 3-Day Job Digest</span>
+                  </button>
+                )}
+              </div>
             </div>
 
             {/* Onboarding Status */}

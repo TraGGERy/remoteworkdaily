@@ -12,6 +12,12 @@ export interface CandidatePassRecord {
   status: "active" | "refunded" | "expired";
   plan: string;
   created_at: string;
+  last_digest_sent_at?: string | null;
+  target_roles?: string[];
+  selected_categories?: string[];
+  saved_job_ids?: string[];
+  min_salary?: number;
+  preferred_location?: string;
 }
 
 const DATA_FILE = path.join(process.cwd(), "data", "candidate-passes.json");
@@ -62,20 +68,32 @@ export async function saveCandidatePass(pass: {
   stripe_payment_intent?: string | null;
   status?: "active" | "refunded" | "expired";
   plan?: string;
+  target_roles?: string[];
+  selected_categories?: string[];
+  saved_job_ids?: string[];
+  min_salary?: number;
+  preferred_location?: string;
 }): Promise<CandidatePassRecord> {
   const cache = ensureCache();
   const normalizedEmail = pass.email.toLowerCase().trim();
+  const existing = cache.get(normalizedEmail);
 
   const record: CandidatePassRecord = {
-    id: `pass_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+    id: existing?.id || `pass_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
     email: normalizedEmail,
     amount: pass.amount,
-    currency: (pass.currency || "USD").toUpperCase(),
-    stripe_session_id: pass.stripe_session_id || null,
-    stripe_payment_intent: pass.stripe_payment_intent || null,
-    status: pass.status || "active",
-    plan: pass.plan || "monthly",
-    created_at: new Date().toISOString(),
+    currency: (pass.currency || existing?.currency || "USD").toUpperCase(),
+    stripe_session_id: pass.stripe_session_id || existing?.stripe_session_id || null,
+    stripe_payment_intent: pass.stripe_payment_intent || existing?.stripe_payment_intent || null,
+    status: pass.status || existing?.status || "active",
+    plan: pass.plan || existing?.plan || "monthly",
+    created_at: existing?.created_at || new Date().toISOString(),
+    last_digest_sent_at: existing?.last_digest_sent_at || null,
+    target_roles: pass.target_roles || existing?.target_roles || [],
+    selected_categories: pass.selected_categories || existing?.selected_categories || [],
+    saved_job_ids: pass.saved_job_ids || existing?.saved_job_ids || [],
+    min_salary: pass.min_salary ?? existing?.min_salary ?? 0,
+    preferred_location: pass.preferred_location || existing?.preferred_location || "Worldwide",
   };
 
   // 1. Instant local persistence
@@ -220,4 +238,64 @@ export async function deleteCandidatePass(email: string): Promise<boolean> {
 
   return true;
 }
+
+/**
+ * Returns all currently active candidate passes.
+ */
+export function getAllActiveCandidatePasses(): CandidatePassRecord[] {
+  const cache = ensureCache();
+  return Array.from(cache.values()).filter((p) => p.status === "active");
+}
+
+/**
+ * Updates the last digest sent timestamp for a candidate pass.
+ */
+export async function updateCandidatePassDigestSent(
+  email: string,
+  sentAt?: string
+): Promise<boolean> {
+  if (!email) return false;
+  const normalizedEmail = email.toLowerCase().trim();
+  const cache = ensureCache();
+  const existing = cache.get(normalizedEmail);
+
+  if (existing) {
+    existing.last_digest_sent_at = sentAt || new Date().toISOString();
+    persistToDisk();
+    return true;
+  }
+  return false;
+}
+
+/**
+ * Updates selected roles, categories, salary preferences, or saved job IDs for a candidate pass.
+ */
+export async function updateCandidatePassPreferences(
+  email: string,
+  prefs: {
+    target_roles?: string[];
+    selected_categories?: string[];
+    min_salary?: number;
+    preferred_location?: string;
+    saved_job_ids?: string[];
+  }
+): Promise<CandidatePassRecord | null> {
+  if (!email) return null;
+  const normalizedEmail = email.toLowerCase().trim();
+  const cache = ensureCache();
+  const existing = cache.get(normalizedEmail);
+
+  if (existing) {
+    if (prefs.target_roles !== undefined) existing.target_roles = prefs.target_roles;
+    if (prefs.selected_categories !== undefined) existing.selected_categories = prefs.selected_categories;
+    if (prefs.min_salary !== undefined) existing.min_salary = prefs.min_salary;
+    if (prefs.preferred_location !== undefined) existing.preferred_location = prefs.preferred_location;
+    if (prefs.saved_job_ids !== undefined) existing.saved_job_ids = prefs.saved_job_ids;
+    persistToDisk();
+    return existing;
+  }
+  return null;
+}
+
+
 

@@ -469,3 +469,145 @@ export async function sendDailyDigestEmail(params: {
   }
 }
 
+/**
+ * Sends a personalized 3-day curated job digest to an active Pro subscriber
+ * based on their selected roles, categories, and compensation preferences.
+ */
+export async function sendPro3DayDigestEmail(params: {
+  email: string;
+  roles: string[];
+  jobs: Array<{
+    id: string;
+    title: string;
+    company: string;
+    location?: string;
+    salary?: string;
+    url: string;
+    category?: string;
+    tags?: string[];
+    isDirectAts?: boolean;
+    isEarlyAccess?: boolean;
+  }>;
+  totalFreshMatchesCount?: number;
+}): Promise<{ success: boolean; id?: string; error?: string }> {
+  const resend = getResendClient();
+  if (!resend) {
+    console.log(`[Resend Email Skipped - No API Key] 3-Day Pro digest for ${params.email}`);
+    return { success: false, error: "RESEND_API_KEY not configured" };
+  }
+
+  const dateStr = new Date().toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  const rolesLabel = params.roles && params.roles.length > 0 ? params.roles.slice(0, 2).join(" & ") : "Verified Remote Openings";
+  const subject = `🎯 Your 3-Day Curated Jobs Digest (${rolesLabel}) — Remote Work Daily Pro`;
+  const totalCount = params.totalFreshMatchesCount || params.jobs.length;
+
+  const jobCardsHtml = params.jobs.map((job) => `
+    <div style="border-bottom: 1px solid #e2e8f0; padding: 18px 0;">
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+        <span style="font-size: 11px; font-weight: 800; color: #ff4742; text-transform: uppercase; letter-spacing: 0.5px;">
+          ${job.company}
+        </span>
+        ${job.isEarlyAccess ? `<span style="font-size: 10px; font-weight: 800; background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; padding: 2px 8px; border-radius: 9999px;">⚡ &lt;15 APPLICANTS</span>` : ""}
+      </div>
+
+      <h3 style="font-size: 16px; font-weight: 800; color: #0f172a; margin: 0 0 8px 0; line-height: 1.3;">
+        <a href="${job.url}" style="color: #0f172a; text-decoration: none;">${job.title}</a>
+      </h3>
+
+      <div style="font-size: 13px; color: #64748b; margin-bottom: 10px;">
+        <span>📍 ${job.location || "100% Worldwide Remote"}</span>
+        ${job.salary ? `<span style="margin-left: 10px; color: #059669; font-weight: 700;">💰 ${job.salary}</span>` : ""}
+      </div>
+
+      ${Array.isArray(job.tags) && job.tags.length > 0 ? `
+      <div style="margin-bottom: 12px;">
+        ${job.tags.slice(0, 4).map((t) => `<span style="display: inline-block; font-size: 11px; font-weight: 600; background: #f1f5f9; color: #475569; padding: 2px 8px; border-radius: 6px; margin-right: 4px; margin-bottom: 4px;">#${t}</span>`).join("")}
+      </div>` : ""}
+
+      <div>
+        <a href="${job.url}" style="display: inline-block; font-size: 12px; font-weight: 800; background: #ff4742; color: #ffffff !important; padding: 8px 16px; border-radius: 8px; text-decoration: none; box-shadow: 0 1px 3px rgba(255, 71, 66, 0.3);">
+          Apply Direct via ATS &rarr;
+        </a>
+      </div>
+    </div>
+  `).join("");
+
+  const html = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${subject}</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f8fafc; margin: 0; padding: 24px; color: #1e293b; }
+    .card { max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 16px; border: 1px solid #e2e8f0; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); }
+    .header { background: #0f172a; padding: 28px 24px; text-align: center; }
+    .logo { color: #ffffff; font-size: 22px; font-weight: 900; letter-spacing: -0.5px; text-decoration: none; }
+    .logo span { color: #ff4742; }
+    .pro-badge { display: inline-block; background: #fef3c7; color: #92400e; font-size: 11px; font-weight: 800; padding: 2px 10px; border-radius: 9999px; margin-top: 8px; border: 1px solid #fde68a; }
+    .content { padding: 28px 24px; }
+    .pill-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px 16px; margin: 16px 0 24px; font-size: 13px; color: #334155; }
+    .btn { display: block; text-align: center; background: #0f172a; color: #ffffff !important; font-weight: 700; font-size: 14px; padding: 12px 24px; border-radius: 10px; text-decoration: none; margin: 24px 0 16px; }
+    .footer { background: #f1f5f9; padding: 20px 24px; text-align: center; font-size: 12px; color: #64748b; border-top: 1px solid #e2e8f0; }
+    .footer a { color: #ff4742; text-decoration: none; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="header">
+      <a href="https://remoteworkdaily.com" class="logo">RemoteWork<span>Daily</span></a>
+      <div><span class="pro-badge">★ PRO CANDIDATE 3-DAY DIGEST</span></div>
+    </div>
+    <div class="content">
+      <h1 style="font-size: 20px; font-weight: 800; color: #0f172a; margin: 0 0 6px;">Your 3-Day Curated Job Digest</h1>
+      <p style="font-size: 13px; color: #64748b; margin: 0 0 16px;">
+        Verified remote positions ingested over the last 72 hours with transparent pay and direct company ATS links.
+      </p>
+
+      <div class="pill-box">
+        <strong>🎯 Your Selected Criteria:</strong><br>
+        <span>Roles: ${params.roles && params.roles.length > 0 ? params.roles.join(", ") : "All Pro Categories"}</span> • 
+        <span>Cadence: <strong>Once every 3 days</strong></span>
+      </div>
+
+      <div style="border-top: 1px solid #e2e8f0;">
+        ${jobCardsHtml}
+      </div>
+
+      <a href="https://remoteworkdaily.com" class="btn">
+        View All ${totalCount}+ Matching Jobs on Remote Work Daily &rarr;
+      </a>
+
+      <p style="font-size: 12px; color: #64748b; text-align: center; margin-top: 20px;">
+        Want to adjust your selected roles or salary target? <br>
+        <a href="https://remoteworkdaily.com/dashboard" style="color: #ff4742; font-weight: 700;">Update your preferences in your dashboard &rarr;</a>
+      </p>
+    </div>
+    <div class="footer">
+      <p>© ${new Date().getFullYear()} Remote Work Daily • Pro Candidate Priority Rail</p>
+      <p>You received this email because you have an active Remote Work Daily Pro subscription configured for 3-day job alerts.</p>
+      <p><a href="https://remoteworkdaily.com/dashboard">Account &amp; Billing</a> • <a href="https://remoteworkdaily.com/privacy">Privacy Policy</a></p>
+    </div>
+  </div>
+</body>
+</html>
+`;
+
+  try {
+    const data = await resend.emails.send({
+      from: getFromEmail(),
+      to: params.email,
+      subject,
+      html,
+    });
+    console.log(`[Resend Email Sent] 3-Day Pro digest to ${params.email}:`, data);
+    return { success: true, id: data.data?.id };
+  } catch (error: unknown) {
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    console.error(`[Resend Email Error] Failed sending 3-Day Pro digest to ${params.email}:`, error);
+    return { success: false, error: errorMsg };
+  }
+}
+
+

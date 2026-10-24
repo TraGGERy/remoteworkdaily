@@ -24,6 +24,9 @@ export interface UserProfile {
   stripe_customer_id?: string;
   stripe_subscription_id?: string;
   onboarding_completed: boolean;
+  last_digest_sent_at?: string | null;
+  digest_interval_days?: number;
+  saved_job_ids?: string[];
   created_at: string;
   updated_at: string;
 }
@@ -166,6 +169,9 @@ export async function saveUserProfile(
     stripe_customer_id: profileData.stripe_customer_id ?? existing?.stripe_customer_id,
     stripe_subscription_id: profileData.stripe_subscription_id ?? existing?.stripe_subscription_id,
     onboarding_completed: profileData.onboarding_completed ?? existing?.onboarding_completed ?? true,
+    last_digest_sent_at: profileData.last_digest_sent_at ?? existing?.last_digest_sent_at ?? null,
+    digest_interval_days: profileData.digest_interval_days ?? existing?.digest_interval_days ?? 3,
+    saved_job_ids: profileData.saved_job_ids ?? existing?.saved_job_ids ?? [],
     created_at: existing?.created_at || now,
     updated_at: now,
   };
@@ -276,3 +282,46 @@ export async function getLiveMatchingJobsCount(filters: {
 
   return Math.max(matching.length, 48); // Ensure real matching count or realistic minimum
 }
+
+/**
+ * Returns all user profiles with an active Pro subscription.
+ */
+export function getAllProUserProfiles(): UserProfile[] {
+  const cache = ensureCache();
+  return Array.from(cache.values()).filter((p) => Boolean(p.is_pro));
+}
+
+/**
+ * Updates the last digest sent timestamp for a user profile by clerk user id or email.
+ */
+export async function updateUserProfileDigestSent(
+  clerkUserIdOrEmail: string,
+  sentAt?: string
+): Promise<boolean> {
+  if (!clerkUserIdOrEmail) return false;
+  const cache = ensureCache();
+  const timestamp = sentAt || new Date().toISOString();
+
+  // Try direct lookup by clerk_user_id
+  let profile = cache.get(clerkUserIdOrEmail);
+
+  // If not found, try lookup by email
+  if (!profile) {
+    const norm = clerkUserIdOrEmail.toLowerCase().trim();
+    for (const p of cache.values()) {
+      if (p.email && p.email.toLowerCase().trim() === norm) {
+        profile = p;
+        break;
+      }
+    }
+  }
+
+  if (profile) {
+    profile.last_digest_sent_at = timestamp;
+    profile.updated_at = timestamp;
+    persistToDisk();
+    return true;
+  }
+  return false;
+}
+
