@@ -12,7 +12,7 @@ import { ProPricingCards } from "@/components/pricing/pro-pricing-cards";
 export const metadata: Metadata = {
   title: "Remote Work Daily Pro — Beat 500+ Applicants with 6-Hour Early Access",
   description:
-    "Stop being applicant #600 on LinkedIn. Get 6-hour early access to fresh remote jobs from company career portals, direct hiring manager emails, and AI resume tailoring. From $5.99/wk with 7-day guarantee.",
+    "Stop being applicant #600 on LinkedIn. Get 6-hour early access to fresh remote jobs from company career portals, direct hiring manager emails, and AI resume tailoring. From $6.99/wk with 7-day guarantee.",
   keywords: [
     "remote job early access",
     "remote work pro pass",
@@ -98,7 +98,7 @@ export default function ProPage() {
       {
         "@type": "Offer",
         name: "Weekly Sprint",
-        price: "5.99",
+        price: "6.99",
         priceCurrency: "USD",
         priceValidUntil: "2027-12-31",
         url: "https://remoteworkdaily.com/pro",
@@ -106,7 +106,7 @@ export default function ProPage() {
       {
         "@type": "Offer",
         name: "Monthly Pro",
-        price: "17.00",
+        price: "17.99",
         priceCurrency: "USD",
         priceValidUntil: "2027-12-31",
         url: "https://remoteworkdaily.com/pro",
@@ -114,7 +114,7 @@ export default function ProPage() {
       {
         "@type": "Offer",
         name: "Lifetime Access",
-        price: "49.00",
+        price: "49.99",
         priceCurrency: "USD",
         priceValidUntil: "2027-12-31",
         url: "https://remoteworkdaily.com/pro",

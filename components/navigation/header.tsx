@@ -133,7 +133,7 @@ export function Header() {
               onClick={() => setMobileMenuOpen(false)}
               className="p-3 min-h-[44px] flex items-center gap-2 rounded-xl bg-amber-50 dark:bg-amber-950/40 font-bold text-amber-700 dark:text-amber-300 col-span-2 border border-amber-200 dark:border-amber-800/60"
             >
-              <span>⚡ Pro Early Access Pass ($5.99/wk)</span>
+              <span>⚡ Pro Early Access Pass ($6.99/wk)</span>
             </Link>
             <Link
               href="/tools/cv-tailor"

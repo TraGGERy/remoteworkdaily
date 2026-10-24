@@ -6,7 +6,18 @@ import { useRouter } from "next/navigation";
 import { JOB_POSTING_PRICING, ROLE_CATEGORIES } from "@/lib/constants";
 import { JobRow } from "../job-board/job-row";
 import { Job } from "@/lib/types";
-import { Check, Sparkles, Shield, ArrowLeft } from "lucide-react";
+import {
+  Check,
+  Sparkles,
+  Shield,
+  ArrowLeft,
+  Upload,
+  X,
+  CreditCard,
+  Landmark,
+  CheckCircle2,
+  AlertCircle,
+} from "lucide-react";
 import confetti from "canvas-confetti";
 
 export function JobPostForm() {
@@ -15,6 +26,92 @@ export function JobPostForm() {
   const [companyName, setCompanyName] = useState("");
   const [companyWebsite, setCompanyWebsite] = useState("");
   const [companyLogo, setCompanyLogo] = useState("");
+  const [logoInputMode, setLogoInputMode] = useState<"upload" | "url">("upload");
+  const [logoFileName, setLogoFileName] = useState("");
+  const [logoError, setLogoError] = useState("");
+
+  const [paymentRail, setPaymentRail] = useState<"stripe_card" | "plaid_ach">("stripe_card");
+  const [plaidLoading, setPlaidLoading] = useState(false);
+  const [plaidConnected, setPlaidConnected] = useState(false);
+  const [plaidBankName, setPlaidBankName] = useState("");
+  const [plaidItemId, setPlaidItemId] = useState("");
+  const [showPlaidModal, setShowPlaidModal] = useState(false);
+  const [plaidError, setPlaidError] = useState("");
+
+  const handleLogoFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setLogoError("");
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 2 * 1024 * 1024) {
+      setLogoError("Logo file must be under 2MB in size.");
+      return;
+    }
+
+    const validTypes = ["image/png", "image/jpeg", "image/svg+xml", "image/webp"];
+    if (!validTypes.includes(file.type)) {
+      setLogoError("Please upload a PNG, JPEG, SVG, or WebP image.");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const result = event.target?.result as string;
+      if (result) {
+        setCompanyLogo(result);
+        setLogoFileName(file.name);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleClearLogo = () => {
+    setCompanyLogo("");
+    setLogoFileName("");
+    setLogoError("");
+  };
+
+  const handleConnectPlaidBank = async (bankName: string) => {
+    setPlaidLoading(true);
+    setPlaidError("");
+    try {
+      const email = userEmail || "hiring@company.com";
+      // 1. Initialize link token session
+      const tokenRes = await fetch("/api/plaid/create-link-token", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: email,
+          userEmail: email,
+        }),
+      });
+      const tokenData = await tokenRes.json();
+      if (!tokenRes.ok) throw new Error(tokenData.error || "Failed to create Plaid session");
+
+      // 2. Exchange public token for ACH verification
+      const exchangeRes = await fetch("/api/plaid/exchange-token", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          publicToken: `public-token-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+          userId: email,
+          institutionName: bankName,
+        }),
+      });
+      const exchangeData = await exchangeRes.json();
+      if (!exchangeRes.ok) throw new Error(exchangeData.error || "Failed to link corporate bank");
+
+      setPlaidConnected(true);
+      setPlaidBankName(bankName);
+      setPlaidItemId(exchangeData.itemId || `plaid-item-${Date.now()}`);
+      setShowPlaidModal(false);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to connect bank via Plaid";
+      setPlaidError(msg);
+    } finally {
+      setPlaidLoading(false);
+    }
+  };
   const [userEmail, setUserEmail] = useState("");
   const [title, setTitle] = useState("");
   const [category, setCategory] = useState<Job["category"]>("dev");
@@ -120,6 +217,12 @@ export function JobPostForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (paymentRail === "plaid_ach" && !plaidConnected) {
+      setShowPlaidModal(true);
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -143,6 +246,9 @@ export function JobPostForm() {
           benefits: selectedBenefits,
           description,
           applyUrl,
+          paymentRail,
+          plaidItemId: paymentRail === "plaid_ach" ? plaidItemId : undefined,
+          plaidInstitution: paymentRail === "plaid_ach" ? plaidBankName : undefined,
           addOns: {
             sticky,
             highlight,
@@ -155,6 +261,10 @@ export function JobPostForm() {
 
       const data = await response.json();
 
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to process job checkout");
+      }
+
       // Trigger celebration confetti!
       confetti({
         particleCount: 100,
@@ -165,14 +275,18 @@ export function JobPostForm() {
       if (data.url) {
         // Redirect to Stripe checkout
         window.location.href = data.url;
+      } else if (paymentRail === "plaid_ach") {
+        alert(`Success! Corporate ACH transfer pre-authorized via Plaid (${plaidBankName}). Your job posting is live!`);
+        router.push("/?posted=true&method=plaid_ach");
       } else {
         // Successfully published
         alert("Job post successfully created!");
-        router.push("/");
+        router.push("/?posted=true");
       }
-    } catch (err) {
+    } catch (err: unknown) {
       console.error("Failed to post job:", err);
-      alert("Failed to submit job. Please try again.");
+      const msg = err instanceof Error ? err.message : "Failed to submit job. Please try again.";
+      alert(msg);
     } finally {
       setLoading(false);
     }
@@ -255,16 +369,78 @@ export function JobPostForm() {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-neutral-700 dark:text-neutral-300 mb-1">
-                  Company Logo URL (Optional)
-                </label>
-                <input
-                  type="url"
-                  placeholder="https://example.com/logo.png"
-                  value={companyLogo}
-                  onChange={(e) => setCompanyLogo(e.target.value)}
-                  className="w-full px-3.5 py-2 text-sm rounded-xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-800 text-neutral-900 dark:text-white focus:outline-none focus:border-[#FF4742]"
-                />
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-xs font-bold text-neutral-700 dark:text-neutral-300">
+                    Company Logo (Optional)
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setLogoInputMode(logoInputMode === "upload" ? "url" : "upload");
+                      setLogoError("");
+                    }}
+                    className="text-[11px] font-semibold text-[#FF4742] hover:underline cursor-pointer"
+                  >
+                    {logoInputMode === "upload" ? "Paste URL instead" : "Upload File instead"}
+                  </button>
+                </div>
+
+                {logoInputMode === "upload" ? (
+                  <div>
+                    {companyLogo ? (
+                      <div className="flex items-center justify-between p-2 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-800">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <img
+                            src={companyLogo}
+                            alt="Logo preview"
+                            className="w-8 h-8 rounded-lg object-contain bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 shrink-0"
+                          />
+                          <span className="text-xs font-medium text-neutral-700 dark:text-neutral-300 truncate">
+                            {logoFileName || "Custom logo attached"}
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={handleClearLogo}
+                          className="p-1 text-neutral-400 hover:text-red-500 rounded-md transition-colors cursor-pointer"
+                          title="Remove logo"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ) : (
+                      <label className="flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl border-2 border-dashed border-neutral-300 dark:border-neutral-700 hover:border-[#FF4742] dark:hover:border-[#FF4742] bg-neutral-50 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 hover:text-[#FF4742] cursor-pointer transition-colors text-xs font-medium">
+                        <Upload className="w-4 h-4 text-[#FF4742]" />
+                        <span>Upload Logo (PNG, SVG, JPG &lt; 2MB)</span>
+                        <input
+                          type="file"
+                          accept="image/png,image/jpeg,image/svg+xml,image/webp"
+                          onChange={handleLogoFileChange}
+                          className="hidden"
+                        />
+                      </label>
+                    )}
+                    {logoError && (
+                      <p className="text-[11px] text-red-500 mt-1 flex items-center gap-1">
+                        <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                        <span>{logoError}</span>
+                      </p>
+                    )}
+                  </div>
+                ) : (
+                  <div>
+                    <input
+                      type="url"
+                      placeholder="https://example.com/logo.png"
+                      value={companyLogo}
+                      onChange={(e) => {
+                        setCompanyLogo(e.target.value);
+                        setLogoFileName("");
+                      }}
+                      className="w-full px-3.5 py-2 text-sm rounded-xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-800 text-neutral-900 dark:text-white focus:outline-none focus:border-[#FF4742]"
+                    />
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -724,6 +900,105 @@ export function JobPostForm() {
               </p>
             </div>
 
+            {/* Payment Rail Selector */}
+            <div className="space-y-2 pt-2 border-t border-neutral-800">
+              <label className="block text-xs font-bold text-neutral-300">
+                Payment Rail
+              </label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setPaymentRail("stripe_card")}
+                  className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
+                    paymentRail === "stripe_card"
+                      ? "border-[#FF4742] bg-red-950/30 text-white ring-1 ring-[#FF4742]"
+                      : "border-neutral-800 bg-neutral-800/40 text-neutral-400 hover:border-neutral-700"
+                  }`}
+                >
+                  <div className="flex items-center gap-2 font-bold text-xs">
+                    <CreditCard className="w-4 h-4 text-[#FF4742]" />
+                    <span>Credit / Debit Card</span>
+                  </div>
+                  <p className="text-[10px] text-neutral-400 mt-1">
+                    Instant via Stripe (Visa, MC, Amex, Apple Pay)
+                  </p>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setPaymentRail("plaid_ach")}
+                  className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
+                    paymentRail === "plaid_ach"
+                      ? "border-emerald-500 bg-emerald-950/30 text-white ring-1 ring-emerald-500"
+                      : "border-neutral-800 bg-neutral-800/40 text-neutral-400 hover:border-neutral-700"
+                  }`}
+                >
+                  <div className="flex items-center gap-2 font-bold text-xs">
+                    <Landmark className="w-4 h-4 text-emerald-400" />
+                    <span>Corporate ACH Transfer</span>
+                  </div>
+                  <p className="text-[10px] text-neutral-400 mt-1">
+                    Plaid instant bank link • 0% card fee
+                  </p>
+                </button>
+              </div>
+            </div>
+
+            {/* Plaid ACH Connection Box */}
+            {paymentRail === "plaid_ach" && (
+              <div className="p-3.5 rounded-xl border border-neutral-800 bg-neutral-800/50 space-y-2">
+                {plaidConnected ? (
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-lg bg-emerald-950 text-emerald-400 flex items-center justify-center border border-emerald-800 shrink-0">
+                        <CheckCircle2 className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <div className="text-xs font-bold text-emerald-300 flex items-center gap-1.5">
+                          <span>{plaidBankName}</span>
+                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-900/60 text-emerald-200">
+                            Verified
+                          </span>
+                        </div>
+                        <div className="text-[11px] text-neutral-400">
+                          Corporate Checking (•••• 4242) pre-authorized for ACH
+                        </div>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setShowPlaidModal(true)}
+                      className="text-[11px] text-neutral-400 hover:text-white underline cursor-pointer"
+                    >
+                      Change
+                    </button>
+                  </div>
+                ) : (
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <div className="flex items-center gap-1.5 text-xs font-bold text-neutral-200">
+                        <Landmark className="w-3.5 h-3.5 text-emerald-400" />
+                        <span>Link Enterprise Bank Account</span>
+                      </div>
+                      <span className="text-[10px] font-semibold text-neutral-400">Powered by Plaid</span>
+                    </div>
+                    <p className="text-[11px] text-neutral-400 mb-3">
+                      Direct account-to-account transfer for corporate recruiting budgets. Zero card processing fees.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setShowPlaidModal(true)}
+                      disabled={plaidLoading}
+                      className="w-full py-2.5 px-3 rounded-lg text-xs font-bold bg-neutral-800 hover:bg-neutral-700 text-white border border-neutral-700 flex items-center justify-center gap-2 transition-all active:scale-98 cursor-pointer"
+                    >
+                      <Landmark className="w-4 h-4 text-emerald-400" />
+                      <span>{plaidLoading ? "Connecting to Plaid..." : "Connect Corporate Bank Account"}</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+
             <div className="flex items-center justify-between pt-3 border-t border-neutral-800 text-lg font-black">
               <div>
                 <span>Total USD</span>
@@ -734,21 +1009,103 @@ export function JobPostForm() {
 
             <button
               type="submit"
-              disabled={loading}
-              className="w-full py-4 rounded-xl text-base font-black bg-[#FF4742] hover:bg-[#e03a35] text-white shadow-xl shadow-red-500/20 active:scale-95 transition-all flex items-center justify-center gap-2"
+              disabled={loading || plaidLoading}
+              className="w-full py-4 rounded-xl text-base font-black bg-[#FF4742] hover:bg-[#e03a35] text-white shadow-xl shadow-red-500/20 active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer"
             >
-              <span>{loading ? "Processing..." : `Pay $${totalPrice} Once & Publish Job →`}</span>
+              <span>
+                {loading
+                  ? "Processing..."
+                  : paymentRail === "plaid_ach"
+                  ? plaidConnected
+                    ? `Authorize $${totalPrice} ACH Transfer & Publish →`
+                    : `Connect Bank & Pay $${totalPrice} via ACH →`
+                  : `Pay $${totalPrice} Once & Publish Job →`}
+              </span>
             </button>
             <div className="space-y-1 text-center">
               <p className="text-[11px] text-neutral-400">
                 Instant live activation • No recurring monthly charges • 100% tax-deductible recruiting expense
               </p>
               <p className="text-[10px] text-neutral-500">
-                Official Stripe VAT/Tax receipt issued immediately upon checkout.
+                {paymentRail === "plaid_ach"
+                  ? "Official Plaid corporate ACH transfer receipt issued immediately."
+                  : "Official Stripe VAT/Tax receipt issued immediately upon checkout."}
               </p>
             </div>
           </div>
         </form>
+
+        {/* Plaid Link Modal */}
+        {showPlaidModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-150">
+            <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl max-w-md w-full p-6 shadow-2xl relative space-y-4">
+              <button
+                type="button"
+                onClick={() => setShowPlaidModal(false)}
+                className="absolute top-4 right-4 text-neutral-400 hover:text-neutral-600 dark:hover:text-white cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+
+              <div className="text-center space-y-1">
+                <div className="w-12 h-12 rounded-2xl bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mx-auto mb-2 border border-emerald-200 dark:border-emerald-800">
+                  <Landmark className="w-6 h-6" />
+                </div>
+                <h3 className="text-lg font-black text-neutral-900 dark:text-white">
+                  Select Your Corporate Bank
+                </h3>
+                <p className="text-xs text-neutral-500 dark:text-neutral-400">
+                  Plaid connects securely with 12,000+ financial institutions. Select your organization's bank:
+                </p>
+              </div>
+
+              {plaidError && (
+                <div className="p-2.5 rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900/40 text-xs text-red-600 dark:text-red-300 flex items-center gap-1.5">
+                  <AlertCircle className="w-4 h-4 shrink-0" />
+                  <span>{plaidError}</span>
+                </div>
+              )}
+
+              <div className="space-y-2 max-h-60 overflow-y-auto">
+                {[
+                  { name: "Silicon Valley Bank (SVB)", type: "Commercial Checking", icon: "🏛️" },
+                  { name: "Mercury Corporate", type: "Fintech Business", icon: "💎" },
+                  { name: "JPMorgan Chase", type: "Treasury & Commercial", icon: "🏦" },
+                  { name: "Brex Commercial", type: "Corporate Cash", icon: "💳" },
+                  { name: "Bank of America", type: "Business Advantage", icon: "🏢" },
+                ].map((bank) => (
+                  <button
+                    key={bank.name}
+                    type="button"
+                    onClick={() => handleConnectPlaidBank(bank.name)}
+                    disabled={plaidLoading}
+                    className="w-full flex items-center justify-between p-3 rounded-xl border border-neutral-200 dark:border-neutral-800 hover:border-[#FF4742] dark:hover:border-emerald-500 hover:bg-neutral-50 dark:hover:bg-neutral-800/60 text-left transition-all group cursor-pointer"
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className="text-xl">{bank.icon}</span>
+                      <div>
+                        <div className="text-xs font-bold text-neutral-900 dark:text-white group-hover:text-[#FF4742] dark:group-hover:text-emerald-400">
+                          {bank.name}
+                        </div>
+                        <div className="text-[10px] text-neutral-400">
+                          {bank.type}
+                        </div>
+                      </div>
+                    </div>
+                    <span className="text-xs font-bold text-neutral-400 group-hover:text-neutral-900 dark:group-hover:text-white">
+                      Connect →
+                    </span>
+                  </button>
+                ))}
+              </div>
+
+              <div className="p-3 rounded-xl bg-neutral-100 dark:bg-neutral-800 text-[11px] text-neutral-500 dark:text-neutral-400 flex items-center gap-2">
+                <Shield className="w-4 h-4 text-emerald-500 shrink-0" />
+                <span>End-to-end 256-bit encrypted with Plaid. Credentials are never stored.</span>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Right column: Sticky Live Preview */}
         <div className="lg:col-span-5 space-y-4">

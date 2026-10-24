@@ -71,9 +71,9 @@ test("Landing Page Buyers: /pro candidate landing page has complete value pillar
   );
   assert.ok(content.includes('"@type": "FAQPage"'), "must include FAQPage schema");
   assert.ok(content.includes('"@type": "Product"'), "must include Product schema");
-  assert.ok(content.includes('"5.99"'), "schema must include weekly tier $5.99");
-  assert.ok(content.includes('"17.00"'), "schema must include monthly tier $17.00");
-  assert.ok(content.includes('"49.00"'), "schema must include lifetime tier $49.00");
+  assert.ok(content.includes('"6.99"'), "schema must include weekly tier $6.99");
+  assert.ok(content.includes('"17.99"'), "schema must include monthly tier $17.99");
+  assert.ok(content.includes('"49.99"'), "schema must include lifetime tier $49.99");
 });
 
 test("Landing Page Buyers: Navigation and sitemap funnel both B2B and B2C buyers", () => {
@@ -96,4 +96,40 @@ test("Landing Page Buyers: Navigation and sitemap funnel both B2B and B2C buyers
   const homeContent = fs.readFileSync(homePath, "utf-8");
   assert.ok(homeContent.includes('href="/pro"'), "Homepage hero must link to /pro");
   assert.ok(homeContent.includes('href="/hire-remotely"'), "Homepage hero must link to /hire-remotely");
+});
+
+test("Landing Page Buyers: Candidate pricing is synchronized across constants and pricing card displays", () => {
+  const constantsPath = path.resolve("lib/constants.ts");
+  const constantsContent = fs.readFileSync(constantsPath, "utf-8");
+  assert.ok(constantsContent.includes("price: 6.99"), "constants must have weekly plan $6.99");
+  assert.ok(constantsContent.includes("price: 17.99"), "constants must have monthly plan $17.99");
+  assert.ok(constantsContent.includes("price: 49.99"), "constants must have lifetime plan $49.99");
+
+  const cardsPath = path.resolve("components/pricing/pro-pricing-cards.tsx");
+  const cardsContent = fs.readFileSync(cardsPath, "utf-8");
+  assert.ok(cardsContent.includes("6.99"), "cards must display $6.99");
+  assert.ok(cardsContent.includes("17.99"), "cards must display $17.99");
+  assert.ok(cardsContent.includes("49.99"), "cards must display $49.99");
+});
+
+test("Landing Page Buyers: /hire-remotely supports company logo upload and Plaid ACH payment rail", () => {
+  const formPath = path.resolve("components/post-job/job-post-form.tsx");
+  const formContent = fs.readFileSync(formPath, "utf-8");
+
+  // Logo file upload
+  assert.ok(formContent.includes("handleLogoFileChange"), "must implement file upload handler");
+  assert.ok(formContent.includes("readAsDataURL"), "must convert file to base64 Data URL");
+  assert.ok(formContent.includes("Upload Logo"), "must provide upload button label");
+
+  // Plaid ACH corporate transfer
+  assert.ok(formContent.includes("Corporate ACH Transfer"), "must provide Corporate ACH option");
+  assert.ok(formContent.includes("plaid_ach"), "must support plaid_ach payment rail state");
+  assert.ok(formContent.includes("handleConnectPlaidBank"), "must implement Plaid connection handler");
+  assert.ok(formContent.includes("/api/plaid/create-link-token"), "must call Plaid link token API");
+
+  // Checkout API acceptance
+  const checkoutPath = path.resolve("app/api/checkout/route.ts");
+  const checkoutContent = fs.readFileSync(checkoutPath, "utf-8");
+  assert.ok(checkoutContent.includes("data:image/"), "must allow data:image base64 logo in schema");
+  assert.ok(checkoutContent.includes("plaid_ach"), "must support plaid_ach paymentRail in schema and handler");
 });

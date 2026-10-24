@@ -44,7 +44,7 @@ export function CandidateHero() {
             href="#pricing"
             className="w-full sm:w-auto px-8 py-3.5 rounded-xl bg-[#FF4742] hover:bg-[#e03a35] text-white font-bold text-base shadow-lg hover:shadow-xl hover:shadow-red-500/20 active:scale-95 transition-all flex items-center justify-center gap-2"
           >
-            <span>Unlock Pro Access — From $5.99/wk</span>
+            <span>Unlock Pro Access — From $6.99/wk</span>
             <ArrowRight className="w-4 h-4" />
           </a>
           <Link

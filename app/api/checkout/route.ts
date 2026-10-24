@@ -8,7 +8,14 @@ import { notifyPaymentReceived } from "@/lib/telegram";
 const CheckoutSchema = z.object({
   jobTitle: z.string().min(2, "Job title must be at least 2 characters").max(120),
   companyName: z.string().min(2, "Company name must be at least 2 characters").max(100),
-  companyLogo: z.string().url().optional().or(z.literal("")),
+  companyLogo: z
+    .string()
+    .refine(
+      (val) => !val || val.startsWith("http://") || val.startsWith("https://") || val.startsWith("data:image/"),
+      "Logo must be a valid URL or image upload"
+    )
+    .optional()
+    .or(z.literal("")),
   companyWebsite: z.string().url().optional().or(z.literal("")),
   userEmail: z.string().email("A valid work email is required for receipt and management"),
   category: z.enum(["dev", "design", "marketing", "sales", "ops", "exec", "support", "finance", "medical", "other"]).default("dev"),
@@ -20,6 +27,9 @@ const CheckoutSchema = z.object({
   benefits: z.array(z.string()).default([]),
   description: z.string().default(""),
   applyUrl: z.string().url("A valid application URL is required"),
+  paymentRail: z.enum(["stripe_card", "plaid_ach"]).optional().default("stripe_card"),
+  plaidItemId: z.string().optional(),
+  plaidInstitution: z.string().optional(),
   addOns: z.object({
     sticky: z.boolean().optional(),
     highlight: z.boolean().optional(),
@@ -68,6 +78,9 @@ export async function POST(request: Request) {
       benefits,
       description,
       applyUrl,
+      paymentRail,
+      plaidItemId,
+      plaidInstitution,
       addOns,
     } = parseResult.data;
 
@@ -111,6 +124,35 @@ export async function POST(request: Request) {
     // Save job into repository (in pending_payment or active state)
     insertJob(newJob);
 
+    // Handle Corporate ACH payment rail via Plaid
+    if (paymentRail === "plaid_ach") {
+      const baseAmount = 249;
+      const addOnsTotal =
+        (addOns?.sticky ? 89 : 0) +
+        (addOns?.highlight ? 49 : 0) +
+        (addOns?.newsletter ? 99 : 0) +
+        (addOns?.social ? 69 : 0);
+      const totalCents = (baseAmount + addOnsTotal) * 100;
+
+      await notifyPaymentReceived({
+        paymentType: "plaid_ach",
+        amount: totalCents,
+        currency: "USD",
+        customerEmail: userEmail,
+        companyName: companyName,
+        jobTitle: jobTitle,
+        planName: `Employer Job Post (Plaid ACH: ${plaidInstitution || "Corporate Bank"})`,
+        paymentId: plaidItemId || jobId,
+      }).catch((err) => console.warn("[Telegram ACH Alert Error]:", err));
+
+      return NextResponse.json({
+        success: true,
+        job: newJob,
+        paymentRail: "plaid_ach",
+        message: "Corporate ACH transfer authorized via Plaid",
+      });
+    }
+
     // If Stripe is configured with real key, initiate checkout
     if (isLiveStripe) {
       const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
@@ -136,9 +178,15 @@ export async function POST(request: Request) {
     }
 
     // Local development only: immediately activate for developer ergonomics
+    const baseDevAmount = 249;
+    const addOnsTotal =
+      (addOns?.sticky ? 89 : 0) +
+      (addOns?.highlight ? 49 : 0) +
+      (addOns?.newsletter ? 99 : 0) +
+      (addOns?.social ? 69 : 0);
     await notifyPaymentReceived({
       paymentType: "employer_job_post",
-      amount: 19900,
+      amount: (baseDevAmount + addOnsTotal) * 100,
       currency: "USD",
       customerEmail: userEmail,
       companyName: companyName,

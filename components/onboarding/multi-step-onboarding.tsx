@@ -147,10 +147,10 @@ export const ONBOARDING_PLANS = [
   {
     id: "weekly" as const,
     name: "Weekly Sprint",
-    price: "$5.99",
+    price: "$6.99",
     period: "/week",
-    dailyPrice: "~$0.85 / day",
-    billingDesc: "$5.99 billed weekly • Cancel anytime",
+    dailyPrice: "~$0.99 / day",
+    billingDesc: "$6.99 billed weekly • Cancel anytime",
     badge: "Sprint Search",
     isPopular: false,
     description: "Ideal for active job seekers conducting a fast, focused 1-2 week application sprint.",
@@ -164,10 +164,10 @@ export const ONBOARDING_PLANS = [
   {
     id: "monthly" as const,
     name: "Monthly Pro",
-    price: "$17",
+    price: "$17.99",
     period: "/month",
-    dailyPrice: "Only ~$0.57 / day",
-    billingDesc: "$17 billed monthly • Cancel anytime",
+    dailyPrice: "Only ~$0.60 / day",
+    billingDesc: "$17.99 billed monthly • Cancel anytime",
     badge: "Recommended · Most Popular",
     isPopular: true,
     description: "Our #1 plan for candidates navigating multi-stage interview and offer cycles.",
@@ -182,10 +182,10 @@ export const ONBOARDING_PLANS = [
   {
     id: "lifetime" as const,
     name: "Lifetime Access",
-    price: "$49",
+    price: "$49.99",
     period: "once",
     dailyPrice: "Pay once · $0/mo forever",
-    billingDesc: "$49 one-time payment • Never renews • Perpetual",
+    billingDesc: "$49.99 one-time payment • Never renews • Perpetual",
     badge: "Best Value",
     isPopular: false,
     description: "Pay once and monitor the remote job market continuously throughout your entire career.",
@@ -1114,10 +1114,10 @@ export function MultiStepOnboarding() {
                     <span>
                       Unlock {matchCount} Matching Roles —{" "}
                       {selectedPlan === "weekly"
-                        ? "$5.99/week (~$0.85/day)"
+                        ? "$6.99/week (~$0.99/day)"
                         : selectedPlan === "monthly"
-                        ? "$17/month (~$0.57/day)"
-                        : "$49 (One-Time)"}
+                        ? "$17.99/month (~$0.60/day)"
+                        : "$49.99 (One-Time)"}
                     </span>
                     <ArrowRight className="w-4 h-4" />
                   </>
