@@ -10,6 +10,7 @@ import {
   getCompetitionSignal,
   timeAgo,
   isRecentPost,
+  isEarlyAccessJob,
 } from "@/lib/utils";
 import { CheckCircle, Globe, MapPin, DollarSign, Pin, Sparkles, Lock, Flame, Users, ShieldCheck, Clock, Award } from "lucide-react";
 import { useSubscription } from "@/components/auth/subscription-context";
@@ -50,10 +51,8 @@ export function JobRow({ job, isSelected, onToggleSelect, onTagClick }: JobRowPr
     }
   }
 
-  // 6-Hour Early Access check
-  const isEarlyAccess = Boolean(
-    job.postedAt && Date.now() - new Date(job.postedAt).getTime() < 6 * 3600 * 1000
-  );
+  // Pro Early Access check (< 24h old across all categories: Marketing, Executive, Dev, etc.)
+  const isEarlyAccess = isEarlyAccessJob(job.postedAt);
   const isLockedEarlyAccess = isEarlyAccess && !hasActiveSubscription;
 
   return (

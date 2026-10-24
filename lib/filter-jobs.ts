@@ -83,9 +83,17 @@ export function filterJobs(jobs: Job[], filters: Partial<FilterState>): Job[] {
     );
   }
 
-  // 2. Category
+  // 2. Category (supports category slug, tags, and role keywords)
   if (filters.category && filters.category !== "all" && filters.category !== "") {
-    result = result.filter((job) => job.category === filters.category);
+    const targetCat = filters.category.toLowerCase().trim();
+    result = result.filter((job) => {
+      if (job.category && job.category.toLowerCase() === targetCat) return true;
+      if (job.tags && job.tags.some((t) => t.toLowerCase() === targetCat || t.toLowerCase().includes(targetCat))) return true;
+      if (targetCat === "exec" && job.tags && job.tags.some((t) => /executive|director|vp|c-level|lead/i.test(t))) return true;
+      if (targetCat === "exec" && /executive|director|chief|vp|vice president|head of/i.test(job.title || "")) return true;
+      if (targetCat === "marketing" && /marketing|seo|growth|copywriter|acquisition|content/i.test(job.title || "")) return true;
+      return false;
+    });
   }
 
   // 2.5 Workplace Type (remote, on-site, hybrid)

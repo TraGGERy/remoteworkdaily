@@ -114,4 +114,16 @@ export function isRecentPost(dateString?: string): boolean {
   return diff >= 0 && diff < 24 * 3600 * 1000;
 }
 
+/**
+ * Checks if a job posting is within the Pro Early Access window (< 24 hours old).
+ * Applies consistently to all roles (Marketing, Executive, Developer, Sales, etc.).
+ */
+export function isEarlyAccessJob(postedAt?: string | Date): boolean {
+  if (!postedAt) return false;
+  const time = new Date(postedAt).getTime();
+  if (isNaN(time)) return false;
+  const diff = Date.now() - time;
+  return diff >= 0 && diff < 24 * 3600 * 1000;
+}
+
 

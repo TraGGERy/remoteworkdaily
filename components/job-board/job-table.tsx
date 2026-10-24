@@ -24,12 +24,12 @@ export function JobTable({
 }: JobTableProps) {
   const { hasActiveSubscription, openUpgradeModal } = useSubscription();
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
-  const [visibleCount, setVisibleCount] = useState<number>(40);
+  const [visibleCount, setVisibleCount] = useState<number>(45);
 
   const [prevJobsLength, setPrevJobsLength] = useState(jobs.length);
   if (jobs.length !== prevJobsLength) {
     setPrevJobsLength(jobs.length);
-    setVisibleCount(40);
+    setVisibleCount(45);
   }
 
   const displayedJobs = jobs.slice(0, visibleCount);
@@ -61,8 +61,8 @@ export function JobTable({
     }
   };
 
-  // Freemium preview threshold: first 25 jobs are fully visible
-  const FREE_PREVIEW_LIMIT = 25;
+  // Freemium preview threshold: first 15 jobs are fully visible
+  const FREE_PREVIEW_LIMIT = 15;
   const isPaywallActive = !hasActiveSubscription && jobs.length > FREE_PREVIEW_LIMIT;
   
   const previewJobs = isPaywallActive ? displayedJobs.slice(0, FREE_PREVIEW_LIMIT) : displayedJobs;
@@ -86,7 +86,7 @@ export function JobTable({
           <span className="hidden md:inline text-emerald-600 dark:text-emerald-400 font-bold">100% Transparent Pay</span>
           {isPaywallActive && (
             <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300 border border-amber-300/40">
-              25 Free Preview Jobs
+              15 Free Preview Jobs
             </span>
           )}
         </div>
@@ -158,7 +158,7 @@ export function JobTable({
                 <div className="space-y-1.5 text-left">
                   <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 border border-amber-300/40">
                     <Lock className="w-3.5 h-3.5" />
-                    <span>You Have Viewed 25 Free Preview Jobs</span>
+                    <span>You Have Viewed 15 Free Preview Jobs</span>
                   </div>
                   <h3 className="text-xl sm:text-2xl font-black text-neutral-900 dark:text-white">
                     Unlock 2,000+ Direct ATS Jobs (Greenhouse, Lever, Ashby)

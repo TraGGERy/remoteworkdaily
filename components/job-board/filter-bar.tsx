@@ -138,6 +138,40 @@ export function FilterBar({
               <ChevronDown className="w-3.5 h-3.5 text-neutral-400 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
             </div>
 
+            {/* Role & Specialization Dropdown (Executive, Marketing, Developer, etc.) */}
+            <div className="relative shrink-0">
+              <select
+                value={filters.category || "all"}
+                onChange={(e) =>
+                  onUpdateFilters({
+                    category: e.target.value === "all" ? "" : e.target.value,
+                  })
+                }
+                aria-label="Filter by role specialization or department"
+                className={`h-9 pl-3 pr-7 rounded-xl text-xs sm:text-sm font-semibold border transition-all cursor-pointer focus:outline-none appearance-none ${
+                  filters.category && filters.category !== "all" && filters.category !== ""
+                    ? "bg-red-50 dark:bg-red-950/40 text-[#FF4742] border-[#FF4742] font-bold shadow-sm"
+                    : "bg-white dark:bg-neutral-900 text-neutral-700 dark:text-neutral-300 border-neutral-200 dark:border-neutral-800 hover:border-neutral-400 dark:hover:border-neutral-700"
+                }`}
+              >
+                <option value="all">🎯 Role: All Roles</option>
+                <option value="marketing">🚥 Marketing &amp; Growth</option>
+                <option value="exec">💼 Executive &amp; Leadership</option>
+                <option value="dev">🤓 Developer &amp; Engineering</option>
+                <option value="design">🎨 Design &amp; Creative</option>
+                <option value="sales">🤝 Sales &amp; Business Dev</option>
+                <option value="finance">💰 Finance &amp; Accounting</option>
+                <option value="support">🎧 Customer Support</option>
+                <option value="ops">♾️ DevOps &amp; Operations</option>
+                <option value="farming">🚜 Farming &amp; Agriculture</option>
+                <option value="trades">🔨 Trades &amp; Logistics</option>
+                <option value="education">👨‍🏫 Education &amp; Coaching</option>
+                <option value="medical">🚑 Healthcare &amp; Medical</option>
+                <option value="hospitality">🍽️ Hospitality &amp; Food</option>
+              </select>
+              <ChevronDown className="w-3.5 h-3.5 text-neutral-400 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
+            </div>
+
             {/* Location Filter Button */}
             <div className="relative shrink-0">
               <button

@@ -2,7 +2,7 @@ import { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { getJobById } from "@/lib/jobs-repository";
-import { formatSalary, timeAgo } from "@/lib/utils";
+import { formatSalary, timeAgo, isEarlyAccessJob } from "@/lib/utils";
 import { generateJobPostingSchema, generateJobBreadcrumbSchema } from "@/lib/seo";
 import { BENEFITS_LIST } from "@/lib/constants";
 import {
@@ -73,9 +73,7 @@ export default async function JobDetailPage({ params }: PageProps) {
   const schema = generateJobPostingSchema(job);
   const breadcrumbSchema = generateJobBreadcrumbSchema(job);
   const salaryText = formatSalary(job.salaryMin, job.salaryMax, job.salaryCurrency);
-  const isEarlyAccess = Boolean(
-    job.postedAt && Date.now() - new Date(job.postedAt).getTime() < 6 * 3600 * 1000
-  );
+  const isEarlyAccess = isEarlyAccessJob(job.postedAt);
   const companySlug = job.companySlug || job.company.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 
   return (

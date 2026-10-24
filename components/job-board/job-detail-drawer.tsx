@@ -8,6 +8,7 @@ import {
   isTrueWorldwideJob,
   getCompetitionSignal,
   timeAgo,
+  isEarlyAccessJob,
 } from "@/lib/utils";
 import { BENEFITS_LIST } from "@/lib/constants";
 import {
@@ -23,7 +24,9 @@ import {
   Users,
   Flame,
   Sparkles,
+  Lock,
 } from "lucide-react";
+import { useSubscription } from "@/components/auth/subscription-context";
 import { WorkInformation } from "./work-information";
 import { GatedApplyAction } from "./gated-apply-action";
 import { HrContactCard } from "./hr-contact-card";
@@ -43,6 +46,7 @@ export function JobDetailDrawer({
   onNextJob,
   onApply,
 }: JobDetailDrawerProps) {
+  const { hasActiveSubscription } = useSubscription();
   const [copied, setCopied] = useState(false);
   const [bookmarked, setBookmarked] = useState(false);
   const [showGovModal, setShowGovModal] = useState(false);
@@ -52,9 +56,8 @@ export function JobDetailDrawer({
   const hourlyText = formatHourlyEquivalent(job.salaryMin, job.salaryMax, job.salaryCurrency);
   const isWorldwide = isTrueWorldwideJob(job.location, job.workArrangement, job.workplaceType);
   const competition = getCompetitionSignal(job.appliesCount, job.postedAt);
-  const isEarlyAccess = Boolean(
-    job.postedAt && Date.now() - new Date(job.postedAt).getTime() < 6 * 3600 * 1000
-  );
+  const isEarlyAccess = isEarlyAccessJob(job.postedAt);
+  const isLockedEarlyAccess = isEarlyAccess && !hasActiveSubscription;
 
   const handleCopyLink = () => {
     const url = `${window.location.origin}/jobs/${job.id}/${job.slug}`;
@@ -69,7 +72,14 @@ export function JobDetailDrawer({
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-6 border-b border-neutral-200 dark:border-neutral-800">
         <div className="flex items-center gap-3 sm:gap-4 min-w-0 flex-1">
           <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center shrink-0 overflow-hidden border border-neutral-200 dark:border-neutral-700 shadow-inner">
-            {job.companyLogo ? (
+            {isLockedEarlyAccess ? (
+              <div
+                className="w-full h-full bg-gradient-to-br from-amber-500/20 to-red-500/20 flex items-center justify-center text-amber-600 dark:text-amber-400"
+                title="Company name locked (Pro Early Access)"
+              >
+                <Lock className="w-6 h-6" />
+              </div>
+            ) : job.companyLogo ? (
               <img
                 src={job.companyLogo}
                 alt={job.company}
@@ -84,9 +94,16 @@ export function JobDetailDrawer({
 
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="font-extrabold text-base sm:text-lg text-neutral-900 dark:text-white truncate">
-                {job.company}
-              </span>
+              {isLockedEarlyAccess ? (
+                <span className="font-extrabold text-base sm:text-lg text-neutral-400 truncate flex items-center gap-2">
+                  <span className="blur-[4px] select-none">{job.company}</span>
+                  <span className="text-xs text-amber-600 dark:text-amber-400 font-extrabold">(Pro Early Access)</span>
+                </span>
+              ) : (
+                <span className="font-extrabold text-base sm:text-lg text-neutral-900 dark:text-white truncate">
+                  {job.company}
+                </span>
+              )}
               {job.verified && (
                 <CheckCircle className="w-4 h-4 text-sky-500 fill-sky-500/20 shrink-0" />
               )}
