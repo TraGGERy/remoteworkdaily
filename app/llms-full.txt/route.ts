@@ -33,7 +33,7 @@ Returns an array of current, active remote job listings.
 ## 3. SEO & Structured Data Implementation
 Every job listing page on Remote Work Daily provides Google-compliant Schema.org JobPosting structured data with:
 - jobLocationType: "TELECOMMUTE"
-- applicantLocationRequirements: Country or AdministrativeArea
+- applicantLocationRequirements: Country (Schema.org Country object or array of Country objects)
 - baseSalary: MonetaryAmount with QuantitativeValue
 - hiringOrganization: Organization with sameAs verified URLs
 

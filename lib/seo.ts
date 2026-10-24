@@ -1,11 +1,11 @@
-import { Job } from "./types";
+import type { Job } from "./types";
 import { LocationEligibility } from "./domain/catalog";
 
 const SITE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://remoteworkdaily.com";
 
 export function generateJobPostingSchema(job: Job) {
   const validThroughDate = new Date(new Date(job.postedAt).getTime() + 30 * 24 * 3600 * 1000).toISOString();
-  const locationObj = new LocationEligibility(job.location);
+  const locationObj = new LocationEligibility(job.location, job.workplaceType);
 
   const schema: Record<string, unknown> = {
     "@context": "https://schema.org/",
@@ -35,6 +35,7 @@ export function generateJobPostingSchema(job: Job) {
             address: {
               "@type": "PostalAddress",
               addressLocality: job.location || "Office",
+              addressCountry: locationObj.primaryCountry,
             },
           },
         }
@@ -46,15 +47,14 @@ export function generateJobPostingSchema(job: Job) {
             address: {
               "@type": "PostalAddress",
               addressLocality: job.location || "Office / Hybrid",
+              addressCountry: locationObj.primaryCountry,
             },
           },
+          applicantLocationRequirements: locationObj.toApplicantLocationRequirements(),
         }
       : {
           jobLocationType: "TELECOMMUTE",
-          applicantLocationRequirements: {
-            "@type": locationObj.isWorldwide ? "Country" : "AdministrativeArea",
-            name: job.location || "Worldwide",
-          },
+          applicantLocationRequirements: locationObj.toApplicantLocationRequirements(),
         }),
   };
 
