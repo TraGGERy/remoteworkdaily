@@ -2,10 +2,10 @@ import { BenefitOption, TagCategory } from "./types";
 
 export const ROLE_CATEGORIES: TagCategory[] = [
   { id: "all", label: "All Jobs", icon: "🌐", tag: "" },
-  { id: "marketing", label: "Marketing", icon: "🚥", tag: "marketing" },
-  { id: "exec", label: "Executive", icon: "💼", tag: "exec" },
   { id: "dev", label: "Developer", icon: "🤓", tag: "dev" },
   { id: "design", label: "Design", icon: "🎨", tag: "design" },
+  { id: "marketing", label: "Marketing", icon: "🚥", tag: "marketing" },
+  { id: "exec", label: "Executive", icon: "💼", tag: "exec" },
   { id: "sales", label: "Sales & BD", icon: "🤝", tag: "sales" },
   { id: "support", label: "Customer Support", icon: "🎧", tag: "support" },
   { id: "ops", label: "Ops & DevOps", icon: "♾️", tag: "ops" },

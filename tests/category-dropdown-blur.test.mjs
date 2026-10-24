@@ -14,7 +14,9 @@ test("Category Dropdown: ROLE_CATEGORIES includes Executive and Marketing", () =
   assert.ok(filterBarContent.includes("Executive &amp; Leadership"), "FilterBar includes Executive option");
 
   const suggestedContent = fs.readFileSync("components/job-board/suggested-filters.tsx", "utf8");
-  assert.ok(suggestedContent.includes("More Roles (Executive, Marketing...)"), "SuggestedFilters includes More Roles dropdown");
+  assert.ok(suggestedContent.includes("More Roles (Marketing, Executive...)"), "SuggestedFilters includes Marketing and Executive in dropdown placeholder");
+  assert.ok(suggestedContent.includes('c.id === "marketing"'), "Marketing is explicitly added to dropdown roles");
+  assert.ok(suggestedContent.includes('c.id === "exec"'), "Executive is explicitly added to dropdown roles");
 });
 
 test("Category Filtering & Early Access: Logic functions as expected", () => {
