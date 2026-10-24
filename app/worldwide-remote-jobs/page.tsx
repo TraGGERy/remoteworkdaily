@@ -51,6 +51,9 @@ export const metadata: Metadata = {
   },
 };
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export default function WorldwideRemoteJobsPage() {
   const allJobs = getAllJobs();
   const worldwideJobs = filterJobs(allJobs, { worldwideOnly: true });

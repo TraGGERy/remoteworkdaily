@@ -59,17 +59,21 @@ export function filterJobs(jobs: Job[], filters: Partial<FilterState>): Job[] {
   // Only display active jobs
   let result = jobs.filter((job) => job.status !== "pending_payment" && job.status !== "archived" && job.isActive !== false);
 
-  // 1. Search Query (title, company, description, tags)
+  // 1. Search Query (title, company, description, tags, location) - Supports multi-word tokens
   if (filters.query && filters.query.trim()) {
     const q = filters.query.toLowerCase().trim();
-    result = result.filter(
-      (job) =>
-        job.title.toLowerCase().includes(q) ||
-        job.company.toLowerCase().includes(q) ||
-        job.tags.some((tag) => tag.toLowerCase().includes(q)) ||
-        job.location.toLowerCase().includes(q) ||
-        job.description.toLowerCase().includes(q)
-    );
+    const tokens = q.split(/\s+/).filter(Boolean);
+    result = result.filter((job) => {
+      const fullText = [
+        job.title || "",
+        job.company || "",
+        job.location || "",
+        Array.isArray(job.tags) ? job.tags.join(" ") : "",
+        job.description || ""
+      ].join(" ").toLowerCase();
+
+      return tokens.every((token) => fullText.includes(token));
+    });
   }
 
   // 1.5 Company
@@ -89,9 +93,16 @@ export function filterJobs(jobs: Job[], filters: Partial<FilterState>): Job[] {
     result = result.filter((job) => {
       if (job.category && job.category.toLowerCase() === targetCat) return true;
       if (job.tags && job.tags.some((t) => t.toLowerCase() === targetCat || t.toLowerCase().includes(targetCat))) return true;
+      if (targetCat === "dev" && /developer|engineer|software|fullstack|full-stack|frontend|front-end|backend|back-end|devops|architect|programmer|coding|web dev/i.test(job.title || "")) return true;
+      if (targetCat === "design" && /designer|design|ui|ux|graphic|creative director|art director|product design/i.test(job.title || "")) return true;
       if (targetCat === "exec" && job.tags && job.tags.some((t) => /executive|director|vp|c-level|lead/i.test(t))) return true;
       if (targetCat === "exec" && /executive|director|chief|vp|vice president|head of/i.test(job.title || "")) return true;
       if (targetCat === "marketing" && /marketing|seo|growth|copywriter|acquisition|content/i.test(job.title || "")) return true;
+      if (targetCat === "sales" && /sales|account exec|sdr|bdr|business dev|account manager/i.test(job.title || "")) return true;
+      if (targetCat === "support" && /support|customer service|customer success|client success/i.test(job.title || "")) return true;
+      if (targetCat === "finance" && /finance|accounting|accountant|payroll|tax|auditor/i.test(job.title || "")) return true;
+      if (targetCat === "medical" && /medical|healthcare|nurse|doctor|clinical|therapist|pharmacy/i.test(job.title || "")) return true;
+      if (targetCat === "education" && /education|teacher|instructor|coach|professor|curriculum/i.test(job.title || "")) return true;
       return false;
     });
   }

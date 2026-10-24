@@ -125,7 +125,9 @@ export function JobBoardClient({
 
       const qs = params.toString();
       const targetUrl = qs ? `/?${qs}` : "/";
-      router.replace(targetUrl, { scroll: false });
+      if (typeof window !== "undefined") {
+        window.history.replaceState(null, "", targetUrl);
+      }
     });
   };
 

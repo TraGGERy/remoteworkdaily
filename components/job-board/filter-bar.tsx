@@ -21,22 +21,27 @@ export function FilterBar({
 }: FilterBarProps) {
   const [isOverviewOpen, setIsOverviewOpen] = useState(false);
 
-  // Debounced search query
-  const [localQuery, setLocalQuery] = useState(filters.query);
-  const [prevQuery, setPrevQuery] = useState(filters.query);
-  if (filters.query !== prevQuery) {
-    setPrevQuery(filters.query);
-    setLocalQuery(filters.query);
-  }
+  // Search query state with responsive debounce & form submit
+  const [localQuery, setLocalQuery] = useState(filters.query || "");
+
+  // Sync if externally changed (e.g. Reset button clicked or active chip dismissed)
+  useEffect(() => {
+    setLocalQuery(filters.query || "");
+  }, [filters.query]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      if (localQuery !== filters.query) {
+      if (localQuery !== (filters.query || "")) {
         onUpdateFilters({ query: localQuery });
       }
-    }, 180);
+    }, 120);
     return () => clearTimeout(timer);
   }, [localQuery, filters.query, onUpdateFilters]);
+
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onUpdateFilters({ query: localQuery });
+  };
 
   // Count active search criteria
   let activeFilterCount = 0;
@@ -207,8 +212,8 @@ export function FilterBar({
       <div className="max-w-7xl mx-auto px-3 sm:px-6 min-w-0 space-y-2">
         <div className="flex items-center gap-2 sm:gap-3 min-w-0">
           {/* Search Input */}
-          <div className="relative flex-1 min-w-0">
-            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
+          <form onSubmit={handleSearchSubmit} className="relative flex-1 min-w-0">
+            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400 pointer-events-none" />
             <input
               type="text"
               placeholder="🔍 Search title, company, skills, or city..."
@@ -229,7 +234,7 @@ export function FilterBar({
                 <X className="w-3.5 h-3.5" />
               </button>
             )}
-          </div>
+          </form>
 
           {/* All Filters Trigger Button */}
           <button

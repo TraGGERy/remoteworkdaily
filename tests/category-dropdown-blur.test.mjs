@@ -2,10 +2,18 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 
-test("Category Dropdown: ROLE_CATEGORIES includes Executive and Marketing in modal & suggested filters", () => {
+test("Category Dropdown: SuggestedFilters includes Developer, Designer, Marketing, and Executive inside dropdown", () => {
   const constantsContent = fs.readFileSync("lib/constants.ts", "utf8");
   assert.ok(constantsContent.includes('id: "marketing"'), "Marketing category exists in constants");
   assert.ok(constantsContent.includes('id: "exec"'), "Executive category exists in constants");
+  assert.ok(constantsContent.includes('id: "dev"'), "Developer category exists in constants");
+  assert.ok(constantsContent.includes('id: "design"'), "Design category exists in constants");
+
+  // Verify SuggestedFilters consolidates Developer and Designer inside the categories dropdown
+  const suggestedContent = fs.readFileSync("components/job-board/suggested-filters.tsx", "utf8");
+  assert.ok(suggestedContent.includes("Categories & Roles (Developer, Designer, Marketing...)"), "SuggestedFilters includes placeholder featuring Developer, Designer, Marketing");
+  assert.ok(suggestedContent.includes("ALL_ROLES.map"), "SuggestedFilters maps all roles inside the dropdown");
+  assert.ok(!suggestedContent.includes('PRIMARY_ROLES = ROLE_CATEGORIES.filter((c) => ["all", "dev", "design"]'), "Developer and Designer are not separated as outside primary buttons");
 
   // Verify FiltersOverviewModal contains the complete role category selections
   const modalContent = fs.readFileSync("components/job-board/filters-overview-modal.tsx", "utf8");
@@ -13,22 +21,22 @@ test("Category Dropdown: ROLE_CATEGORIES includes Executive and Marketing in mod
   assert.ok(modalContent.includes("Marketing"), "Modal includes Marketing option");
   assert.ok(modalContent.includes("Executive"), "Modal includes Executive option");
 
-  // Verify SuggestedFilters includes Marketing and Executive
-  const suggestedContent = fs.readFileSync("components/job-board/suggested-filters.tsx", "utf8");
-  assert.ok(suggestedContent.includes("More Roles (Marketing, Executive...)"), "SuggestedFilters includes Marketing and Executive in dropdown placeholder");
-  assert.ok(suggestedContent.includes('c.id === "marketing"'), "Marketing is explicitly added to dropdown roles");
-  assert.ok(suggestedContent.includes('c.id === "exec"'), "Executive is explicitly added to dropdown roles");
-
-  // Verify FilterBar is streamlined: no redundant outside dropdown clutter
+  // Verify FilterBar is streamlined with responsive search input and All Filters trigger
   const filterBarContent = fs.readFileSync("components/job-board/filter-bar.tsx", "utf8");
   assert.ok(!filterBarContent.includes("Role: All Roles"), "FilterBar outside dropdown for Role is removed");
   assert.ok(!filterBarContent.includes("Job Type: All"), "FilterBar outside dropdown for Job Type is removed");
   assert.ok(!filterBarContent.includes("Posted: Any time"), "FilterBar outside dropdown for Freshness is removed");
   assert.ok(!filterBarContent.includes("Gov Filters:"), "FilterBar outside row for Gov Filters is removed");
   assert.ok(filterBarContent.includes("All Filters"), "FilterBar provides All Filters modal trigger");
+  assert.ok(filterBarContent.includes("handleSearchSubmit"), "FilterBar provides form submit handler for search input");
 });
 
-test("Category Filtering & Early Access: Logic functions as expected", () => {
+test("Category Filtering & Search Query: Multi-word search and category keyword matching work seamlessly", () => {
+  const filterJobsSrc = fs.readFileSync("lib/filter-jobs.ts", "utf8");
+  assert.ok(filterJobsSrc.includes("tokens.every"), "filterJobs supports multi-word search token matching");
+  assert.ok(filterJobsSrc.includes("developer|engineer|software"), "filterJobs matches developer titles when category is dev");
+  assert.ok(filterJobsSrc.includes("designer|design|ui|ux"), "filterJobs matches designer titles when category is design");
+
   function isEarlyAccessJob(postedAt) {
     if (!postedAt) return false;
     const time = new Date(postedAt).getTime();
