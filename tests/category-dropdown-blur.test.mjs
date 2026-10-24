@@ -2,21 +2,30 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 
-test("Category Dropdown: ROLE_CATEGORIES includes Executive and Marketing", () => {
+test("Category Dropdown: ROLE_CATEGORIES includes Executive and Marketing in modal & suggested filters", () => {
   const constantsContent = fs.readFileSync("lib/constants.ts", "utf8");
   assert.ok(constantsContent.includes('id: "marketing"'), "Marketing category exists in constants");
   assert.ok(constantsContent.includes('id: "exec"'), "Executive category exists in constants");
 
-  // Verify UI files contain the role dropdown
-  const filterBarContent = fs.readFileSync("components/job-board/filter-bar.tsx", "utf8");
-  assert.ok(filterBarContent.includes("Role: All Roles"), "FilterBar includes Role dropdown");
-  assert.ok(filterBarContent.includes("Marketing &amp; Growth"), "FilterBar includes Marketing option");
-  assert.ok(filterBarContent.includes("Executive &amp; Leadership"), "FilterBar includes Executive option");
+  // Verify FiltersOverviewModal contains the complete role category selections
+  const modalContent = fs.readFileSync("components/job-board/filters-overview-modal.tsx", "utf8");
+  assert.ok(modalContent.includes("Role &amp; Specialization"), "Modal includes Role category section");
+  assert.ok(modalContent.includes("Marketing"), "Modal includes Marketing option");
+  assert.ok(modalContent.includes("Executive"), "Modal includes Executive option");
 
+  // Verify SuggestedFilters includes Marketing and Executive
   const suggestedContent = fs.readFileSync("components/job-board/suggested-filters.tsx", "utf8");
   assert.ok(suggestedContent.includes("More Roles (Marketing, Executive...)"), "SuggestedFilters includes Marketing and Executive in dropdown placeholder");
   assert.ok(suggestedContent.includes('c.id === "marketing"'), "Marketing is explicitly added to dropdown roles");
   assert.ok(suggestedContent.includes('c.id === "exec"'), "Executive is explicitly added to dropdown roles");
+
+  // Verify FilterBar is streamlined: no redundant outside dropdown clutter
+  const filterBarContent = fs.readFileSync("components/job-board/filter-bar.tsx", "utf8");
+  assert.ok(!filterBarContent.includes("Role: All Roles"), "FilterBar outside dropdown for Role is removed");
+  assert.ok(!filterBarContent.includes("Job Type: All"), "FilterBar outside dropdown for Job Type is removed");
+  assert.ok(!filterBarContent.includes("Posted: Any time"), "FilterBar outside dropdown for Freshness is removed");
+  assert.ok(!filterBarContent.includes("Gov Filters:"), "FilterBar outside row for Gov Filters is removed");
+  assert.ok(filterBarContent.includes("All Filters"), "FilterBar provides All Filters modal trigger");
 });
 
 test("Category Filtering & Early Access: Logic functions as expected", () => {
@@ -58,4 +67,3 @@ test("Filters Overview Modal: Contains all controls and active selections popup"
   assert.ok(filterBarContent.includes("FiltersOverviewModal"), "FilterBar imports and mounts FiltersOverviewModal");
   assert.ok(filterBarContent.includes("All Filters"), "FilterBar renders All Filters trigger button");
 });
-
