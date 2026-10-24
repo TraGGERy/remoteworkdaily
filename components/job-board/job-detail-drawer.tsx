@@ -21,12 +21,14 @@ import {
   Check,
   ShieldCheck,
   Users,
+  Flame,
+  Sparkles,
 } from "lucide-react";
 import { WorkInformation } from "./work-information";
 import { GatedApplyAction } from "./gated-apply-action";
 import { HrContactCard } from "./hr-contact-card";
 import { AiResumeTailor } from "./ai-resume-tailor";
-import { Flame } from "lucide-react";
+import { GovernmentEasyApplyModal } from "./government-easy-apply-modal";
 
 interface JobDetailDrawerProps {
   job: Job;
@@ -43,6 +45,8 @@ export function JobDetailDrawer({
 }: JobDetailDrawerProps) {
   const [copied, setCopied] = useState(false);
   const [bookmarked, setBookmarked] = useState(false);
+  const [showGovModal, setShowGovModal] = useState(false);
+  const isGovJob = Boolean(job.isPublicSector || job.isGovernment);
 
   const salaryText = formatSalary(job.salaryMin, job.salaryMax, job.salaryCurrency);
   const hourlyText = formatHourlyEquivalent(job.salaryMin, job.salaryMax, job.salaryCurrency);
@@ -217,6 +221,63 @@ export function JobDetailDrawer({
         </div>
       </div>
 
+      {/* Public Sector Official Dossier & Easy Apply Highlight */}
+      {isGovJob && (
+        <div className="my-5 p-5 sm:p-6 rounded-2xl border-2 border-[#003399]/40 bg-gradient-to-br from-blue-50/70 via-white to-amber-50/30 dark:from-neutral-900 dark:via-neutral-900 dark:to-neutral-950 shadow-lg space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-[#003399] text-white flex items-center justify-center font-black text-lg shrink-0">
+                🏛️
+              </div>
+              <div>
+                <span className="text-[10px] font-black uppercase tracking-wider text-[#003399] dark:text-blue-400 block">
+                  Official Public Sector Vacancy Notice
+                </span>
+                <h4 className="text-base font-black text-neutral-900 dark:text-white">
+                  {job.agency || job.company}
+                </h4>
+              </div>
+            </div>
+
+            <button
+              onClick={() => setShowGovModal(true)}
+              className="px-5 py-2.5 rounded-xl text-xs font-black bg-[#003399] hover:bg-[#002266] text-white shadow-md active:scale-95 transition-all flex items-center justify-center gap-2 self-start sm:self-auto"
+            >
+              <Sparkles className="w-4 h-4 text-amber-300" />
+              <span>Launch Easy Apply Assistant</span>
+            </button>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-2 text-xs">
+            <div className="p-2.5 rounded-xl bg-white/80 dark:bg-neutral-800/60 border border-neutral-200 dark:border-neutral-700">
+              <span className="text-[10px] font-bold text-neutral-400 block uppercase">Grade / Band</span>
+              <span className="font-extrabold text-neutral-900 dark:text-white mt-0.5 block">{job.grade || "Civil Service"}</span>
+            </div>
+
+            <div className="p-2.5 rounded-xl bg-white/80 dark:bg-neutral-800/60 border border-neutral-200 dark:border-neutral-700">
+              <span className="text-[10px] font-bold text-neutral-400 block uppercase">Eligibility</span>
+              <span className="font-extrabold text-neutral-900 dark:text-white mt-0.5 block truncate">
+                {job.eligibilityType === "citizenship_required" ? "Citizenship Required" : "Open Worldwide"}
+              </span>
+            </div>
+
+            <div className="p-2.5 rounded-xl bg-white/80 dark:bg-neutral-800/60 border border-neutral-200 dark:border-neutral-700">
+              <span className="text-[10px] font-bold text-neutral-400 block uppercase">Format Standard</span>
+              <span className="font-extrabold text-neutral-900 dark:text-white mt-0.5 block truncate">
+                {job.europassReady ? "🇪🇺 Europass Ready" : job.p11Ready ? "🇺🇳 UN P.11 Ready" : "Civil Service Standard"}
+              </span>
+            </div>
+
+            <div className="p-2.5 rounded-xl bg-white/80 dark:bg-neutral-800/60 border border-neutral-200 dark:border-neutral-700">
+              <span className="text-[10px] font-bold text-neutral-400 block uppercase">Vetting / Clearance</span>
+              <span className="font-extrabold text-neutral-900 dark:text-white mt-0.5 block truncate">
+                {job.securityClearanceRequired ? (job.securityClearanceLevel || "Vetting Required") : "Standard Clean Record"}
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Tags & Perks Pills */}
       <div className="py-4 border-b border-neutral-200 dark:border-neutral-800 flex flex-wrap gap-2">
         {job.tags.map((tag) => (
@@ -326,6 +387,15 @@ export function JobDetailDrawer({
           </button>
         </div>
       </div>
+
+      {/* Public Sector Easy Apply Assistant Modal */}
+      {isGovJob && (
+        <GovernmentEasyApplyModal
+          job={job}
+          isOpen={showGovModal}
+          onClose={() => setShowGovModal(false)}
+        />
+      )}
     </div>
   );
 }

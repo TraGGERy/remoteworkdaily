@@ -14,6 +14,7 @@ import {
 } from "./native-scrapers";
 import { fetchDirectAtsJobs } from "./ats-scrapers";
 import { fetchApifyJobs } from "./apify-scraper";
+import { fetchAllPublicSectorJobs } from "./public-sector-scrapers";
 
 export interface PipelineOptions {
   targetCount?: number;
@@ -59,6 +60,7 @@ export async function runDailyJobIngestionPipeline(
     directAtsRes,
     reliefWebRes,
     apifyRes,
+    publicSectorRes,
   ] = await Promise.allSettled([
     fetchArbeitnowJobs(pagesNeeded),
     fetchWeWorkRemotelyJobs(),
@@ -69,6 +71,7 @@ export async function runDailyJobIngestionPipeline(
     fetchDirectAtsJobs(),
     fetchReliefWebJobs(),
     fetchApifyJobs(options.apifyActorId, options.apifyConfig),
+    fetchAllPublicSectorJobs(),
   ]);
 
   const rawJobs: { job: RawScrapedJob; source: string }[] = [];
@@ -82,6 +85,7 @@ export async function runDailyJobIngestionPipeline(
     ats: 0,
     reliefweb: 0,
     apify: 0,
+    public_sector: 0,
   };
 
   if (arbeitnowRes.status === "fulfilled" && arbeitnowRes.value.length > 0) {
@@ -129,6 +133,11 @@ export async function runDailyJobIngestionPipeline(
     for (const j of apifyRes.value) rawJobs.push({ job: j, source: "apify" });
   }
 
+  if (publicSectorRes.status === "fulfilled" && publicSectorRes.value.length > 0) {
+    sourcesBreakdown.public_sector = publicSectorRes.value.length;
+    for (const j of publicSectorRes.value) rawJobs.push({ job: j, source: "ats" });
+  }
+
   console.log(`[Ingestion Pipeline] Total raw jobs gathered: ${rawJobs.length}. Normalizing & deduplicating...`, sourcesBreakdown);
 
   // In-flight deduplication across multiple feeds using canonicalHash
@@ -140,8 +149,8 @@ export async function runDailyJobIngestionPipeline(
 
     const normalized = normalizeScrapedJob(job);
     if (!normalized) continue;
-    // Skip low-skill local on-site jobs that did not pass the Remote / High-Paying Hybrid filter
-    if (normalized.workArrangement === "on_site" && normalized.workplaceType === "on-site") {
+    // Skip low-skill local on-site jobs that did not pass the Remote / High-Paying Hybrid filter (preserve public sector & civil service posts)
+    if (!normalized.isPublicSector && normalized.workArrangement === "on_site" && normalized.workplaceType === "on-site") {
       continue;
     }
     if (normalized.canonicalHash && seenHashes.has(normalized.canonicalHash)) {

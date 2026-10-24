@@ -3,51 +3,55 @@ export type PricingPlanId = "lifetime" | "monthly" | "weekly";
 export interface OnboardingState {
   // Step 1: Desired Job Title(s)
   jobTitles: string[];
-  
+
   // Step 2: Target Experience Level
   experienceLevel: string;
-  
-  // Step 3: Job Types (Remote, Hybrid, In-office)
-  jobTypes: string[];
-  
-  // Step 4: Salary Expectations
+
+  // Step 3: Salary Expectations
   salaryExpectation: string;
-  
+
+  // Step 4: Job Types (Remote, Hybrid, In-office)
+  jobTypes: string[];
+
   // Step 5: How long have you been looking for a job?
   jobSearchDuration: string;
 
-  // Step 6: What have you tried so far?
+  // Step 6: What is most frustrating for you? (Frustrations & Pain Points)
+  frustrations: string[];
+
+  // Step 7: What have you tried so far?
   platformsTried: string[];
 
-  // Step 7: What makes Career Hound different (scanning websites vs LinkedIn)
+  // Step 8: What makes Career Hound different (scanning websites vs LinkedIn)
   hasViewedDifference: boolean;
 
-  // Step 8: Do you currently have a resume?
+  // Step 9: Do you currently have a resume?
   hasResume: string;
 
-  // Step 9: Do you tailor your resume for each job?
+  // Step 10: Do you tailor your resume for each job?
   tailorsResume: string;
 
-  // Step 10: Did you know ATS scanning info
+  // Step 11: Did you know ATS scanning info
   hasViewedAtsInfo: boolean;
 
-  // Step 11: What makes Career Hound different (AI Keyword Match 100%)
+  // Step 12: What makes Career Hound different (AI Keyword Match 100%)
   hasViewedAiTailoring: boolean;
 
-  // Step 12: Paywall & plan selection
+  // Step 13: Paywall & plan selection
   selectedPricingPlan: PricingPlanId;
   candidateEmail: string;
-  
-  // Current active step (1 through 12)
+
+  // Current active step (1 through 13)
   currentStep: number;
 }
 
 export const INITIAL_ONBOARDING_STATE: OnboardingState = {
   jobTitles: [],
   experienceLevel: "",
-  jobTypes: [],
   salaryExpectation: "",
+  jobTypes: [],
   jobSearchDuration: "",
+  frustrations: [],
   platformsTried: [],
   hasViewedDifference: false,
   hasResume: "",
@@ -67,12 +71,6 @@ export const EXPERIENCE_LEVELS = [
   "Executive",
 ] as const;
 
-export const JOB_TYPE_OPTIONS = [
-  { id: "remote", label: "Remote", icon: "home" },
-  { id: "hybrid", label: "Hybrid", icon: "shuffle" },
-  { id: "in_office", label: "In-office", icon: "building" },
-] as const;
-
 export const SALARY_OPTIONS = [
   "$30k - $60k per year",
   "$60k - $90k per year",
@@ -81,11 +79,24 @@ export const SALARY_OPTIONS = [
   "$150k+ per year",
 ] as const;
 
+export const JOB_TYPE_OPTIONS = [
+  { id: "remote", label: "Remote", icon: "home" },
+  { id: "hybrid", label: "Hybrid", icon: "shuffle" },
+  { id: "in_office", label: "In-office", icon: "building" },
+] as const;
+
 export const SEARCH_DURATION_OPTIONS = [
   { id: "just_started", label: "I just started", icon: "sprout" },
   { id: "few_weeks", label: "A few weeks ago", icon: "clock" },
   { id: "few_months", label: "A few months ago", icon: "hourglass" },
   { id: "too_long", label: "Too long", icon: "turtle" },
+] as const;
+
+export const FRUSTRATIONS_OPTIONS = [
+  { id: "not_hearing_back", label: "Not hearing back", icon: "mail" },
+  { id: "too_much_competition", label: "Too much competition", icon: "users" },
+  { id: "not_enough_openings", label: "Not enough job openings", icon: "search" },
+  { id: "low_salaries", label: "Low paying salaries", icon: "dollar" },
 ] as const;
 
 export const JOB_TITLE_EXAMPLES = [

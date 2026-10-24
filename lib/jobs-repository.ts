@@ -116,109 +116,140 @@ function saveJobs(jobs: Job[]) {
   }
 }
 
+const UNPAIRED_SURROGATE_REGEX = /[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/g;
+
+function cleanStr<T extends string | null | undefined>(val: T): T {
+  if (typeof val !== "string") return val;
+  return val.replace(UNPAIRED_SURROGATE_REGEX, "") as T;
+}
+
+function cleanArr(arr: string[] | null | undefined): string[] {
+  if (!Array.isArray(arr)) return [];
+  return arr.map((item) => (typeof item === "string" ? item.replace(UNPAIRED_SURROGATE_REGEX, "") : item));
+}
+
+/**
+ * Maps a Job to its Supabase `jobs` row (single source of truth for both sync paths).
+ */
+function toSupabaseRow(job: Job) {
+  return {
+    id: job.id,
+    slug: cleanStr(job.slug),
+    title: cleanStr(job.title),
+    company: cleanStr(job.company),
+    company_slug: cleanStr(job.companySlug),
+    company_logo: cleanStr(job.companyLogo ?? null),
+    company_website: cleanStr(job.companyWebsite ?? null),
+    verified: job.verified ?? true,
+    featured: job.featured ?? false,
+    sticky: job.sticky ?? false,
+    location: cleanStr(job.location ?? "Worldwide"),
+    location_code: cleanStr(job.locationCode ?? "WW"),
+    workplace_type: job.workplaceType ?? "remote",
+    category: cleanStr(job.category ?? "dev"),
+    tags: cleanArr(job.tags),
+    benefits: cleanArr(job.benefits),
+    salary_min: job.salaryMin ?? null,
+    salary_max: job.salaryMax ?? null,
+    salary_currency: cleanStr(job.salaryCurrency ?? "USD"),
+    description: cleanStr(job.description ?? ""),
+    apply_url: cleanStr(job.applyUrl),
+    posted_at: job.postedAt ?? new Date().toISOString(),
+    views_count: job.viewsCount ?? 0,
+    applies_count: job.appliesCount ?? 0,
+    source: cleanStr(job.source ?? "direct"),
+    status: job.status ?? "active",
+    employer_email: cleanStr(job.employerEmail ?? null),
+    canonical_hash: cleanStr(job.canonicalHash ?? null),
+    work_arrangement: job.workArrangement ?? (job.workplaceType === "hybrid" ? "hybrid_high_pay" : "remote_global"),
+    hybrid_city: cleanStr(job.hybridCity ?? null),
+    hybrid_country: cleanStr(job.hybridCountry ?? null),
+    days_in_office: job.daysInOffice ?? null,
+    external_id: cleanStr(job.externalId ?? null),
+    is_featured: job.isFeatured ?? job.featured ?? false,
+    is_active: job.isActive ?? (job.status === "active"),
+    is_public_sector: job.isPublicSector ?? job.isGovernment ?? false,
+    is_government: job.isGovernment ?? job.isPublicSector ?? false,
+    agency: cleanStr(job.agency ?? null),
+    agency_logo: cleanStr(job.agencyLogo ?? null),
+    jurisdiction: cleanStr(job.jurisdiction ?? null),
+    public_sector_type: job.publicSectorType ?? null,
+    grade: cleanStr(job.grade ?? null),
+    eligibility_type: job.eligibilityType ?? null,
+    citizenship_requirements: cleanArr(job.citizenshipRequirements),
+    security_clearance_required: job.securityClearanceRequired ?? false,
+    security_clearance_level: cleanStr(job.securityClearanceLevel ?? null),
+    application_deadline: job.applicationDeadline ?? null,
+    languages_required: cleanArr(job.languagesRequired),
+    required_documents: cleanArr(job.requiredDocuments),
+    original_apply_url: cleanStr(job.originalApplyUrl ?? job.applyUrl),
+    selection_ref: cleanStr(job.selectionRef ?? null),
+    europass_ready: job.europassReady ?? false,
+    p11_ready: job.p11Ready ?? false,
+    portal_type: cleanStr(job.portalType ?? null),
+    updated_at: new Date().toISOString(),
+  };
+}
+
 /**
  * Asynchronously persists or updates a job in Supabase if configured.
  */
 async function syncJobToSupabase(job: Job) {
-  if (!isSupabaseConfigured()) return;
+  await syncJobsBatchToSupabase([job]);
+}
+
+/**
+ * Upserts jobs to Supabase keyed on `id` (local ids are stable after dedup merge).
+ * supabase-js returns errors instead of throwing, so they are checked explicitly.
+ */
+async function syncJobsBatchToSupabase(jobs: Job[]) {
+  if (jobs.length === 0 || !isSupabaseConfigured()) return;
   const supabase = getSupabaseClient();
   if (!supabase) return;
 
-  try {
-    await supabase.from("jobs").upsert({
-      id: job.id,
-      slug: job.slug,
-      title: job.title,
-      company: job.company,
-      company_slug: job.companySlug,
-      company_logo: job.companyLogo ?? null,
-      company_website: job.companyWebsite ?? null,
-      verified: job.verified ?? true,
-      featured: job.featured ?? false,
-      sticky: job.sticky ?? false,
-      location: job.location ?? "Worldwide",
-      location_code: job.locationCode ?? "WW",
-      workplace_type: job.workplaceType ?? "remote",
-      category: job.category ?? "dev",
-      tags: job.tags ?? [],
-      benefits: job.benefits ?? [],
-      salary_min: job.salaryMin ?? null,
-      salary_max: job.salaryMax ?? null,
-      salary_currency: job.salaryCurrency ?? "USD",
-      description: job.description ?? "",
-      apply_url: job.applyUrl,
-      posted_at: job.postedAt ?? new Date().toISOString(),
-      views_count: job.viewsCount ?? 0,
-      applies_count: job.appliesCount ?? 0,
-      source: job.source ?? "direct",
-      status: job.status ?? "active",
-      employer_email: job.employerEmail ?? null,
-      canonical_hash: job.canonicalHash ?? null,
-      work_arrangement: job.workArrangement ?? (job.workplaceType === "hybrid" ? "hybrid_high_pay" : "remote_global"),
-      hybrid_city: job.hybridCity ?? null,
-      hybrid_country: job.hybridCountry ?? null,
-      days_in_office: job.daysInOffice ?? null,
-      external_id: job.externalId ?? null,
-      is_featured: job.isFeatured ?? job.featured ?? false,
-      is_active: job.isActive ?? (job.status === "active"),
-      updated_at: new Date().toISOString(),
-    }, { onConflict: "id" });
-  } catch (err) {
-    console.error("[Supabase sync error]:", err);
+  const CHUNK_SIZE = 100;
+  for (let i = 0; i < jobs.length; i += CHUNK_SIZE) {
+    const chunkJobs = jobs.slice(i, i + CHUNK_SIZE);
+    const seenBatchExts = new Set<string>();
+    const records = chunkJobs.map((j) => {
+      const row = toSupabaseRow(j);
+      if (row.external_id) {
+        if (seenBatchExts.has(row.external_id)) {
+          row.external_id = `${row.external_id}_${j.id}`;
+        }
+        seenBatchExts.add(row.external_id);
+      }
+      return row;
+    });
+
+    const { error } = await supabase.from("jobs").upsert(records, { onConflict: "id" });
+    if (error) console.warn(`[Supabase batch sync error] chunk ${i / CHUNK_SIZE}:`, error.message);
   }
 }
 
-async function syncJobsBatchToSupabase(jobs: Job[]) {
-  if (!isSupabaseConfigured() || !process.env.SUPABASE_SERVICE_ROLE_KEY?.trim()) return;
+/**
+ * Marks jobs pruned/expired locally as archived/inactive in Supabase so both stores stay aligned.
+ */
+async function archiveJobsInSupabase(ids: string[]) {
+  if (ids.length === 0 || !isSupabaseConfigured()) return;
   const supabase = getSupabaseClient();
   if (!supabase) return;
 
-  const CHUNK_SIZE = 250;
-  for (let i = 0; i < jobs.length; i += CHUNK_SIZE) {
-    const chunk = jobs.slice(i, i + CHUNK_SIZE);
-    const records = chunk.map((job) => ({
-      id: job.id,
-      slug: job.slug,
-      title: job.title,
-      company: job.company,
-      company_slug: job.companySlug,
-      company_logo: job.companyLogo ?? null,
-      company_website: job.companyWebsite ?? null,
-      verified: job.verified ?? true,
-      featured: job.featured ?? false,
-      sticky: job.sticky ?? false,
-      location: job.location ?? "Worldwide",
-      location_code: job.locationCode ?? "WW",
-      workplace_type: job.workplaceType ?? "remote",
-      category: job.category ?? "dev",
-      tags: job.tags ?? [],
-      benefits: job.benefits ?? [],
-      salary_min: job.salaryMin ?? null,
-      salary_max: job.salaryMax ?? null,
-      salary_currency: job.salaryCurrency ?? "USD",
-      description: job.description ?? "",
-      apply_url: job.applyUrl,
-      posted_at: job.postedAt ?? new Date().toISOString(),
-      views_count: job.viewsCount ?? 0,
-      applies_count: job.appliesCount ?? 0,
-      source: job.source ?? "direct",
-      status: job.status ?? "active",
-      employer_email: job.employerEmail ?? null,
-      canonical_hash: job.canonicalHash ?? null,
-      work_arrangement: job.workArrangement ?? (job.workplaceType === "hybrid" ? "hybrid_high_pay" : "remote_global"),
-      hybrid_city: job.hybridCity ?? null,
-      hybrid_country: job.hybridCountry ?? null,
-      days_in_office: job.daysInOffice ?? null,
-      external_id: job.externalId ?? null,
-      is_featured: job.isFeatured ?? job.featured ?? false,
-      is_active: job.isActive ?? (job.status === "active"),
-      updated_at: new Date().toISOString(),
-    }));
-
-    try {
-      await supabase.from("jobs").upsert(records, { onConflict: "canonical_hash" });
-    } catch (err) {
-      console.warn("[Supabase batch sync error]:", err);
+  for (let i = 0; i < ids.length; i += 200) {
+    const batch = ids.slice(i, i + 200);
+    const { error } = await supabase
+      .from("jobs")
+      .update({ status: "archived", is_active: false, updated_at: new Date().toISOString() })
+      .in("id", batch);
+    if (error) {
+      // Fallback: if RLS check prevents changing status enum with anon key, deactivate
+      const fallback = await supabase
+        .from("jobs")
+        .update({ is_active: false, updated_at: new Date().toISOString() })
+        .in("id", batch);
+      if (fallback.error) {
+        console.warn("[Supabase archive error]:", fallback.error.message);
+      }
     }
   }
 }
@@ -261,6 +292,22 @@ export function triggerBackgroundSyncIfStale(): void {
 
 export function getAllJobs(forceReload: boolean = false): Job[] {
   const jobs = ensureDataFile(forceReload);
+  const now = Date.now();
+
+  // Automated Public Sector & General Deadline Expiration (mirrored to Supabase)
+  const expiredIds: string[] = [];
+  for (const j of jobs) {
+    if (j.applicationDeadline) {
+      const deadlineMs = new Date(j.applicationDeadline).getTime();
+      if (!isNaN(deadlineMs) && deadlineMs < now && j.status === "active") {
+        j.status = "archived";
+        j.isActive = false;
+        expiredIds.push(j.id);
+      }
+    }
+  }
+  if (expiredIds.length > 0) archiveJobsInSupabase(expiredIds).catch(() => {});
+
   return [...jobs].sort(
     (a, b) => (new Date(b.postedAt).getTime() || 0) - (new Date(a.postedAt).getTime() || 0)
   );
@@ -432,8 +479,19 @@ export function insertJobsBatch(newJobs: Job[]): { added: number; updated: numbe
 
   saveJobs(pruned);
 
-  // Background batch sync to Supabase in chunks of 50
-  syncJobsBatchToSupabase(newJobs).catch(() => {});
+  // Sync the MERGED records (existing ids preserved) so Supabase ids never drift from local ids,
+  // and archive anything pruned out of the local sliding window.
+  const touchedIds = new Set<string>();
+  for (const job of newJobs) {
+    const idx = job.canonicalHash ? hashToIdx.get(job.canonicalHash) : undefined;
+    touchedIds.add(idx !== undefined && idx >= 0 ? existingJobs[idx].id : job.id);
+  }
+  const keptIds = new Set(pruned.map((j) => j.id));
+  const toSync = pruned.filter((j) => touchedIds.has(j.id));
+  const prunedIds = merged.filter((j) => !keptIds.has(j.id)).map((j) => j.id);
+  syncJobsBatchToSupabase(toSync)
+    .then(() => archiveJobsInSupabase(prunedIds))
+    .catch(() => {});
 
   return { added: addedCount, updated: updatedCount, total: pruned.length };
 }

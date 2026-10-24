@@ -41,6 +41,28 @@ export interface RawScrapedJob {
   source?: "direct" | "apify" | "feed" | "ats";
   ats_provider?: "greenhouse" | "lever" | "ashby" | "workday" | "direct";
   is_direct_company_post?: boolean;
+  employer_email?: string;
+
+  // Public Sector & Government additions
+  is_government?: boolean;
+  is_public_sector?: boolean;
+  agency?: string;
+  agency_logo?: string;
+  jurisdiction?: "EU" | "UN" | "UK" | "US" | "ZA" | "ZW" | "AU" | "National" | "Regional" | "International" | "Other";
+  public_sector_type?: "eu_institutions" | "national_government" | "un_international" | "regional_local";
+  grade?: string;
+  eligibility_type?: "open_worldwide" | "citizenship_required" | "visa_sponsored";
+  citizenship_requirements?: string[];
+  security_clearance_required?: boolean;
+  security_clearance_level?: string;
+  application_deadline?: string;
+  languages_required?: string[];
+  required_documents?: string[];
+  original_apply_url?: string;
+  selection_ref?: string;
+  europass_ready?: boolean;
+  p11_ready?: boolean;
+  portal_type?: "epso" | "un_inspira" | "eures" | "usajobs" | "uk_civil_service" | "french_pep" | "bund_de" | "dpsa_gov_za" | "psc_gov_zw" | "general_gov";
 }
 
 export function normalizeScrapedJob(raw: RawScrapedJob): Job {
@@ -246,7 +268,10 @@ export function normalizeScrapedJob(raw: RawScrapedJob): Job {
     workplaceType,
     companyWebsite: raw.url,
   });
-  const isExpired = isJobExpired(postedAt);
+  const isDeadlineExpired = Boolean(
+    raw.application_deadline && !isNaN(new Date(raw.application_deadline).getTime()) && new Date(raw.application_deadline).getTime() < Date.now()
+  );
+  const isExpired = isJobExpired(postedAt) || isDeadlineExpired;
 
   return {
     id,
@@ -254,7 +279,7 @@ export function normalizeScrapedJob(raw: RawScrapedJob): Job {
     title,
     company,
     companySlug,
-    companyLogo,
+    companyLogo: raw.agency_logo || companyLogo,
     companyWebsite: raw.url || "https://remoteworkdaily.com",
     verified: true,
     featured: Math.random() > 0.75,
@@ -284,10 +309,31 @@ export function normalizeScrapedJob(raw: RawScrapedJob): Job {
     hybridCity: classification.hybridCity,
     hybridCountry: classification.hybridCountry,
     daysInOffice: classification.daysInOffice,
-    employerEmail: classification.employerEmail,
+    employerEmail: raw.employer_email || classification.employerEmail,
     externalId: classification.externalId,
     isFeatured: Math.random() > 0.85,
     isActive: !isExpired,
+
+    // Public Sector & Government Mapping
+    isGovernment: raw.is_government ?? raw.is_public_sector ?? false,
+    isPublicSector: raw.is_public_sector ?? raw.is_government ?? false,
+    agency: raw.agency,
+    agencyLogo: raw.agency_logo,
+    jurisdiction: raw.jurisdiction,
+    publicSectorType: raw.public_sector_type,
+    grade: raw.grade,
+    eligibilityType: raw.eligibility_type,
+    citizenshipRequirements: raw.citizenship_requirements,
+    securityClearanceRequired: raw.security_clearance_required,
+    securityClearanceLevel: raw.security_clearance_level,
+    applicationDeadline: raw.application_deadline,
+    languagesRequired: raw.languages_required,
+    requiredDocuments: raw.required_documents,
+    originalApplyUrl: raw.original_apply_url || applyUrl,
+    selectionRef: raw.selection_ref,
+    europassReady: raw.europass_ready ?? true,
+    p11Ready: raw.p11_ready ?? false,
+    portalType: raw.portal_type,
   };
 }
 

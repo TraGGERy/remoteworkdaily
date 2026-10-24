@@ -1,6 +1,60 @@
 import { Job, FilterState } from "./types";
 import { isTrueWorldwideJob } from "./utils";
 
+const REGION_KEYWORD_MAP: Record<string, string[]> = {
+  region_af: [
+    "africa", "south africa", "zimbabwe", "kenya", "nigeria", "ghana", "egypt", "rwanda", "uganda",
+    "morocco", "tanzania", "ethiopia", "cape town", "johannesburg", "pretoria", "harare", "nairobi",
+    "lagos", "cairo", "accra", "kigali", "dpsa", "nepad", "sadc", "za", "zw", "ke", "ng", "gh", "eg", "rw"
+  ],
+  region_eu: [
+    "europe", "european", "uk", "united kingdom", "germany", "france", "spain", "italy", "netherlands",
+    "portugal", "ireland", "sweden", "poland", "switzerland", "brussels", "berlin", "london", "paris",
+    "amsterdam", "madrid", "lisbon", "de", "fr", "es", "nl", "pt", "ie", "se", "ch", "pl"
+  ],
+  region_na: [
+    "north america", "united states", "usa", "us", "canada", "mexico", "new york", "san francisco",
+    "toronto", "vancouver", "ca", "mx"
+  ],
+  region_la: [
+    "latin america", "brazil", "argentina", "colombia", "chile", "peru", "uruguay", "sao paulo",
+    "buenos aires", "bogota", "br", "ar", "co", "cl"
+  ],
+  region_as: [
+    "asia", "singapore", "india", "japan", "tokyo", "bangalore", "delhi", "south korea", "taiwan",
+    "vietnam", "thailand", "indonesia", "philippines", "sg", "in", "jp", "kr", "tw", "ph"
+  ],
+  region_oc: [
+    "oceania", "australia", "new zealand", "sydney", "melbourne", "auckland", "au", "nz"
+  ],
+  region_me: [
+    "middle east", "uae", "united arab emirates", "dubai", "saudi arabia", "riyadh", "qatar", "doha", "ae", "sa", "qa"
+  ],
+};
+
+const COUNTRY_ALIAS_MAP: Record<string, string[]> = {
+  za: ["south africa", "cape town", "johannesburg", "pretoria", "durban", "midrand", "dpsa", "sars", "za"],
+  "south africa": ["south africa", "cape town", "johannesburg", "pretoria", "durban", "midrand", "dpsa", "sars", "za"],
+  zw: ["zimbabwe", "harare", "bulawayo", "sadc", "psc_zw", "zw"],
+  zimbabwe: ["zimbabwe", "harare", "bulawayo", "sadc", "psc_zw", "zw"],
+  ke: ["kenya", "nairobi", "mombasa", "ke"],
+  kenya: ["kenya", "nairobi", "mombasa", "ke"],
+  ng: ["nigeria", "lagos", "abuja", "ng"],
+  nigeria: ["nigeria", "lagos", "abuja", "ng"],
+  gh: ["ghana", "accra", "gh"],
+  ghana: ["ghana", "accra", "gh"],
+  eg: ["egypt", "cairo", "alexandria", "eg"],
+  egypt: ["egypt", "cairo", "alexandria", "eg"],
+  us: ["united states", "usa", "us"],
+  "united states": ["united states", "usa", "us"],
+  uk: ["united kingdom", "uk", "london", "great britain", "england", "scotland", "wales"],
+  "united kingdom": ["united kingdom", "uk", "london", "great britain", "england", "scotland", "wales"],
+  ca: ["canada", "toronto", "vancouver", "montreal", "ca"],
+  canada: ["canada", "toronto", "vancouver", "montreal", "ca"],
+  de: ["germany", "berlin", "munich", "frankfurt", "de"],
+  germany: ["germany", "berlin", "munich", "frankfurt", "de"],
+};
+
 export function filterJobs(jobs: Job[], filters: Partial<FilterState>): Job[] {
   // Only display active jobs
   let result = jobs.filter((job) => job.status !== "pending_payment" && job.status !== "archived" && job.isActive !== false);
@@ -48,15 +102,35 @@ export function filterJobs(jobs: Job[], filters: Partial<FilterState>): Job[] {
     });
   }
 
-  // 3. Location
+  // 3. Location (Smart global country and regional matching)
   if (filters.location && filters.location.trim()) {
-    const loc = filters.location.toLowerCase();
-    result = result.filter(
-      (job) =>
-        job.location.toLowerCase().includes(loc) ||
-        (job.locationCode && job.locationCode.toLowerCase().includes(loc)) ||
-        (loc === "worldwide" && (job.location.toLowerCase().includes("worldwide") || job.workplaceType === "remote"))
-    );
+    const loc = filters.location.toLowerCase().trim();
+    const isWorldwideLoc = loc === "worldwide" || loc === "anywhere";
+    const regionKeywords = REGION_KEYWORD_MAP[loc];
+    const countryAliases = COUNTRY_ALIAS_MAP[loc];
+
+    result = result.filter((job) => {
+      const jobLoc = (job.location || "").toLowerCase();
+      const jobCode = (job.locationCode || "").toLowerCase();
+      const isWorldwideJob = isTrueWorldwideJob(job.location, job.workArrangement, job.workplaceType) ||
+        jobLoc.includes("worldwide") || jobLoc.includes("anywhere");
+
+      if (isWorldwideLoc) {
+        return isWorldwideJob;
+      }
+
+      if (regionKeywords) {
+        const matchesRegion = regionKeywords.some((k) => jobLoc.includes(k) || jobCode === k);
+        return matchesRegion || isWorldwideJob;
+      }
+
+      if (countryAliases) {
+        const matchesCountry = countryAliases.some((alias) => jobLoc.includes(alias) || jobCode === alias);
+        return matchesCountry || isWorldwideJob;
+      }
+
+      return jobLoc.includes(loc) || jobCode.includes(loc) || isWorldwideJob;
+    });
   }
 
   // 4. Minimum Salary
@@ -127,6 +201,56 @@ export function filterJobs(jobs: Job[], filters: Partial<FilterState>): Job[] {
       const jobTime = new Date(job.postedAt).getTime();
       const isUnder24h = !isNaN(jobTime) && now - jobTime <= 24 * 3600 * 1000;
       return (job.appliesCount || 0) <= 15 || isUnder24h;
+    });
+  }
+
+  // 6.10 Public Sector / Government Only Toggle
+  if (filters.publicSectorOnly) {
+    result = result.filter((job) => Boolean(job.isPublicSector || job.isGovernment));
+  }
+
+  // 6.11 Public Sector Specific Sector Filter (EU, National, UN/International, Regional)
+  if (filters.sector && filters.sector !== "all") {
+    result = result.filter((job) => job.publicSectorType === filters.sector);
+  }
+
+  // 6.12 Eligibility Restrictions (Open Worldwide, Citizenship Required, Visa Sponsored)
+  if (filters.eligibility && filters.eligibility !== "all") {
+    result = result.filter((job) => job.eligibilityType === filters.eligibility);
+  }
+
+  // 6.13 Language Requirements (English Only vs. Multilingual)
+  if (filters.languageReq && filters.languageReq !== "all") {
+    result = result.filter((job) => {
+      const langs = job.languagesRequired || [];
+      if (filters.languageReq === "en_only") {
+        return (
+          langs.length <= 1 ||
+          langs.every((l) => l.toLowerCase().includes("english") || l.toLowerCase().includes("en"))
+        );
+      }
+      if (filters.languageReq === "multilingual") {
+        return langs.length >= 2;
+      }
+      return true;
+    });
+  }
+
+  // 6.14 Application Deadline Urgency (<48h closing soon, next 7 days)
+  if (filters.deadlineUrgency && filters.deadlineUrgency !== "all") {
+    const now = Date.now();
+    result = result.filter((job) => {
+      if (!job.applicationDeadline) return false;
+      const deadlineMs = new Date(job.applicationDeadline).getTime();
+      if (isNaN(deadlineMs) || deadlineMs <= now) return false;
+      const msLeft = deadlineMs - now;
+      if (filters.deadlineUrgency === "closing_48h") {
+        return msLeft <= 48 * 3600 * 1000;
+      }
+      if (filters.deadlineUrgency === "next_7d") {
+        return msLeft <= 7 * 24 * 3600 * 1000;
+      }
+      return true;
     });
   }
 

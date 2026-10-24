@@ -17,6 +17,8 @@ export interface UserProfile {
   hybrid_city?: string;
   hybrid_country?: string;
   resume_text?: string;
+  frustrations?: string[];
+  platforms_tried?: string[];
   is_pro: boolean;
   pro_plan?: string;
   stripe_customer_id?: string;
@@ -157,6 +159,8 @@ export async function saveUserProfile(
     hybrid_city: profileData.hybrid_city ?? existing?.hybrid_city,
     hybrid_country: profileData.hybrid_country ?? existing?.hybrid_country,
     resume_text: profileData.resume_text ?? existing?.resume_text ?? "",
+    frustrations: profileData.frustrations ?? existing?.frustrations ?? [],
+    platforms_tried: profileData.platforms_tried ?? existing?.platforms_tried ?? [],
     is_pro: profileData.is_pro ?? existing?.is_pro ?? false,
     pro_plan: profileData.pro_plan ?? existing?.pro_plan,
     stripe_customer_id: profileData.stripe_customer_id ?? existing?.stripe_customer_id,

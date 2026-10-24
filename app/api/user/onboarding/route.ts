@@ -83,6 +83,8 @@ export async function POST(req: Request) {
       hybrid_city: body.hybridCity || undefined,
       hybrid_country: body.hybridCountry || undefined,
       resume_text: body.resumeText || "",
+      frustrations: body.frustrations || [],
+      platforms_tried: body.platformsTried || [],
       is_pro: Boolean(body.isPro),
       onboarding_completed: true,
     });
@@ -105,12 +107,14 @@ export async function POST(req: Request) {
 
     // Send Admin Telegram lead notification
     notifyUserOnboarding({
-      flow: "candidate_12_step",
+      flow: "candidate_13_step",
       email: userEmail,
       targetRoles: body.targetRoles,
       experienceLevel: body.seniority,
       salaryExpectation: `$${body.minSalary || 90000}+`,
       jobTypes: [workType],
+      frustrations: body.frustrations,
+      platformsTried: body.platformsTried,
       hasResume: body.resumeText ? "Yes (Uploaded)" : "No",
       selectedPlan: body.planId ? `${body.planId}` : body.isPro ? "monthly ($17/mo)" : "free",
     }).catch((err) => console.warn("[Telegram Lead Alert Notice]:", err));

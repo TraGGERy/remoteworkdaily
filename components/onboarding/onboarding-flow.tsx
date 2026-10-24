@@ -2,16 +2,27 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Clock, X, Check, Star, Lock } from "lucide-react";
+import {
+  ArrowLeft,
+  Clock,
+  X,
+  Check,
+  Star,
+  Lock,
+  Home,
+  Shuffle,
+  Building2,
+  Mail,
+  Users,
+  Search,
+  DollarSign,
+} from "lucide-react";
 import {
   CareerHoundLogo,
   CoinStackIcon,
   SproutIcon,
   HourglassIcon,
   TurtleIcon,
-  RemoteHomeIcon,
-  HybridArrowsIcon,
-  OfficeBuildingIcon,
 } from "./career-hound-icons";
 import {
   OnboardingState,
@@ -20,6 +31,7 @@ import {
   JOB_TYPE_OPTIONS,
   SALARY_OPTIONS,
   SEARCH_DURATION_OPTIONS,
+  FRUSTRATIONS_OPTIONS,
   JOB_TITLE_EXAMPLES,
   PLATFORMS_TRIED_OPTIONS,
   YES_NO_OPTIONS,
@@ -32,7 +44,8 @@ const LOCAL_STORAGE_KEY = "careerhound_onboarding_draft";
 
 export function CareerHoundOnboardingFlow() {
   const router = useRouter();
-  const { markOnboardingCompleted, isOnboardingCompleted, hasActiveSubscription, isLoading } = useSubscription();
+  const { markOnboardingCompleted, isOnboardingCompleted, hasActiveSubscription, isLoading } =
+    useSubscription();
   const [state, setState] = useState<OnboardingState>(INITIAL_ONBOARDING_STATE);
   const [currentTitleInput, setCurrentTitleInput] = useState("");
   const [isProcessingCheckout, setIsProcessingCheckout] = useState(false);
@@ -40,7 +53,7 @@ export function CareerHoundOnboardingFlow() {
   const [emailInput, setEmailInput] = useState("");
   const [checkoutSuccess, setCheckoutSuccess] = useState(false);
 
-  // If user already completed onboarding or has active subscription, redirect to dashboard unless explicitly retaking
+  // If user already completed onboarding or has active subscription, redirect to dashboard unless retaking
   useEffect(() => {
     if (!isLoading && (isOnboardingCompleted || hasActiveSubscription)) {
       if (typeof window !== "undefined") {
@@ -86,6 +99,52 @@ export function CareerHoundOnboardingFlow() {
     });
   };
 
+  // Helper to persist draft profile to backend
+  const persistProfileDraft = async (emailOverride?: string) => {
+    const activeEmail =
+      emailOverride ||
+      state.candidateEmail ||
+      (typeof window !== "undefined"
+        ? localStorage.getItem("remotework_user_email") || ""
+        : "");
+
+    const parsedMinSalary = (() => {
+      if (state.salaryExpectation.includes("150k+")) return 150000;
+      if (state.salaryExpectation.includes("120k")) return 120000;
+      if (state.salaryExpectation.includes("90k")) return 90000;
+      if (state.salaryExpectation.includes("60k")) return 60000;
+      return 30000;
+    })();
+
+    try {
+      await fetch("/api/user/onboarding", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: activeEmail.trim().toLowerCase(),
+          targetRoles: state.jobTitles,
+          seniority: state.experienceLevel || "Mid-level",
+          minSalary: parsedMinSalary,
+          workType: state.jobTypes.join(", ") || "Remote",
+          workArrangement:
+            state.jobTypes.includes("Remote") && state.jobTypes.includes("Hybrid")
+              ? "both"
+              : state.jobTypes.includes("Hybrid")
+              ? "hybrid_high_pay"
+              : "remote_global",
+          platformsTried: state.platformsTried,
+          frustrations: state.frustrations,
+          hasResume: state.hasResume,
+          tailorsResume: state.tailorsResume,
+          isPro: false,
+          planId: state.selectedPricingPlan,
+        }),
+      });
+    } catch (err) {
+      console.warn("[Onboarding] Non-blocking draft save notice:", err);
+    }
+  };
+
   const handleNextStep = () => {
     if (state.currentStep === 1) {
       let finalTitles = [...state.jobTitles];
@@ -97,15 +156,21 @@ export function CareerHoundOnboardingFlow() {
     }
 
     if (state.currentStep === 2 && !state.experienceLevel) return;
-    if (state.currentStep === 3 && state.jobTypes.length === 0) return;
-    if (state.currentStep === 4 && !state.salaryExpectation) return;
+    if (state.currentStep === 3 && !state.salaryExpectation) return;
+    if (state.currentStep === 4 && state.jobTypes.length === 0) return;
     if (state.currentStep === 5 && !state.jobSearchDuration) return;
-    if (state.currentStep === 6 && state.platformsTried.length === 0) return;
-    if (state.currentStep === 8 && !state.hasResume) return;
-    if (state.currentStep === 9 && !state.tailorsResume) return;
+    if (state.currentStep === 6 && state.frustrations.length === 0) return;
+    if (state.currentStep === 7 && state.platformsTried.length === 0) return;
+    if (state.currentStep === 9 && !state.hasResume) return;
+    if (state.currentStep === 10 && !state.tailorsResume) return;
 
-    if (state.currentStep < 12) {
-      saveState({ currentStep: state.currentStep + 1 });
+    if (state.currentStep < 13) {
+      const nextStep = state.currentStep + 1;
+      saveState({ currentStep: nextStep });
+      if (nextStep === 13) {
+        // Automatically persist collected candidate profile data upon entering paywall
+        persistProfileDraft();
+      }
     }
   };
 
@@ -141,26 +206,35 @@ export function CareerHoundOnboardingFlow() {
     saveState({ experienceLevel: level });
   };
 
-  // --- Step 3 helpers ---
-  const handleToggleJobType = (typeId: string) => {
-    const exists = state.jobTypes.includes(typeId);
-    const updated = exists
-      ? state.jobTypes.filter((t) => t !== typeId)
-      : [...state.jobTypes, typeId];
-    saveState({ jobTypes: updated });
-  };
-
-  // --- Step 4 helpers ---
+  // --- Step 3 helpers (Salary Expectations) ---
   const handleSelectSalary = (salary: string) => {
     saveState({ salaryExpectation: salary });
   };
 
-  // --- Step 5 helpers ---
+  // --- Step 4 helpers (Job Types) ---
+  const handleToggleJobType = (typeLabel: string) => {
+    const exists = state.jobTypes.includes(typeLabel);
+    const updated = exists
+      ? state.jobTypes.filter((t) => t !== typeLabel)
+      : [...state.jobTypes, typeLabel];
+    saveState({ jobTypes: updated });
+  };
+
+  // --- Step 5 helpers (Search Duration) ---
   const handleSelectDuration = (duration: string) => {
     saveState({ jobSearchDuration: duration });
   };
 
-  // --- Step 6 helpers ---
+  // --- Step 6 helpers (Frustrations & Pain Points) ---
+  const handleToggleFrustration = (label: string) => {
+    const exists = state.frustrations.includes(label);
+    const updated = exists
+      ? state.frustrations.filter((f) => f !== label)
+      : [...state.frustrations, label];
+    saveState({ frustrations: updated });
+  };
+
+  // --- Step 7 helpers (Platforms Tried) ---
   const handleTogglePlatform = (platform: string) => {
     const exists = state.platformsTried.includes(platform);
     const updated = exists
@@ -169,17 +243,17 @@ export function CareerHoundOnboardingFlow() {
     saveState({ platformsTried: updated });
   };
 
-  // --- Step 8 helpers ---
+  // --- Step 9 helpers (Has Resume) ---
   const handleSelectHasResume = (val: string) => {
     saveState({ hasResume: val });
   };
 
-  // --- Step 9 helpers ---
+  // --- Step 10 helpers (Tailors Resume) ---
   const handleSelectTailorsResume = (val: string) => {
     saveState({ tailorsResume: val });
   };
 
-  // --- Step 12 Paywall Checkout helpers ---
+  // --- Step 13 Paywall Checkout helpers ---
   const handleSelectPlan = (plan: PricingPlanId) => {
     saveState({ selectedPricingPlan: plan });
   };
@@ -196,17 +270,21 @@ export function CareerHoundOnboardingFlow() {
     setIsProcessingCheckout(true);
     saveState({ candidateEmail: email });
 
-    // Send real-time notification to Telegram bot
+    // 1. Persist full candidate profile data
+    await persistProfileDraft(email);
+
+    // 2. Send real-time notification to Telegram bot
     fetch("/api/notifications/onboarding", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        flow: "candidate_12_step",
+        flow: "candidate_13_step",
         email: email.trim().toLowerCase(),
         targetRoles: state.jobTitles,
         experienceLevel: state.experienceLevel,
         salaryExpectation: state.salaryExpectation,
         jobTypes: state.jobTypes,
+        frustrations: state.frustrations,
         platformsTried: state.platformsTried,
         hasResume: state.hasResume,
         tailorsResume: state.tailorsResume,
@@ -214,6 +292,7 @@ export function CareerHoundOnboardingFlow() {
       }),
     }).catch(() => {});
 
+    // 3. Trigger candidate payment checkout session
     try {
       const res = await fetch("/api/checkout/candidate", {
         method: "POST",
@@ -226,12 +305,14 @@ export function CareerHoundOnboardingFlow() {
 
       const data = await res.json();
       if (data.url) {
-        markOnboardingCompleted();
+        await markOnboardingCompleted();
         window.location.href = data.url;
       } else if (data.success) {
-        markOnboardingCompleted();
-        localStorage.setItem("remotework_active_subscription", "true");
-        localStorage.setItem("remotework_user_email", email.trim().toLowerCase());
+        await markOnboardingCompleted();
+        if (typeof window !== "undefined") {
+          localStorage.setItem("remotework_active_subscription", "true");
+          localStorage.setItem("remotework_user_email", email.trim().toLowerCase());
+        }
         setCheckoutSuccess(true);
         setShowEmailModal(false);
       } else {
@@ -245,7 +326,7 @@ export function CareerHoundOnboardingFlow() {
     }
   };
 
-  // Validation: can proceed to next step?
+  // Step progression validation gate
   const canProceed = () => {
     switch (state.currentStep) {
       case 1:
@@ -253,54 +334,38 @@ export function CareerHoundOnboardingFlow() {
       case 2:
         return Boolean(state.experienceLevel);
       case 3:
-        return state.jobTypes.length > 0;
-      case 4:
         return Boolean(state.salaryExpectation);
+      case 4:
+        return state.jobTypes.length > 0;
       case 5:
         return Boolean(state.jobSearchDuration);
       case 6:
-        return state.platformsTried.length > 0;
+        return state.frustrations.length > 0;
       case 7:
-        return true;
+        return state.platformsTried.length > 0;
       case 8:
-        return Boolean(state.hasResume);
+        return true; // Interstitial 1
       case 9:
-        return Boolean(state.tailorsResume);
+        return Boolean(state.hasResume);
       case 10:
-        return true;
+        return Boolean(state.tailorsResume);
       case 11:
-        return true;
+        return true; // Interstitial 2
       case 12:
-        return true;
+        return true; // Interstitial 3
+      case 13:
+        return true; // Paywall
       default:
         return false;
     }
   };
 
-  // Progress Bar Percentage across steps (Step 12 is paywall)
-  const getProgressPercentage = () => {
-    const progressMap: Record<number, number> = {
-      1: 9,
-      2: 18,
-      3: 27,
-      4: 36,
-      5: 45,
-      6: 55,
-      7: 64,
-      8: 73,
-      9: 82,
-      10: 91,
-      11: 96,
-      12: 100,
-    };
-    return progressMap[state.currentStep] || 10;
-  };
-
-  const progressPercent = getProgressPercentage();
-  const isPaywallStep = state.currentStep === 12;
+  // Progress Bar percentage calculation (13 steps total)
+  const progressPercent = Math.min(100, Math.round((state.currentStep / 13) * 100));
+  const isPaywallStep = state.currentStep === 13;
 
   return (
-    <div className="min-h-screen bg-[#F6F8FB] text-[#0F172A] flex flex-col font-sans selection:bg-blue-100 selection:text-blue-900">
+    <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans selection:bg-blue-100 selection:text-blue-900">
       {/* Top Header Bar */}
       <header className="w-full px-6 py-5 flex items-center justify-between">
         <div className="flex items-center gap-2">
@@ -316,7 +381,7 @@ export function CareerHoundOnboardingFlow() {
           )}
           <div className="flex items-center gap-2">
             <CareerHoundLogo className="w-6 h-6 text-blue-600" />
-            <span className="font-bold text-lg tracking-tight text-[#0F172A]">
+            <span className="font-bold text-lg tracking-tight text-slate-900">
               Career Hound
             </span>
           </div>
@@ -324,16 +389,16 @@ export function CareerHoundOnboardingFlow() {
 
         {/* Step indicator */}
         <div className="text-xs font-semibold text-slate-500">
-          {isPaywallStep ? "Final Step" : `Step ${state.currentStep} of 11`}
+          {isPaywallStep ? "Final Step" : `Step ${state.currentStep} of 12`}
         </div>
       </header>
 
       {/* Main Content Area */}
       <main className="flex-1 flex flex-col justify-start items-center px-4 pt-4 sm:pt-6 pb-20">
-        <div className={`w-full ${isPaywallStep ? "max-w-4xl" : "max-w-[540px]"}`}>
+        <div className={`w-full ${isPaywallStep ? "max-w-4xl" : "max-w-xl"}`}>
           {/* Progress Bar (Blue line over light gray background) */}
           {!isPaywallStep && (
-            <div className="w-full h-1.5 bg-[#E2E8F0] rounded-full overflow-hidden mb-10">
+            <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden mb-10">
               <div
                 className="h-full bg-blue-600 rounded-full transition-all duration-300 ease-out"
                 style={{ width: `${progressPercent}%` }}
@@ -345,7 +410,7 @@ export function CareerHoundOnboardingFlow() {
           {state.currentStep === 1 && (
             <div className="space-y-6 animate-in fade-in duration-200">
               <div className="space-y-2">
-                <h1 className="text-2xl sm:text-[28px] font-bold text-[#0F172A] tracking-tight leading-snug">
+                <h1 className="text-2xl sm:text-[28px] font-bold text-slate-900 tracking-tight leading-snug">
                   What&apos;s your desired job title?
                 </h1>
                 <p className="text-sm text-slate-500 font-normal">
@@ -377,7 +442,7 @@ export function CareerHoundOnboardingFlow() {
                     onKeyDown={handleTitleKeyDown}
                     placeholder={
                       state.jobTitles.length === 0
-                        ? "hacker"
+                        ? "software developer"
                         : "Add another role..."
                     }
                     className="flex-1 min-w-[120px] bg-transparent outline-none text-slate-900 text-base placeholder:text-slate-400"
@@ -407,7 +472,7 @@ export function CareerHoundOnboardingFlow() {
           {state.currentStep === 2 && (
             <div className="space-y-6 animate-in fade-in duration-200">
               <div className="space-y-2">
-                <h1 className="text-2xl sm:text-[28px] font-bold text-[#0F172A] tracking-tight leading-snug">
+                <h1 className="text-2xl sm:text-[28px] font-bold text-slate-900 tracking-tight leading-snug">
                   What&apos;s your target experience level in this role?
                 </h1>
               </div>
@@ -420,10 +485,10 @@ export function CareerHoundOnboardingFlow() {
                       key={level}
                       type="button"
                       onClick={() => handleSelectExperience(level)}
-                      className={`w-full text-left py-4 px-5 rounded-xl border bg-white text-base font-normal transition-all shadow-xs cursor-pointer ${
+                      className={`w-full text-left py-4 px-5 rounded-xl border text-base transition-all shadow-xs cursor-pointer ${
                         isSelected
-                          ? "border-blue-500 ring-1 ring-blue-500 text-slate-900"
-                          : "border-slate-200 text-slate-800 hover:border-slate-300"
+                          ? "border-2 border-blue-600 bg-blue-50/20 text-slate-900 ring-1 ring-blue-600/30 font-medium"
+                          : "border-slate-200 bg-white text-slate-800 hover:border-slate-300"
                       }`}
                     >
                       {level}
@@ -434,11 +499,45 @@ export function CareerHoundOnboardingFlow() {
             </div>
           )}
 
-          {/* STEP 3: Job Types */}
+          {/* STEP 3: Salary Expectations */}
           {state.currentStep === 3 && (
             <div className="space-y-6 animate-in fade-in duration-200">
               <div className="space-y-2">
-                <h1 className="text-2xl sm:text-[28px] font-bold text-[#0F172A] tracking-tight leading-snug">
+                <h1 className="text-2xl sm:text-[28px] font-bold text-slate-900 tracking-tight leading-snug">
+                  What are your salary expectations?
+                </h1>
+              </div>
+
+              <div className="space-y-3">
+                {SALARY_OPTIONS.map((salary) => {
+                  const isSelected = state.salaryExpectation === salary;
+                  return (
+                    <button
+                      key={salary}
+                      type="button"
+                      onClick={() => handleSelectSalary(salary)}
+                      className={`w-full flex items-center text-left py-4 px-5 rounded-xl border text-base transition-all shadow-xs cursor-pointer ${
+                        isSelected
+                          ? "border-2 border-blue-600 bg-blue-50/20 text-slate-900 ring-1 ring-blue-600/30 font-medium"
+                          : "border-slate-200 bg-white text-slate-800 hover:border-slate-300"
+                      }`}
+                    >
+                      <div className="mr-3 shrink-0">
+                        <CoinStackIcon className="w-5 h-5 text-blue-600" />
+                      </div>
+                      <span>{salary}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* STEP 4: Job Types */}
+          {state.currentStep === 4 && (
+            <div className="space-y-6 animate-in fade-in duration-200">
+              <div className="space-y-2">
+                <h1 className="text-2xl sm:text-[28px] font-bold text-slate-900 tracking-tight leading-snug">
                   Which job types fit you best?
                 </h1>
                 <p className="text-sm text-slate-500 font-normal">
@@ -454,52 +553,18 @@ export function CareerHoundOnboardingFlow() {
                       key={item.id}
                       type="button"
                       onClick={() => handleToggleJobType(item.label)}
-                      className={`w-full flex items-center text-left py-4 px-5 rounded-xl border bg-white text-base font-normal transition-all shadow-xs cursor-pointer ${
+                      className={`w-full flex items-center text-left py-4 px-5 rounded-xl border text-base transition-all shadow-xs cursor-pointer ${
                         isSelected
-                          ? "border-blue-500 ring-1 ring-blue-500 text-slate-900"
-                          : "border-slate-200 text-slate-800 hover:border-slate-300"
+                          ? "border-2 border-blue-600 bg-blue-50/20 text-slate-900 ring-1 ring-blue-600/30 font-medium"
+                          : "border-slate-200 bg-white text-slate-800 hover:border-slate-300"
                       }`}
                     >
                       <div className="mr-3 shrink-0">
-                        {item.id === "remote" && <RemoteHomeIcon className="w-5 h-5 text-blue-600" />}
-                        {item.id === "hybrid" && <HybridArrowsIcon className="w-5 h-5 text-blue-600" />}
-                        {item.id === "in_office" && <OfficeBuildingIcon className="w-5 h-5 text-blue-600" />}
+                        {item.id === "remote" && <Home className="w-5 h-5 text-blue-600" />}
+                        {item.id === "hybrid" && <Shuffle className="w-5 h-5 text-blue-600" />}
+                        {item.id === "in_office" && <Building2 className="w-5 h-5 text-blue-600" />}
                       </div>
                       <span>{item.label}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {/* STEP 4: Salary Expectations */}
-          {state.currentStep === 4 && (
-            <div className="space-y-6 animate-in fade-in duration-200">
-              <div className="space-y-2">
-                <h1 className="text-2xl sm:text-[28px] font-bold text-[#0F172A] tracking-tight leading-snug">
-                  What are your salary expectations?
-                </h1>
-              </div>
-
-              <div className="space-y-3">
-                {SALARY_OPTIONS.map((salary) => {
-                  const isSelected = state.salaryExpectation === salary;
-                  return (
-                    <button
-                      key={salary}
-                      type="button"
-                      onClick={() => handleSelectSalary(salary)}
-                      className={`w-full flex items-center text-left py-4 px-5 rounded-xl border bg-white text-base font-normal transition-all shadow-xs cursor-pointer ${
-                        isSelected
-                          ? "border-blue-500 ring-1 ring-blue-500 text-slate-900"
-                          : "border-slate-200 text-slate-800 hover:border-slate-300"
-                      }`}
-                    >
-                      <div className="mr-3 shrink-0">
-                        <CoinStackIcon className="w-5 h-5 text-blue-600" />
-                      </div>
-                      <span>{salary}</span>
                     </button>
                   );
                 })}
@@ -511,7 +576,7 @@ export function CareerHoundOnboardingFlow() {
           {state.currentStep === 5 && (
             <div className="space-y-6 animate-in fade-in duration-200">
               <div className="space-y-2">
-                <h1 className="text-2xl sm:text-[28px] font-bold text-[#0F172A] tracking-tight leading-snug">
+                <h1 className="text-2xl sm:text-[28px] font-bold text-slate-900 tracking-tight leading-snug">
                   How long have you been looking for a job?
                 </h1>
               </div>
@@ -524,10 +589,10 @@ export function CareerHoundOnboardingFlow() {
                       key={item.id}
                       type="button"
                       onClick={() => handleSelectDuration(item.label)}
-                      className={`w-full flex items-center text-left py-4 px-5 rounded-xl border bg-white text-base font-normal transition-all shadow-xs cursor-pointer ${
+                      className={`w-full flex items-center text-left py-4 px-5 rounded-xl border text-base transition-all shadow-xs cursor-pointer ${
                         isSelected
-                          ? "border-blue-500 ring-1 ring-blue-500 text-slate-900"
-                          : "border-slate-200 text-slate-800 hover:border-slate-300"
+                          ? "border-2 border-blue-600 bg-blue-50/20 text-slate-900 ring-1 ring-blue-600/30 font-medium"
+                          : "border-slate-200 bg-white text-slate-800 hover:border-slate-300"
                       }`}
                     >
                       <div className="mr-3 shrink-0">
@@ -544,11 +609,51 @@ export function CareerHoundOnboardingFlow() {
             </div>
           )}
 
-          {/* STEP 6: What have you tried so far? */}
+          {/* STEP 6: Frustrations & Pain Points */}
           {state.currentStep === 6 && (
             <div className="space-y-6 animate-in fade-in duration-200">
               <div className="space-y-2">
-                <h1 className="text-2xl sm:text-[28px] font-bold text-[#0F172A] tracking-tight leading-snug">
+                <h1 className="text-2xl sm:text-[28px] font-bold text-slate-900 tracking-tight leading-snug">
+                  What is most frustrating for you?
+                </h1>
+                <p className="text-sm text-slate-500 font-normal">
+                  Select all that apply
+                </p>
+              </div>
+
+              <div className="space-y-3">
+                {FRUSTRATIONS_OPTIONS.map((item) => {
+                  const isSelected = state.frustrations.includes(item.label);
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => handleToggleFrustration(item.label)}
+                      className={`w-full flex items-center text-left py-4 px-5 rounded-xl border text-base transition-all shadow-xs cursor-pointer ${
+                        isSelected
+                          ? "border-2 border-blue-600 bg-blue-50/20 text-slate-900 ring-1 ring-blue-600/30 font-medium"
+                          : "border-slate-200 bg-white text-slate-800 hover:border-slate-300"
+                      }`}
+                    >
+                      <div className="mr-3 shrink-0">
+                        {item.id === "not_hearing_back" && <Mail className="w-5 h-5 text-blue-600" />}
+                        {item.id === "too_much_competition" && <Users className="w-5 h-5 text-blue-600" />}
+                        {item.id === "not_enough_openings" && <Search className="w-5 h-5 text-blue-600" />}
+                        {item.id === "low_salaries" && <DollarSign className="w-5 h-5 text-blue-600" />}
+                      </div>
+                      <span>{item.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* STEP 7: What have you tried so far? */}
+          {state.currentStep === 7 && (
+            <div className="space-y-6 animate-in fade-in duration-200">
+              <div className="space-y-2">
+                <h1 className="text-2xl sm:text-[28px] font-bold text-slate-900 tracking-tight leading-snug">
                   What have you tried so far?
                 </h1>
                 <p className="text-sm text-slate-500 font-normal">
@@ -564,10 +669,10 @@ export function CareerHoundOnboardingFlow() {
                       key={platform}
                       type="button"
                       onClick={() => handleTogglePlatform(platform)}
-                      className={`w-full text-left py-4 px-5 rounded-xl border bg-white text-base font-normal transition-all shadow-xs cursor-pointer ${
+                      className={`w-full text-left py-4 px-5 rounded-xl border text-base transition-all shadow-xs cursor-pointer ${
                         isSelected
-                          ? "border-blue-500 ring-1 ring-blue-500 text-slate-900"
-                          : "border-slate-200 text-slate-800 hover:border-slate-300"
+                          ? "border-2 border-blue-600 bg-blue-50/20 text-slate-900 ring-1 ring-blue-600/30 font-medium"
+                          : "border-slate-200 bg-white text-slate-800 hover:border-slate-300"
                       }`}
                     >
                       {platform}
@@ -578,14 +683,14 @@ export function CareerHoundOnboardingFlow() {
             </div>
           )}
 
-          {/* STEP 7: What makes Career Hound different: (Websites vs LinkedIn) */}
-          {state.currentStep === 7 && (
+          {/* STEP 8: What makes Career Hound different: (Websites vs LinkedIn) */}
+          {state.currentStep === 8 && (
             <div className="space-y-6 animate-in fade-in duration-200 text-center">
               <div className="w-16 h-16 mx-auto rounded-full bg-[#EBFDF3] border border-[#B9F5D0] flex items-center justify-center text-[#16A34A]">
                 <Check className="w-8 h-8 stroke-[3]" />
               </div>
 
-              <h1 className="text-2xl sm:text-[28px] font-bold text-[#0F172A] tracking-tight leading-snug">
+              <h1 className="text-2xl sm:text-[28px] font-bold text-slate-900 tracking-tight leading-snug">
                 What makes Career Hound different:
               </h1>
 
@@ -609,10 +714,10 @@ export function CareerHoundOnboardingFlow() {
                         <div className="w-2 h-2 rounded-full bg-amber-400" />
                         <div className="w-2 h-2 rounded-full bg-emerald-400" />
                       </div>
-                      <span className="ml-1 text-[11px]">Searching...</span>
+                      <span className="ml-1 text-[11px]">Searching company careers...</span>
                     </div>
                     <div className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm font-mono text-slate-800 bg-white flex items-center">
-                      <span>tele</span>
+                      <span>greenhouse.io/careers</span>
                       <span className="inline-block w-0.5 h-4 bg-slate-900 ml-0.5 animate-pulse" />
                     </div>
                   </div>
@@ -636,11 +741,11 @@ export function CareerHoundOnboardingFlow() {
             </div>
           )}
 
-          {/* STEP 8: Do you currently have a resume? */}
-          {state.currentStep === 8 && (
+          {/* STEP 9: Do you currently have a resume? */}
+          {state.currentStep === 9 && (
             <div className="space-y-6 animate-in fade-in duration-200">
               <div className="space-y-2">
-                <h1 className="text-2xl sm:text-[28px] font-bold text-[#0F172A] tracking-tight leading-snug">
+                <h1 className="text-2xl sm:text-[28px] font-bold text-slate-900 tracking-tight leading-snug">
                   Do you currently have a resume?
                 </h1>
               </div>
@@ -653,10 +758,10 @@ export function CareerHoundOnboardingFlow() {
                       key={opt}
                       type="button"
                       onClick={() => handleSelectHasResume(opt)}
-                      className={`w-full text-left py-4 px-5 rounded-xl border bg-white text-base font-normal transition-all shadow-xs cursor-pointer ${
+                      className={`w-full text-left py-4 px-5 rounded-xl border text-base transition-all shadow-xs cursor-pointer ${
                         isSelected
-                          ? "border-blue-500 ring-1 ring-blue-500 text-slate-900"
-                          : "border-slate-200 text-slate-800 hover:border-slate-300"
+                          ? "border-2 border-blue-600 bg-blue-50/20 text-slate-900 ring-1 ring-blue-600/30 font-medium"
+                          : "border-slate-200 bg-white text-slate-800 hover:border-slate-300"
                       }`}
                     >
                       {opt}
@@ -667,11 +772,11 @@ export function CareerHoundOnboardingFlow() {
             </div>
           )}
 
-          {/* STEP 9: Do you tailor your resume for each job? */}
-          {state.currentStep === 9 && (
+          {/* STEP 10: Do you tailor your resume for each job? */}
+          {state.currentStep === 10 && (
             <div className="space-y-6 animate-in fade-in duration-200">
               <div className="space-y-2">
-                <h1 className="text-2xl sm:text-[28px] font-bold text-[#0F172A] tracking-tight leading-snug">
+                <h1 className="text-2xl sm:text-[28px] font-bold text-slate-900 tracking-tight leading-snug">
                   Do you tailor your resume for each job?
                 </h1>
               </div>
@@ -684,10 +789,10 @@ export function CareerHoundOnboardingFlow() {
                       key={opt}
                       type="button"
                       onClick={() => handleSelectTailorsResume(opt)}
-                      className={`w-full text-left py-4 px-5 rounded-xl border bg-white text-base font-normal transition-all shadow-xs cursor-pointer ${
+                      className={`w-full text-left py-4 px-5 rounded-xl border text-base transition-all shadow-xs cursor-pointer ${
                         isSelected
-                          ? "border-blue-500 ring-1 ring-blue-500 text-slate-900"
-                          : "border-slate-200 text-slate-800 hover:border-slate-300"
+                          ? "border-2 border-blue-600 bg-blue-50/20 text-slate-900 ring-1 ring-blue-600/30 font-medium"
+                          : "border-slate-200 bg-white text-slate-800 hover:border-slate-300"
                       }`}
                     >
                       {opt}
@@ -698,11 +803,11 @@ export function CareerHoundOnboardingFlow() {
             </div>
           )}
 
-          {/* STEP 10: Did you know? */}
-          {state.currentStep === 10 && (
+          {/* STEP 11: Did you know? (ATS Problem Education) */}
+          {state.currentStep === 11 && (
             <div className="space-y-6 animate-in fade-in duration-200">
               <div className="space-y-2">
-                <h1 className="text-2xl sm:text-[28px] font-bold text-[#0F172A] tracking-tight leading-snug">
+                <h1 className="text-2xl sm:text-[28px] font-bold text-slate-900 tracking-tight leading-snug">
                   Did you know?
                 </h1>
               </div>
@@ -719,14 +824,14 @@ export function CareerHoundOnboardingFlow() {
             </div>
           )}
 
-          {/* STEP 11: What makes Career Hound different: (AI Keyword Match 100%) */}
-          {state.currentStep === 11 && (
+          {/* STEP 12: What makes Career Hound different: (AI Keyword Match 100%) */}
+          {state.currentStep === 12 && (
             <div className="space-y-6 animate-in fade-in duration-200 text-center">
               <div className="w-16 h-16 mx-auto rounded-full bg-[#EBFDF3] border border-[#B9F5D0] flex items-center justify-center text-[#16A34A]">
                 <Check className="w-8 h-8 stroke-[3]" />
               </div>
 
-              <h1 className="text-2xl sm:text-[28px] font-bold text-[#0F172A] tracking-tight leading-snug">
+              <h1 className="text-2xl sm:text-[28px] font-bold text-slate-900 tracking-tight leading-snug">
                 What makes Career Hound different:
               </h1>
 
@@ -760,7 +865,7 @@ export function CareerHoundOnboardingFlow() {
             </div>
           )}
 
-          {/* STEP 12: Paywall Screen (Final Step) */}
+          {/* STEP 13: Paywall & Social Proof Screen */}
           {isPaywallStep && (
             <div className="space-y-6 animate-in fade-in duration-200 text-center">
               {checkoutSuccess ? (
@@ -778,14 +883,14 @@ export function CareerHoundOnboardingFlow() {
                   <button
                     type="button"
                     onClick={() => router.push("/")}
-                    className="w-full py-3.5 rounded-xl font-bold bg-[#090D16] text-white hover:bg-[#1E293B] cursor-pointer"
+                    className="w-full py-3.5 rounded-xl font-bold bg-slate-950 text-white hover:bg-slate-800 cursor-pointer"
                   >
                     Start Applying Direct
                   </button>
                 </div>
               ) : (
                 <>
-                  <h1 className="text-3xl sm:text-4xl font-extrabold text-[#0F172A] tracking-tight leading-tight">
+                  <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight leading-tight">
                     From no responses to getting your{" "}
                     <span className="font-black text-black">dream job</span>
                   </h1>
@@ -802,7 +907,7 @@ export function CareerHoundOnboardingFlow() {
 
                   {/* 3 Pricing Cards */}
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5 text-left">
-                    {/* Plan 1: Lifetime */}
+                    {/* Plan 1: Lifetime (Default Selected) */}
                     <button
                       type="button"
                       onClick={() => handleSelectPlan("lifetime")}
@@ -950,14 +1055,14 @@ export function CareerHoundOnboardingFlow() {
                       type="button"
                       onClick={handleContinueClick}
                       disabled={isProcessingCheckout}
-                      className="w-full py-4 px-6 rounded-xl text-base font-bold bg-[#090D16] text-white hover:bg-[#1E293B] active:scale-[0.99] transition-all shadow-md cursor-pointer flex items-center justify-center gap-2"
+                      className="w-full py-4 px-6 rounded-xl text-base font-bold bg-slate-950 text-white hover:bg-slate-800 active:scale-[0.99] transition-all shadow-md cursor-pointer flex items-center justify-center gap-2"
                     >
                       {isProcessingCheckout ? "Processing..." : "Continue"}
                     </button>
 
                     <div className="flex items-center justify-center gap-2 text-xs font-semibold text-slate-600">
                       <Check className="w-4 h-4 text-emerald-500 stroke-[3]" />
-                      <span>No commitment • Cancel anytime</span>
+                      <span>✓ No commitment • Cancel anytime</span>
                     </div>
 
                     <div className="pt-2">
@@ -967,7 +1072,7 @@ export function CareerHoundOnboardingFlow() {
                           markOnboardingCompleted();
                           router.push("/");
                         }}
-                        className="text-xs text-slate-400 hover:text-slate-700 hover:underline"
+                        className="text-xs text-slate-400 hover:text-slate-700 hover:underline cursor-pointer"
                       >
                         Skip for now and browse free preview jobs &rarr;
                       </button>
@@ -976,7 +1081,7 @@ export function CareerHoundOnboardingFlow() {
 
                   {/* Social Proof: 8,573 Job Seekers */}
                   <div className="pt-16 mt-16 border-t border-slate-200">
-                    <h2 className="text-2xl sm:text-3xl font-extrabold text-[#0F172A] tracking-tight mb-8">
+                    <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight mb-8">
                       8,573 job seekers are using Career Hound
                     </h2>
 
@@ -1015,7 +1120,7 @@ export function CareerHoundOnboardingFlow() {
             </div>
           )}
 
-          {/* Regular Next Button for Steps 1 through 11 */}
+          {/* Regular Next Button for Steps 1 through 12 */}
           {!isPaywallStep && (
             <div className="pt-6">
               <button
@@ -1024,7 +1129,7 @@ export function CareerHoundOnboardingFlow() {
                 disabled={!canProceed()}
                 className={`w-full py-3.5 px-4 rounded-xl text-base font-semibold transition-all shadow-sm flex items-center justify-center cursor-pointer ${
                   canProceed()
-                    ? "bg-[#090D16] text-white hover:bg-[#1E293B] active:scale-[0.99]"
+                    ? "bg-slate-950 text-white hover:bg-slate-800 active:scale-[0.99]"
                     : "bg-[#CAD5E2] text-white cursor-not-allowed"
                 }`}
               >
@@ -1041,7 +1146,7 @@ export function CareerHoundOnboardingFlow() {
           <div className="relative w-full max-w-md bg-white rounded-2xl p-6 shadow-2xl space-y-4 text-left border border-slate-200">
             <button
               onClick={() => setShowEmailModal(false)}
-              className="absolute top-4 right-4 text-slate-400 hover:text-slate-700 p-1"
+              className="absolute top-4 right-4 text-slate-400 hover:text-slate-700 p-1 cursor-pointer"
             >
               <X className="w-4 h-4" />
             </button>
@@ -1077,7 +1182,7 @@ export function CareerHoundOnboardingFlow() {
               <button
                 type="submit"
                 disabled={isProcessingCheckout}
-                className="w-full py-3 rounded-xl font-bold bg-[#090D16] text-white hover:bg-[#1E293B] transition-all cursor-pointer flex items-center justify-center gap-2 text-sm"
+                className="w-full py-3 rounded-xl font-bold bg-slate-950 text-white hover:bg-slate-800 transition-all cursor-pointer flex items-center justify-center gap-2 text-sm"
               >
                 <Lock className="w-4 h-4" />
                 <span>
@@ -1093,3 +1198,6 @@ export function CareerHoundOnboardingFlow() {
     </div>
   );
 }
+
+// Named alias for backwards compatibility
+export const OnboardingFlow = CareerHoundOnboardingFlow;

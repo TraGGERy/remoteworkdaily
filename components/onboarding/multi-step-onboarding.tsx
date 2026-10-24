@@ -1160,5 +1160,5 @@ export function MultiStepOnboarding() {
   );
 }
 
-// Backward-compatibility alias for tests
-export const CareerHoundOnboardingFlow = MultiStepOnboarding;
+// Re-export 13-step Career Hound Onboarding Flow
+export { CareerHoundOnboardingFlow } from "./onboarding-flow";

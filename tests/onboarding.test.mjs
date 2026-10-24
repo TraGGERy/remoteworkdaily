@@ -13,6 +13,7 @@ test("Onboarding: Types file exists and exports required constants", () => {
   assert.ok(content.includes("JOB_TYPE_OPTIONS"), "should export JOB_TYPE_OPTIONS");
   assert.ok(content.includes("SALARY_OPTIONS"), "should export SALARY_OPTIONS");
   assert.ok(content.includes("SEARCH_DURATION_OPTIONS"), "should export SEARCH_DURATION_OPTIONS");
+  assert.ok(content.includes("FRUSTRATIONS_OPTIONS"), "should export FRUSTRATIONS_OPTIONS");
   assert.ok(content.includes("JOB_TITLE_EXAMPLES"), "should export JOB_TITLE_EXAMPLES");
   assert.ok(content.includes("PLATFORMS_TRIED_OPTIONS"), "should export PLATFORMS_TRIED_OPTIONS");
   assert.ok(content.includes("YES_NO_OPTIONS"), "should export YES_NO_OPTIONS");
@@ -36,15 +37,11 @@ test("Onboarding: Step 2 contains all 5 experience tiers from Career Hound", () 
   assert.ok(content.includes("Executive"));
 });
 
-test("Onboarding: Step 3 contains Remote, Hybrid, In-office options", () => {
+test("Onboarding: Step 3 and 4 contain Salary and Job Types options", () => {
   const content = fs.readFileSync(path.resolve("lib/onboarding/types.ts"), "utf-8");
   assert.ok(content.includes("Remote"));
   assert.ok(content.includes("Hybrid"));
   assert.ok(content.includes("In-office"));
-});
-
-test("Onboarding: Step 4 contains 5 salary brackets", () => {
-  const content = fs.readFileSync(path.resolve("lib/onboarding/types.ts"), "utf-8");
   assert.ok(content.includes("$30k - $60k per year"));
   assert.ok(content.includes("$60k - $90k per year"));
   assert.ok(content.includes("$90k - $120k per year"));
@@ -61,21 +58,29 @@ test("Onboarding: Step 5 contains duration milestones including turtle icon opti
   assert.ok(content.includes("turtle"));
 });
 
-test("Onboarding: Step 6 contains platforms tried (LinkedIn, Indeed, Other)", () => {
+test("Onboarding: Step 6 contains frustration options with Lucide icons", () => {
+  const content = fs.readFileSync(path.resolve("lib/onboarding/types.ts"), "utf-8");
+  assert.ok(content.includes("Not hearing back"));
+  assert.ok(content.includes("Too much competition"));
+  assert.ok(content.includes("Not enough job openings"));
+  assert.ok(content.includes("Low paying salaries"));
+});
+
+test("Onboarding: Step 7 contains platforms tried (LinkedIn, Indeed, Other)", () => {
   const content = fs.readFileSync(path.resolve("lib/onboarding/types.ts"), "utf-8");
   assert.ok(content.includes("LinkedIn"));
   assert.ok(content.includes("Indeed"));
   assert.ok(content.includes("Other"));
 });
 
-test("Onboarding: Steps 8 and 9 support Yes/No resume questions", () => {
+test("Onboarding: Steps 9 and 10 support Yes/No resume questions", () => {
   const content = fs.readFileSync(path.resolve("lib/onboarding/types.ts"), "utf-8");
   assert.ok(content.includes("YES_NO_OPTIONS"));
   assert.ok(content.includes("hasResume"));
   assert.ok(content.includes("tailorsResume"));
 });
 
-test("Onboarding: Step 7 and 10 educational comparisons exist in component", () => {
+test("Onboarding: Step 8 and 11 educational comparisons exist in component", () => {
   const compPath = path.resolve("components/onboarding/onboarding-flow.tsx");
   assert.ok(fs.existsSync(compPath));
   const content = fs.readFileSync(compPath, "utf-8");
@@ -84,14 +89,14 @@ test("Onboarding: Step 7 and 10 educational comparisons exist in component", () 
   assert.ok(content.includes("Missing keywords"));
 });
 
-test("Onboarding: Step 11 has Keyword Match 100% resume tailoring", () => {
+test("Onboarding: Step 12 has Keyword Match 100% resume tailoring", () => {
   const compPath = path.resolve("components/onboarding/onboarding-flow.tsx");
   const content = fs.readFileSync(compPath, "utf-8");
   assert.ok(content.includes("Keyword Match"));
   assert.ok(content.includes("100%"));
 });
 
-test("Onboarding: Step 12 has Fall 50% banner, 3 plans, and 8,573 job seekers reviews", () => {
+test("Onboarding: Step 13 has Fall 50% banner, 3 plans, and 8,573 job seekers reviews", () => {
   const compPath = path.resolve("components/onboarding/onboarding-flow.tsx");
   const content = fs.readFileSync(compPath, "utf-8");
   assert.ok(content.includes("50% off fall"));
@@ -102,6 +107,36 @@ test("Onboarding: Step 12 has Fall 50% banner, 3 plans, and 8,573 job seekers re
   assert.ok(content.includes("Weekly"));
   assert.ok(content.includes("$6.99"));
   assert.ok(content.includes("8,573 job seekers are using Career Hound"));
+  assert.ok(content.includes("No commitment • Cancel anytime"));
+});
+
+test("Onboarding: Exact 13-step sequence is correctly implemented with UI design tokens", () => {
+  const compPath = path.resolve("components/onboarding/onboarding-flow.tsx");
+  const content = fs.readFileSync(compPath, "utf-8");
+
+  // Verify all 13 step conditions exist
+  for (let i = 1; i <= 13; i++) {
+    assert.ok(
+      content.includes(`state.currentStep === ${i}`) || (i === 13 && content.includes("isPaywallStep")),
+      `Step ${i} must be rendered`
+    );
+  }
+
+  // Design system styling tokens
+  assert.ok(content.includes("bg-slate-50"), "must use bg-slate-50 background");
+  assert.ok(content.includes("max-w-xl"), "must use max-w-xl container for steps");
+  assert.ok(content.includes("border-blue-600 bg-blue-50/20"), "must use blue selected border state");
+  assert.ok(content.includes("bg-slate-950 text-white"), "must use dark action buttons");
+});
+
+test("Onboarding: Database persistence and payment handlers are connected", () => {
+  const compPath = path.resolve("components/onboarding/onboarding-flow.tsx");
+  const content = fs.readFileSync(compPath, "utf-8");
+
+  assert.ok(content.includes('fetch("/api/user/onboarding"'), "must persist to /api/user/onboarding");
+  assert.ok(content.includes('fetch("/api/notifications/onboarding"'), "must notify Telegram");
+  assert.ok(content.includes('fetch("/api/checkout/candidate"'), "must initiate Stripe checkout");
+  assert.ok(content.includes("markOnboardingCompleted"), "must call markOnboardingCompleted");
 });
 
 test("Onboarding: Page route app/onboarding/page.tsx exists and renders component", () => {

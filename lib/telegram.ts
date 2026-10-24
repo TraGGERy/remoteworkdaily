@@ -372,12 +372,13 @@ export async function notifyPaymentReceived(payload: PaymentNotificationPayload)
 }
 
 export interface OnboardingNotificationPayload {
-  flow: "candidate_12_step" | "visitor_modal";
+  flow: "candidate_12_step" | "candidate_13_step" | "visitor_modal";
   email?: string;
   targetRoles?: string[];
   experienceLevel?: string;
   salaryExpectation?: string;
   jobTypes?: string[];
+  frustrations?: string[];
   platformsTried?: string[];
   hasResume?: string;
   tailorsResume?: string;
@@ -389,7 +390,9 @@ export interface OnboardingNotificationPayload {
  */
 export async function notifyUserOnboarding(payload: OnboardingNotificationPayload): Promise<boolean> {
   const flowLabel =
-    payload.flow === "candidate_12_step"
+    payload.flow === "candidate_13_step"
+      ? "🧭 13-Step Career Hound Onboarding"
+      : payload.flow === "candidate_12_step"
       ? "🧭 12-Step Career Hound Onboarding"
       : "✨ Homepage First-Time Visitor Modal";
 
@@ -409,6 +412,9 @@ export async function notifyUserOnboarding(payload: OnboardingNotificationPayloa
       : null,
     payload.jobTypes && payload.jobTypes.length > 0
       ? `🏢 <b>Workplace:</b> ${escapeHtml(payload.jobTypes.join(", "))}`
+      : null,
+    payload.frustrations && payload.frustrations.length > 0
+      ? `😤 <b>Frustrations:</b> ${escapeHtml(payload.frustrations.join(", "))}`
       : null,
     payload.platformsTried && payload.platformsTried.length > 0
       ? `🌐 <b>Platforms Tried:</b> ${escapeHtml(payload.platformsTried.join(", "))}`

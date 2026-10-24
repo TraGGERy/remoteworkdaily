@@ -90,6 +90,11 @@ export function JobBoardClient({
     transparentPayOnly: searchParams.get("transparent") === "true",
     worldwideOnly: initialWorldwideOnly !== undefined ? initialWorldwideOnly : searchParams.get("worldwide") === "true",
     lowCompetitionOnly: searchParams.get("lowcomp") === "true",
+    publicSectorOnly: searchParams.get("public_sector") === "true",
+    sector: (searchParams.get("sector") as FilterState["sector"]) || "all",
+    eligibility: (searchParams.get("eligibility") as FilterState["eligibility"]) || "all",
+    languageReq: (searchParams.get("language_req") as FilterState["languageReq"]) || "all",
+    deadlineUrgency: (searchParams.get("deadline") as FilterState["deadlineUrgency"]) || "all",
   });
 
   const updateFilters = (updates: Partial<FilterState>) => {
@@ -112,6 +117,11 @@ export function JobBoardClient({
       if (nextFilters.transparentPayOnly) params.set("transparent", "true");
       if (nextFilters.worldwideOnly) params.set("worldwide", "true");
       if (nextFilters.lowCompetitionOnly) params.set("lowcomp", "true");
+      if (nextFilters.publicSectorOnly) params.set("public_sector", "true");
+      if (nextFilters.sector && nextFilters.sector !== "all") params.set("sector", nextFilters.sector);
+      if (nextFilters.eligibility && nextFilters.eligibility !== "all") params.set("eligibility", nextFilters.eligibility);
+      if (nextFilters.languageReq && nextFilters.languageReq !== "all") params.set("language_req", nextFilters.languageReq);
+      if (nextFilters.deadlineUrgency && nextFilters.deadlineUrgency !== "all") params.set("deadline", nextFilters.deadlineUrgency);
 
       const qs = params.toString();
       const targetUrl = qs ? `/?${qs}` : "/";
@@ -134,6 +144,11 @@ export function JobBoardClient({
       transparentPayOnly: false,
       worldwideOnly: false,
       lowCompetitionOnly: false,
+      publicSectorOnly: false,
+      sector: "all",
+      eligibility: "all",
+      languageReq: "all",
+      deadlineUrgency: "all",
     });
   };
 

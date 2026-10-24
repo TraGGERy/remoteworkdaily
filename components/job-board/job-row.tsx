@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import Link from "next/link";
 import { Job } from "@/lib/types";
 import {
@@ -11,8 +11,9 @@ import {
   timeAgo,
   isRecentPost,
 } from "@/lib/utils";
-import { CheckCircle, Globe, MapPin, DollarSign, Pin, Sparkles, Lock, Flame, Users, ShieldCheck } from "lucide-react";
+import { CheckCircle, Globe, MapPin, DollarSign, Pin, Sparkles, Lock, Flame, Users, ShieldCheck, Clock, Award } from "lucide-react";
 import { useSubscription } from "@/components/auth/subscription-context";
+import { GovernmentEasyApplyModal } from "./government-easy-apply-modal";
 
 interface JobRowProps {
   job: Job;
@@ -23,12 +24,31 @@ interface JobRowProps {
 
 export function JobRow({ job, isSelected, onToggleSelect, onTagClick }: JobRowProps) {
   const { hasActiveSubscription, openUpgradeModal } = useSubscription();
+  const [showGovModal, setShowGovModal] = useState(false);
   const salaryText = formatSalary(job.salaryMin, job.salaryMax, job.salaryCurrency);
   const hourlyText = formatHourlyEquivalent(job.salaryMin, job.salaryMax, job.salaryCurrency);
   const isWorldwide = isTrueWorldwideJob(job.location, job.workArrangement, job.workplaceType);
   const competition = getCompetitionSignal(job.appliesCount, job.postedAt);
   const isDirectAts = Boolean(job.source === "ats" || job.atsProvider || job.isDirectCompanyPost);
   const isNewToday = isRecentPost(job.postedAt);
+  const isGovJob = Boolean(job.isPublicSector || job.isGovernment);
+
+  // Deadline countdown calculation
+  let deadlineLabel: string | null = null;
+  let isDeadlineUrgent = false;
+  if (job.applicationDeadline) {
+    const diff = new Date(job.applicationDeadline).getTime() - Date.now();
+    if (diff > 0) {
+      const days = Math.floor(diff / (24 * 3600 * 1000));
+      const hours = Math.floor((diff % (24 * 3600 * 1000)) / (3600 * 1000));
+      if (days > 0) {
+        deadlineLabel = `⏳ Closes in ${days}d`;
+      } else {
+        deadlineLabel = `🚨 Closes in ${hours}h`;
+        isDeadlineUrgent = true;
+      }
+    }
+  }
 
   // 6-Hour Early Access check
   const isEarlyAccess = Boolean(
@@ -95,6 +115,42 @@ export function JobRow({ job, isSelected, onToggleSelect, onTagClick }: JobRowPr
               <span className="inline-flex items-center gap-0.5 text-[10px] font-black uppercase px-1.5 py-0.5 rounded bg-red-100 dark:bg-red-950/80 text-[#FF4742] dark:text-red-400 border border-red-300 dark:border-red-800/80">
                 <Flame className="w-2.5 h-2.5 fill-current" />
                 <span>Early Access (&lt;6h)</span>
+              </span>
+            )}
+
+            {isGovJob && (
+              <span className="inline-flex items-center gap-1 text-[10px] font-extrabold uppercase px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-950/90 text-[#003399] dark:text-blue-300 border border-blue-300 dark:border-blue-800">
+                🏛️ Gov Verified
+              </span>
+            )}
+
+            {isGovJob && job.europassReady && (
+              <span className="hidden sm:inline-flex items-center gap-1 text-[10px] font-extrabold px-1.5 py-0.5 rounded bg-blue-50 dark:bg-blue-950/70 text-[#003399] dark:text-blue-300 border border-blue-200 dark:border-blue-800/60">
+                🇪🇺 Europass Ready
+              </span>
+            )}
+
+            {isGovJob && job.p11Ready && (
+              <span className="hidden sm:inline-flex items-center gap-1 text-[10px] font-extrabold px-1.5 py-0.5 rounded bg-sky-50 dark:bg-sky-950/70 text-[#009EDB] dark:text-sky-300 border border-sky-200 dark:border-sky-800/60">
+                🇺🇳 UN P11 Ready
+              </span>
+            )}
+
+            {isGovJob && job.grade && (
+              <span className="hidden md:inline-flex items-center gap-0.5 text-[10px] font-bold px-1.5 py-0.5 rounded bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 border border-neutral-200 dark:border-neutral-700">
+                <Award className="w-2.5 h-2.5" />
+                <span>{job.grade}</span>
+              </span>
+            )}
+
+            {deadlineLabel && (
+              <span className={`inline-flex items-center gap-1 text-[10px] font-black uppercase px-1.5 py-0.5 rounded border ${
+                isDeadlineUrgent
+                  ? "bg-red-100 dark:bg-red-950 text-red-700 dark:text-red-300 border-red-300 dark:border-red-800 animate-pulse"
+                  : "bg-amber-50 dark:bg-amber-950/80 text-amber-800 dark:text-amber-300 border-amber-300 dark:border-amber-800/70"
+              }`}>
+                <Clock className="w-2.5 h-2.5" />
+                <span>{deadlineLabel}</span>
               </span>
             )}
 
@@ -220,6 +276,20 @@ export function JobRow({ job, isSelected, onToggleSelect, onTagClick }: JobRowPr
             {timeAgo(job.postedAt)}
           </span>
 
+          {isGovJob && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowGovModal(true);
+              }}
+              className="min-h-[40px] px-3.5 py-2 rounded-xl text-xs font-black bg-[#003399] hover:bg-[#002266] text-white transition-all shadow-md active:scale-95 flex items-center justify-center gap-1.5"
+              title="Open Public Sector Easy Apply Assistant (Europass & UN P11)"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+              <span>Easy Apply</span>
+            </button>
+          )}
+
           <button
             onClick={(e) => {
               e.stopPropagation();
@@ -250,6 +320,15 @@ export function JobRow({ job, isSelected, onToggleSelect, onTagClick }: JobRowPr
           </button>
         </div>
       </div>
+
+      {/* Government Easy Apply Assistant Modal */}
+      {isGovJob && (
+        <GovernmentEasyApplyModal
+          job={job}
+          isOpen={showGovModal}
+          onClose={() => setShowGovModal(false)}
+        />
+      )}
     </div>
   );
 }
