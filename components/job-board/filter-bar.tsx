@@ -4,7 +4,8 @@ import React, { useState, useEffect } from "react";
 import { FilterState } from "@/lib/types";
 import { SalarySliderPopup } from "./salary-slider-popup";
 import { LocationPopup } from "./location-popup";
-import { Search, X, ChevronDown } from "lucide-react";
+import { FiltersOverviewModal } from "./filters-overview-modal";
+import { Search, X, ChevronDown, SlidersHorizontal } from "lucide-react";
 
 interface FilterBarProps {
   filters: FilterState;
@@ -21,6 +22,7 @@ export function FilterBar({
 }: FilterBarProps) {
   const [isSalaryOpen, setIsSalaryOpen] = useState(false);
   const [isLocationOpen, setIsLocationOpen] = useState(false);
+  const [isOverviewOpen, setIsOverviewOpen] = useState(false);
 
   // Debounced search query
   const [localQuery, setLocalQuery] = useState(filters.query);
@@ -39,24 +41,26 @@ export function FilterBar({
     return () => clearTimeout(timer);
   }, [localQuery, filters.query, onUpdateFilters]);
 
-  const hasActiveFilters =
-    filters.query ||
-    filters.location ||
-    filters.minSalary > 0 ||
-    filters.benefits.length > 0 ||
-    filters.tags.length > 0 ||
-    (filters.workplaceType && filters.workplaceType !== "all") ||
-    (filters.category && filters.category !== "all") ||
-    (filters.freshness && filters.freshness !== "all") ||
-    filters.directAtsOnly ||
-    filters.transparentPayOnly ||
-    filters.worldwideOnly ||
-    filters.lowCompetitionOnly ||
-    filters.publicSectorOnly ||
-    (filters.sector && filters.sector !== "all") ||
-    (filters.eligibility && filters.eligibility !== "all") ||
-    (filters.languageReq && filters.languageReq !== "all") ||
-    (filters.deadlineUrgency && filters.deadlineUrgency !== "all");
+  // Count active search criteria
+  let activeFilterCount = 0;
+  if (filters.query) activeFilterCount++;
+  if (filters.freshness && filters.freshness !== "all") activeFilterCount++;
+  if (filters.workplaceType && filters.workplaceType !== "all") activeFilterCount++;
+  if (filters.category && filters.category !== "all" && filters.category !== "") activeFilterCount++;
+  if (filters.location) activeFilterCount++;
+  if (filters.minSalary > 0) activeFilterCount++;
+  if (filters.worldwideOnly) activeFilterCount++;
+  if (filters.transparentPayOnly) activeFilterCount++;
+  if (filters.lowCompetitionOnly) activeFilterCount++;
+  if (filters.directAtsOnly) activeFilterCount++;
+  if (filters.publicSectorOnly) activeFilterCount++;
+  if (filters.sector && filters.sector !== "all") activeFilterCount++;
+  if (filters.eligibility && filters.eligibility !== "all") activeFilterCount++;
+  if (filters.languageReq && filters.languageReq !== "all") activeFilterCount++;
+  if (filters.deadlineUrgency && filters.deadlineUrgency !== "all") activeFilterCount++;
+  if (filters.sortBy && filters.sortBy !== "default") activeFilterCount++;
+
+  const hasActiveFilters = activeFilterCount > 0;
 
   return (
     <div className="sticky top-16 z-30 w-full bg-white/95 dark:bg-neutral-950/95 backdrop-blur-md border-b border-neutral-200 dark:border-neutral-800 py-2 sm:py-3 transition-colors shadow-sm">
@@ -251,6 +255,27 @@ export function FilterBar({
               <ChevronDown className="w-3.5 h-3.5 text-neutral-400 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
             </div>
 
+            {/* All Filters / Active Selections Modal Trigger */}
+            <button
+              type="button"
+              onClick={() => setIsOverviewOpen(true)}
+              className={`h-9 inline-flex items-center gap-1.5 px-3 rounded-xl text-xs sm:text-sm font-bold border transition-all shrink-0 whitespace-nowrap cursor-pointer ${
+                activeFilterCount > 0
+                  ? "bg-red-50 dark:bg-red-950/50 text-[#FF4742] border-[#FF4742] shadow-xs ring-1 ring-[#FF4742]/40"
+                  : "bg-white dark:bg-neutral-900 text-neutral-700 dark:text-neutral-300 border-neutral-200 dark:border-neutral-800 hover:border-neutral-400 dark:hover:border-neutral-700 hover:bg-neutral-50"
+              }`}
+              title="Open full filter popup with all selected criteria"
+              aria-label="Open filter overview popup"
+            >
+              <SlidersHorizontal className="w-3.5 h-3.5 text-[#FF4742]" />
+              <span>All Filters</span>
+              {activeFilterCount > 0 && (
+                <span className="min-w-4 h-4 px-1 rounded-full bg-[#FF4742] text-white text-[10px] font-black flex items-center justify-center">
+                  {activeFilterCount}
+                </span>
+              )}
+            </button>
+
             {/* Clear Filters Button */}
             {hasActiveFilters && (
               <button
@@ -259,7 +284,7 @@ export function FilterBar({
                 className="h-9 inline-flex items-center gap-1 px-3 rounded-xl text-xs font-bold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors shrink-0 whitespace-nowrap"
               >
                 <X className="w-3.5 h-3.5" />
-                <span>Reset ({totalResults})</span>
+                <span>Reset ({activeFilterCount})</span>
               </button>
             )}
           </div>
@@ -426,6 +451,16 @@ export function FilterBar({
           </div>
         )}
       </div>
+
+      {/* All Filters & Selected Criteria Overview Popup Modal */}
+      <FiltersOverviewModal
+        isOpen={isOverviewOpen}
+        onClose={() => setIsOverviewOpen(false)}
+        filters={filters}
+        onUpdateFilters={onUpdateFilters}
+        onResetFilters={onResetFilters}
+        totalResults={totalResults}
+      />
     </div>
   );
 }
