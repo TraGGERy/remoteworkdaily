@@ -219,7 +219,7 @@ function normalizeRawJob(raw) {
   const title = (raw.title || raw.position || "Remote Specialist").trim();
   const company = (raw.company || raw.company_name || "Hiring Company").trim();
   const companySlug = company.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
-  const applyUrl = raw.apply_url || raw.url || "https://remoteworkdaily.com";
+  const applyUrl = raw.apply_url || raw.url || raw.applyUrl || "https://remoteworkdaily.com";
 
   let tags = [];
   if (Array.isArray(raw.tags)) {
@@ -249,7 +249,7 @@ function normalizeRawJob(raw) {
     tags.unshift(workplaceTag);
   }
 
-  const isTask = Boolean(raw.is_task || raw.category === "tasks");
+  const isTask = Boolean(raw.is_task || raw.category === "tasks" || raw.isTask);
   let category = isTask ? "tasks" : (raw.category || "other");
 
   const farmingRegex = /\b(farm|farmer|farmers|farming|agri|agriculture|agricultural|agronomist|agronomy|crops?|livestock|horticulture|ranch|rancher|ranchers|ranching|grower|growers|harvest|harvester|harvesting|soil|forestry|agroforestry|agtech)\b/i;
@@ -328,13 +328,13 @@ function normalizeRawJob(raw) {
     else { salaryMin = 70000; salaryMax = 110000; }
   }
 
-  const canonicalHash = generateCanonicalHash(company, title, applyUrl);
-  const id = `job-${canonicalHash.slice(0, 16)}`;
+  const canonicalHash = raw.canonicalHash || generateCanonicalHash(company, title, applyUrl);
+  const id = raw.id || `job-${canonicalHash.slice(0, 16)}`;
   const baseSlug = `${title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${companySlug}`.replace(/--+/g, "-").replace(/^-|-$/g, "").slice(0, 70);
   const idHash = canonicalHash.slice(0, 6);
-  const slug = `${baseSlug || "job"}-${idHash}`;
+  const slug = raw.slug || `${baseSlug || "job"}-${idHash}`;
   let location = raw.candidate_required_location || raw.location || (workplaceType === "remote" ? "Worldwide" : "On-site");
-  let postedAt = raw.posted_at || new Date().toISOString();
+  let postedAt = raw.posted_at || raw.postedAt || new Date().toISOString();
   try {
     const parsedTime = new Date(postedAt).getTime();
     if (isNaN(parsedTime) || parsedTime > Date.now() + 60000) {
@@ -405,20 +405,20 @@ function normalizeRawJob(raw) {
     isDirectCompanyPost: raw.is_direct_company_post || raw.source === "ats",
     status: expired ? "archived" : "active",
     isActive: !expired,
-    canonicalHash: generateCanonicalHash(company, title, applyUrl),
+    canonicalHash,
     isTask,
     is_task: isTask,
-    taskType: raw.task_type,
-    task_type: raw.task_type,
-    estimatedTime: raw.estimated_time,
-    estimated_time: raw.estimated_time,
-    payoutReward: raw.payout_reward,
-    payout_reward: raw.payout_reward,
-    payoutType: raw.payout_type,
-    payout_type: raw.payout_type,
+    taskType: raw.taskType || raw.task_type,
+    task_type: raw.taskType || raw.task_type,
+    estimatedTime: raw.estimatedTime || raw.estimated_time,
+    estimated_time: raw.estimatedTime || raw.estimated_time,
+    payoutReward: raw.payoutReward || raw.payout_reward,
+    payout_reward: raw.payoutReward || raw.payout_reward,
+    payoutType: raw.payoutType || raw.payout_type,
+    payout_type: raw.payoutType || raw.payout_type,
     difficulty: raw.difficulty,
-    instructionsUrl: raw.instructions_url,
-    instructions_url: raw.instructions_url,
+    instructionsUrl: raw.instructionsUrl || raw.instructions_url,
+    instructions_url: raw.instructionsUrl || raw.instructions_url,
   };
 }
 
@@ -429,12 +429,12 @@ async function runScrape() {
   console.log(`========================================================\n`);
 
   const startTime = Date.now();
-  const pagesNeeded = Math.min(Math.max(Math.ceil(TARGET_COUNT / 200), 12), 25);
+  const pagesNeeded = Math.min(Math.max(Math.ceil(TARGET_COUNT / 200), 15), 60);
 
   console.log(`[1/4] Harvesting live multi-sector job streams (Arbeitnow 1..${pagesNeeded}, ReliefWeb RSS, WWR 8 feeds, Jobicy 10 industries, RemoteOK, Remotive, Greenhouse, Ashby)...`);
 
   const rawJobs = [];
-  const sources = { arbeitnow: 0, wwr: 0, jobicy: 0, remoteok: 0, remotive: 0, himalayas: 0, reliefweb: 0, ats: 0 };
+  const sources = { arbeitnow: 0, wwr: 0, jobicy: 0, remoteok: 0, remotive: 0, himalayas: 0, reliefweb: 0, ats: 0, tasks: 0 };
 
   // 1. Arbeitnow Multi-Page High-Capacity (batched to avoid 429 rate limits)
   const arbeitnowPromise = (async () => {
@@ -668,6 +668,30 @@ async function runScrape() {
       { token: "automattic", name: "Automattic" },
       { token: "docker", name: "Docker" },
       { token: "elastic", name: "Elastic" },
+      { token: "figma", name: "Figma" },
+      { token: "coinbase", name: "Coinbase" },
+      { token: "cloudflare", name: "Cloudflare" },
+      { token: "datadog", name: "Datadog" },
+      { token: "airbnb", name: "Airbnb" },
+      { token: "twilio", name: "Twilio" },
+      { token: "brex", name: "Brex" },
+      { token: "mozilla", name: "Mozilla" },
+      { token: "okta", name: "Okta" },
+      { token: "pinterest", name: "Pinterest" },
+      { token: "robinhood", name: "Robinhood" },
+      { token: "canva", name: "Canva" },
+      { token: "affirm", name: "Affirm" },
+      { token: "mongodb", name: "MongoDB" },
+      { token: "scaleai", name: "Scale AI" },
+      { token: "lyft", name: "Lyft" },
+      { token: "block", name: "Block" },
+      { token: "roblox", name: "Roblox" },
+      { token: "sofi", name: "SoFi" },
+      { token: "chime", name: "Chime" },
+      { token: "coursera", name: "Coursera" },
+      { token: "duolingo", name: "Duolingo" },
+      { token: "monzo", name: "Monzo" },
+      { token: "checkr", name: "Checkr" },
     ];
     for (const c of ghCompanies) {
       try {
@@ -700,6 +724,11 @@ async function runScrape() {
       { slug: "supabase", name: "Supabase" },
       { slug: "linear", name: "Linear" },
       { slug: "cursor", name: "Cursor" },
+      { slug: "perplexity", name: "Perplexity" },
+      { slug: "elevenlabs", name: "ElevenLabs" },
+      { slug: "replit", name: "Replit" },
+      { slug: "posthog", name: "PostHog" },
+      { slug: "resend", name: "Resend" },
     ];
     for (const c of ashbyCompanies) {
       try {
@@ -782,8 +811,23 @@ async function runScrape() {
     }
   })();
 
+  // 9. Verified Tasks & Micro-Gigs Pool (UGC, AI RLHF, Bounties, Usability, etc.)
+  const tasksPromise = (async () => {
+    try {
+      const poolPath = path.join(process.cwd(), "data", "mini-jobs-pool.json");
+      if (fs.existsSync(poolPath)) {
+        const raw = fs.readFileSync(poolPath, "utf8");
+        return JSON.parse(raw);
+      }
+      return [];
+    } catch (e) {
+      console.warn("Failed to load mini-jobs-pool.json:", e);
+      return [];
+    }
+  })();
+
   // Run all in parallel
-  const [arbeitnowList, wwrList, jobicyList, remoteokList, remotiveList, reliefWebList, atsList, himalayasList] = await Promise.all([
+  const [arbeitnowList, wwrList, jobicyList, remoteokList, remotiveList, reliefWebList, atsList, himalayasList, tasksList] = await Promise.all([
     arbeitnowPromise,
     wwrPromise,
     jobicyPromise,
@@ -792,6 +836,7 @@ async function runScrape() {
     reliefWebPromise,
     atsPromise,
     himalayasPromise,
+    tasksPromise,
   ]);
 
   sources.arbeitnow = arbeitnowList.length;
@@ -818,6 +863,11 @@ async function runScrape() {
   sources.ats = atsList.length;
   for (const it of atsList) rawJobs.push(it);
 
+  sources.tasks = tasksList ? tasksList.length : 0;
+  if (tasksList) {
+    for (const it of tasksList) rawJobs.push(it);
+  }
+
   console.log(`[2/4] Harvested ${rawJobs.length} raw listings across feeds:`);
   console.log(`      • Arbeitnow: ${sources.arbeitnow}`);
   console.log(`      • ReliefWeb (Agriculture & Ops): ${sources.reliefweb}`);
@@ -827,6 +877,7 @@ async function runScrape() {
   console.log(`      • Remotive: ${sources.remotive}`);
   console.log(`      • Himalayas: ${sources.himalayas}`);
   console.log(`      • Direct ATS (Greenhouse/Lever/Ashby): ${sources.ats}`);
+  console.log(`      • Verified Mini Jobs & Tasks: ${sources.tasks}`);
 
   console.log(`[3/4] Normalizing data and deduplicating via SHA-256 canonicalHash...`);
   const seenHashes = new Set();
@@ -888,7 +939,7 @@ async function runScrape() {
   // MUST match MAX_LOCAL_JOBS in lib/jobs-repository.ts — a lower cap here (12,000) truncated the
   // committed dataset while the live site kept more, so Telegram and the website reported
   // different totals. 20k compact JSON ≈ 60 MB, safely under GitHub's 100 MB file limit.
-  const MAX_JOBS = 20000;
+  const MAX_JOBS = 26000;
   const pruned = merged.length > MAX_JOBS ? merged.slice(0, MAX_JOBS) : merged;
 
   // Compact JSON (no indentation) keeps the committed file small enough for git/Vercel bundles

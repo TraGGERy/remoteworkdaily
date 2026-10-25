@@ -61,12 +61,44 @@ export function JobTable({
     }
   };
 
-  // Freemium preview threshold: first 15 jobs are fully visible
-  const FREE_PREVIEW_LIMIT = 15;
-  const isPaywallActive = !hasActiveSubscription && jobs.length > FREE_PREVIEW_LIMIT;
-  
-  const previewJobs = isPaywallActive ? displayedJobs.slice(0, FREE_PREVIEW_LIMIT) : displayedJobs;
-  const blurredPaywalledJobs = isPaywallActive ? displayedJobs.slice(FREE_PREVIEW_LIMIT) : [];
+  // Freemium preview threshold:
+  // For standard jobs, non-subscribers can view up to 15 preview jobs.
+  // BUT for high-yield Gigs & Tasks ($50-$500 fast cash), non-subscribers only get a tiny taste (2-3 preview teasers),
+  // with the rest of the 1,000+ tasks aggressively blurred to drive massive instant upgrade conversion!
+  const isTasksFiltered = jobs.length > 0 && jobs.slice(0, 5).every((j) => j.isTask || j.category === "tasks");
+  const TASK_PREVIEW_LIMIT = isTasksFiltered ? 3 : 2;
+  const STANDARD_PREVIEW_LIMIT = 15;
+
+  const isPaywallActive = !hasActiveSubscription && jobs.length > (isTasksFiltered ? TASK_PREVIEW_LIMIT : STANDARD_PREVIEW_LIMIT);
+
+  let previewJobs: Job[] = [];
+  let blurredPaywalledJobs: Job[] = [];
+
+  if (isPaywallActive) {
+    let taskCount = 0;
+    let standardCount = 0;
+
+    for (const job of displayedJobs) {
+      const isTask = Boolean(job.isTask || job.category === "tasks");
+      if (isTask) {
+        if (taskCount < TASK_PREVIEW_LIMIT) {
+          previewJobs.push(job);
+          taskCount++;
+        } else {
+          blurredPaywalledJobs.push(job);
+        }
+      } else {
+        if (standardCount < STANDARD_PREVIEW_LIMIT) {
+          previewJobs.push(job);
+          standardCount++;
+        } else {
+          blurredPaywalledJobs.push(job);
+        }
+      }
+    }
+  } else {
+    previewJobs = displayedJobs;
+  }
 
   return (
     <div className="w-full max-w-7xl mx-auto px-3 sm:px-6 py-4">
@@ -86,7 +118,7 @@ export function JobTable({
           <span className="hidden md:inline text-emerald-600 dark:text-emerald-400 font-bold">100% Transparent Pay</span>
           {isPaywallActive && (
             <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300 border border-amber-300/40">
-              15 Free Preview Jobs
+              {isTasksFiltered ? "3 Free Preview Tasks" : "Free Preview Active"}
             </span>
           )}
         </div>
@@ -158,13 +190,17 @@ export function JobTable({
                 <div className="space-y-1.5 text-left">
                   <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 border border-amber-300/40">
                     <Lock className="w-3.5 h-3.5" />
-                    <span>You Have Viewed 15 Free Preview Jobs</span>
+                    <span>{isTasksFiltered ? "Viewing 3 Free Preview Gigs" : "Viewing Free Preview"}</span>
                   </div>
                   <h3 className="text-xl sm:text-2xl font-black text-neutral-900 dark:text-white">
-                    Unlock 2,000+ Direct ATS Jobs (Greenhouse, Lever, Ashby)
+                    {isTasksFiltered
+                      ? "Unlock 1,000+ Verified Tasks & Quick Cash Gigs ($50 – $500/task)"
+                      : "Unlock 25,000+ Verified Direct Roles & High-Yield Bounties"}
                   </h3>
                   <p className="text-xs sm:text-sm text-neutral-600 dark:text-neutral-400 max-w-xl leading-relaxed">
-                    Stop competing against 200+ applicants in 1 hour on LinkedIn and Indeed. Our members apply directly to internal hiring systems at GitLab, Supabase, Linear, Docker, Automattic, and 1,000+ companies.
+                    {isTasksFiltered
+                      ? "Stop waiting weeks for resume callbacks. Pro members get instant access to direct creator briefs, 15-minute usability tests, AI rating tasks, and open-source code bounties paying out within 24–48 hours."
+                      : "Bypass 200+ automated LinkedIn applicants. Our members unlock unadvertised direct ATS listings at GitLab, Supabase, Linear, and 1,000+ instant-earning task briefs."}
                   </p>
                 </div>
 
@@ -247,17 +283,21 @@ export function JobTable({
                     <Lock className="w-6 h-6" />
                   </div>
                   <h4 className="text-base font-black text-neutral-900 dark:text-white">
-                    {jobs.length - FREE_PREVIEW_LIMIT}+ Direct Company Roles
+                    {isTasksFiltered
+                      ? `${jobs.length - TASK_PREVIEW_LIMIT}+ Verified Tasks & Bounties Locked`
+                      : `${jobs.length - STANDARD_PREVIEW_LIMIT}+ Direct Company Roles & Instant Gigs`}
                   </h4>
                   <p className="text-xs text-neutral-600 dark:text-neutral-400">
-                    Click anywhere to unlock all unadvertised remote jobs with direct application links.
+                    {isTasksFiltered
+                      ? "Click anywhere to unlock all instant-earning creator briefs, UX studies, and code bounties with direct links."
+                      : "Click anywhere to unlock all unadvertised remote jobs and instant cash tasks with direct application links."}
                   </p>
                   <button
                     type="button"
                     onClick={openUpgradeModal}
                     className="w-full py-3 px-4 rounded-xl text-xs font-black bg-[#FF4742] text-white hover:bg-[#e03a35] shadow-lg shadow-red-500/25 active:scale-95 transition-all"
                   >
-                    Unlock Feed (From $6.99/wk)
+                    {isTasksFiltered ? "Unlock 1,000+ Tasks & Gigs" : "Unlock Feed (From $6.99/wk)"}
                   </button>
                 </div>
               </div>

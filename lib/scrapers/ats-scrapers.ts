@@ -67,6 +67,30 @@ const GREENHOUSE_COMPANIES: Array<{ token: string; name: string; logo?: string }
   { token: "docker", name: "Docker", logo: "https://images.unsplash.com/photo-1605379399642-870262d3d051?w=128&h=128&fit=crop&q=80" },
   { token: "elastic", name: "Elastic", logo: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=128&h=128&fit=crop&q=80" },
   { token: "wikimedia", name: "Wikimedia Foundation", logo: "https://upload.wikimedia.org/wikipedia/commons/8/8b/Wikimedia-logo_black.png" },
+  { token: "figma", name: "Figma" },
+  { token: "coinbase", name: "Coinbase" },
+  { token: "cloudflare", name: "Cloudflare" },
+  { token: "datadog", name: "Datadog" },
+  { token: "airbnb", name: "Airbnb" },
+  { token: "twilio", name: "Twilio" },
+  { token: "brex", name: "Brex" },
+  { token: "mozilla", name: "Mozilla" },
+  { token: "okta", name: "Okta" },
+  { token: "pinterest", name: "Pinterest" },
+  { token: "robinhood", name: "Robinhood" },
+  { token: "canva", name: "Canva" },
+  { token: "affirm", name: "Affirm" },
+  { token: "mongodb", name: "MongoDB" },
+  { token: "scaleai", name: "Scale AI" },
+  { token: "lyft", name: "Lyft" },
+  { token: "block", name: "Block" },
+  { token: "roblox", name: "Roblox" },
+  { token: "sofi", name: "SoFi" },
+  { token: "chime", name: "Chime" },
+  { token: "coursera", name: "Coursera" },
+  { token: "duolingo", name: "Duolingo" },
+  { token: "monzo", name: "Monzo" },
+  { token: "checkr", name: "Checkr" },
 ];
 
 /**
@@ -92,6 +116,11 @@ const ASHBY_COMPANIES: Array<{ slug: string; name: string; logo?: string }> = [
   { slug: "supabase", name: "Supabase", logo: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=128&h=128&fit=crop&q=80" },
   { slug: "linear", name: "Linear", logo: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=128&h=128&fit=crop&q=80" },
   { slug: "cursor", name: "Cursor", logo: "https://images.unsplash.com/photo-1605379399642-870262d3d051?w=128&h=128&fit=crop&q=80" },
+  { slug: "perplexity", name: "Perplexity" },
+  { slug: "elevenlabs", name: "ElevenLabs" },
+  { slug: "replit", name: "Replit" },
+  { slug: "posthog", name: "PostHog" },
+  { slug: "resend", name: "Resend" },
 ];
 
 function cleanHtml(raw: string | undefined): string {

@@ -1007,5 +1007,46 @@ export async function fetchAllTaskAndGigJobs(): Promise<RawScrapedJob[]> {
     }
   }
 
+  try {
+    const fs = await import("fs");
+    const path = await import("path");
+    const poolPath = path.join(process.cwd(), "data", "mini-jobs-pool.json");
+    if (fs.existsSync(poolPath)) {
+      const pool = JSON.parse(fs.readFileSync(poolPath, "utf8"));
+      if (Array.isArray(pool)) {
+        for (const item of pool) {
+          const applyUrl = item.applyUrl || item.apply_url || `https://remoteworkdaily.com/tasks/${item.id}`;
+          const dedupKey = applyUrl.toLowerCase().trim();
+          if (seenUrls.has(dedupKey)) continue;
+          seenUrls.add(dedupKey);
+
+          rawJobs.push({
+            title: item.title,
+            company: item.company,
+            company_logo: item.companyLogo,
+            url: applyUrl,
+            apply_url: applyUrl,
+            location: item.location || "Worldwide",
+            candidate_required_location: item.location || "Worldwide",
+            remote: true,
+            workplace_type: "remote",
+            category: "tasks",
+            is_task: true,
+            task_type: item.taskType || item.task_type,
+            payout_reward: item.payoutReward || item.payout_reward,
+            payout_type: item.payoutType || item.payout_type,
+            estimated_time: item.estimatedTime || item.estimated_time,
+            difficulty: item.difficulty,
+            salary_min: item.salaryMin,
+            salary_max: item.salaryMax,
+            description: item.description,
+            posted_at: item.postedAt || item.posted_at || new Date().toISOString(),
+            tags: item.tags || ["Tasks"],
+          });
+        }
+      }
+    }
+  } catch {}
+
   return rawJobs;
 }
