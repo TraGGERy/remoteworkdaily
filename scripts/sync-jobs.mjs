@@ -70,7 +70,7 @@ function cleanHtmlDescription(raw) {
     .replace(/&#x26;/g, "&")
     .replace(/\s+/g, " ")
     .trim();
-  return clean.slice(0, 1500);
+  return clean.slice(0, 900);
 }
 
 const EMAIL_REGEX = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
@@ -255,7 +255,7 @@ function normalizeRawJob(raw) {
   const farmingRegex = /\b(farm|farmer|farmers|farming|agri|agriculture|agricultural|agronomist|agronomy|crops?|livestock|horticulture|ranch|rancher|ranchers|ranching|grower|growers|harvest|harvester|harvesting|soil|forestry|agroforestry|agtech)\b/i;
   const tradesRegex = /\b(driver|technician|electrician|mechanic|plumber|warehouse|operator|welder|carpenter|assembly|maintenance|logistics|installer|forklift)\b/i;
   const hospitalityRegex = /\b(cook|chef|barista|restaurant|kitchen|server|food|dining|baker|bakery|hospitality|catering|culinary|bartender)\b/i;
-  const medicalRegex = /\b(nurse|doctor|physician|medical|clinical|pharmacy|pharmacist|therapist|dental|dentist|healthcare|caregiver)\b/i;
+  const medicalRegex = /\b(nurse|nursing|doctor|physician|medical|clinical|pharmacy|pharmacist|therapist|therapy|dental|dentist|healthcare|caregiver|telehealth|telemedicine|epidemiologist|epidemiology|triage|paramedic|humanitarian\s*aid|medical\s*aid|health\s*aid|health\s*officer|disaster\s*relief|patient\s*care|pharma|biomedical|biotech|medical\s*billing|medical\s*coder|health\s*informatics)\b/i;
   const educationRegex = /\b(teacher|tutor|instructor|professor|education|curriculum|academic|faculty|school)\b/i;
   const execRegex = /\b(cto|ceo|cfo|coo|vp|vice president|head of|director|executive|leiter|bereichsleitung)\b/i;
   const opsRegex = /\b(devops|sre|sysadmin|systemadministrator|cloud engineer|infrastructure)\b/i;
@@ -345,7 +345,7 @@ function normalizeRawJob(raw) {
   } catch {
     postedAt = new Date().toISOString();
   }
-  const description = cleanHtmlDescription(raw.description) || `Join ${company} as ${title}. We offer competitive compensation with transparent salaries, generous benefits, and strong career progression.`;
+  const description = (cleanHtmlDescription(raw.description) || `Join ${company} as ${title}. We offer competitive compensation with transparent salaries, generous benefits, and strong career progression.`).slice(0, 900);
   const companyWebsite = raw.url || "https://remoteworkdaily.com";
 
   const classification = classifyJobArrangement({
@@ -434,7 +434,7 @@ async function runScrape() {
   console.log(`[1/4] Harvesting live multi-sector job streams (Arbeitnow 1..${pagesNeeded}, ReliefWeb RSS, WWR 8 feeds, Jobicy 10 industries, RemoteOK, Remotive, Greenhouse, Ashby)...`);
 
   const rawJobs = [];
-  const sources = { arbeitnow: 0, wwr: 0, jobicy: 0, remoteok: 0, remotive: 0, himalayas: 0, reliefweb: 0, ats: 0, tasks: 0 };
+  const sources = { arbeitnow: 0, wwr: 0, jobicy: 0, remoteok: 0, remotive: 0, himalayas: 0, reliefweb: 0, ats: 0, tasks: 0, medical: 0 };
 
   // 1. Arbeitnow Multi-Page High-Capacity (batched to avoid 429 rate limits)
   const arbeitnowPromise = (async () => {
@@ -826,8 +826,23 @@ async function runScrape() {
     }
   })();
 
+  // 10. Humanitarian Medical Aid, Telehealth & Global Health Pool
+  const medicalAidPromise = (async () => {
+    try {
+      const poolPath = path.join(process.cwd(), "data", "medical-aid-pool.json");
+      if (fs.existsSync(poolPath)) {
+        const raw = fs.readFileSync(poolPath, "utf8");
+        return JSON.parse(raw);
+      }
+      return [];
+    } catch (e) {
+      console.warn("Failed to load medical-aid-pool.json:", e);
+      return [];
+    }
+  })();
+
   // Run all in parallel
-  const [arbeitnowList, wwrList, jobicyList, remoteokList, remotiveList, reliefWebList, atsList, himalayasList, tasksList] = await Promise.all([
+  const [arbeitnowList, wwrList, jobicyList, remoteokList, remotiveList, reliefWebList, atsList, himalayasList, tasksList, medicalList] = await Promise.all([
     arbeitnowPromise,
     wwrPromise,
     jobicyPromise,
@@ -837,6 +852,7 @@ async function runScrape() {
     atsPromise,
     himalayasPromise,
     tasksPromise,
+    medicalAidPromise,
   ]);
 
   sources.arbeitnow = arbeitnowList.length;
@@ -868,6 +884,11 @@ async function runScrape() {
     for (const it of tasksList) rawJobs.push(it);
   }
 
+  sources.medical = medicalList ? medicalList.length : 0;
+  if (medicalList) {
+    for (const it of medicalList) rawJobs.push(it);
+  }
+
   console.log(`[2/4] Harvested ${rawJobs.length} raw listings across feeds:`);
   console.log(`      • Arbeitnow: ${sources.arbeitnow}`);
   console.log(`      • ReliefWeb (Agriculture & Ops): ${sources.reliefweb}`);
@@ -878,6 +899,7 @@ async function runScrape() {
   console.log(`      • Himalayas: ${sources.himalayas}`);
   console.log(`      • Direct ATS (Greenhouse/Lever/Ashby): ${sources.ats}`);
   console.log(`      • Verified Mini Jobs & Tasks: ${sources.tasks}`);
+  console.log(`      • Medical Aid, Telehealth & Global Health: ${sources.medical}`);
 
   console.log(`[3/4] Normalizing data and deduplicating via SHA-256 canonicalHash...`);
   const seenHashes = new Set();
@@ -939,8 +961,13 @@ async function runScrape() {
   // MUST match MAX_LOCAL_JOBS in lib/jobs-repository.ts — a lower cap here (12,000) truncated the
   // committed dataset while the live site kept more, so Telegram and the website reported
   // different totals. 20k compact JSON ≈ 60 MB, safely under GitHub's 100 MB file limit.
-  const MAX_JOBS = 26000;
+  const MAX_JOBS = 42000;
   const pruned = merged.length > MAX_JOBS ? merged.slice(0, MAX_JOBS) : merged;
+  for (const it of pruned) {
+    if (it.description && it.description.length > 900) {
+      it.description = it.description.slice(0, 900);
+    }
+  }
 
   // Compact JSON (no indentation) keeps the committed file small enough for git/Vercel bundles
   fs.writeFileSync(DATA_FILE, JSON.stringify(pruned), "utf8");

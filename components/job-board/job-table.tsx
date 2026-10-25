@@ -195,7 +195,7 @@ export function JobTable({
                   <h3 className="text-xl sm:text-2xl font-black text-neutral-900 dark:text-white">
                     {isTasksFiltered
                       ? "Unlock 1,000+ Verified Tasks & Quick Cash Gigs ($50 – $500/task)"
-                      : "Unlock 25,000+ Verified Direct Roles & High-Yield Bounties"}
+                      : "Unlock 40,000+ Verified Direct Roles, Medical Aid & Instant Gigs"}
                   </h3>
                   <p className="text-xs sm:text-sm text-neutral-600 dark:text-neutral-400 max-w-xl leading-relaxed">
                     {isTasksFiltered
