@@ -385,9 +385,6 @@ export function CareerHoundOnboardingFlow() {
           )}
           <div className="flex items-center gap-2">
             <CareerHoundLogo className="w-6 h-6 text-blue-600" />
-            <span className="font-bold text-lg tracking-tight text-slate-900">
-              Career Hound
-            </span>
           </div>
         </div>
 
