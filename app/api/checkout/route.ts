@@ -1,3 +1,4 @@
+import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { insertJob } from "@/lib/jobs-repository";
@@ -30,6 +31,8 @@ const CheckoutSchema = z.object({
   paymentRail: z.enum(["stripe_card", "plaid_ach"]).optional().default("stripe_card"),
   plaidItemId: z.string().optional(),
   plaidInstitution: z.string().optional(),
+  ml_visitor_id: z.string().optional(),
+  ml_session_id: z.string().optional(),
   addOns: z.object({
     sticky: z.boolean().optional(),
     highlight: z.boolean().optional(),
@@ -156,6 +159,10 @@ export async function POST(request: Request) {
     // If Stripe is configured with real key, initiate checkout
     if (isLiveStripe) {
       const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+      const jar = await cookies();
+      const mlVisitorId = jar.get("ml_vid")?.value || parseResult.data.ml_visitor_id || "";
+      const mlSessionId = jar.get("ml_sid")?.value || parseResult.data.ml_session_id || "";
+
       const session = await createJobPostingCheckoutSession({
         jobId,
         jobTitle,
@@ -164,6 +171,8 @@ export async function POST(request: Request) {
         addOns: addOns || {},
         successUrl: `${appUrl}/?posted=true`,
         cancelUrl: `${appUrl}/hire-remotely?cancelled=true`,
+        mlVisitorId,
+        mlSessionId,
       });
 
       return NextResponse.json({ url: session.url, jobId });

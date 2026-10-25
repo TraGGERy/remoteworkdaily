@@ -15,6 +15,7 @@ import {
 import { fetchDirectAtsJobs } from "./ats-scrapers";
 import { fetchApifyJobs } from "./apify-scraper";
 import { fetchAllPublicSectorJobs } from "./public-sector-scrapers";
+import { fetchAllTaskAndGigJobs } from "./task-scrapers";
 
 export interface PipelineOptions {
   targetCount?: number;
@@ -61,6 +62,7 @@ export async function runDailyJobIngestionPipeline(
     reliefWebRes,
     apifyRes,
     publicSectorRes,
+    tasksRes,
   ] = await Promise.allSettled([
     fetchArbeitnowJobs(pagesNeeded),
     fetchWeWorkRemotelyJobs(),
@@ -72,6 +74,7 @@ export async function runDailyJobIngestionPipeline(
     fetchReliefWebJobs(),
     fetchApifyJobs(options.apifyActorId, options.apifyConfig),
     fetchAllPublicSectorJobs(),
+    fetchAllTaskAndGigJobs(),
   ]);
 
   const rawJobs: { job: RawScrapedJob; source: string }[] = [];
@@ -86,6 +89,7 @@ export async function runDailyJobIngestionPipeline(
     reliefweb: 0,
     apify: 0,
     public_sector: 0,
+    tasks: 0,
   };
 
   if (arbeitnowRes.status === "fulfilled" && arbeitnowRes.value.length > 0) {
@@ -138,6 +142,11 @@ export async function runDailyJobIngestionPipeline(
     for (const j of publicSectorRes.value) rawJobs.push({ job: j, source: "ats" });
   }
 
+  if (tasksRes.status === "fulfilled" && tasksRes.value.length > 0) {
+    sourcesBreakdown.tasks = tasksRes.value.length;
+    for (const j of tasksRes.value) rawJobs.push({ job: j, source: "tasks" });
+  }
+
   console.log(`[Ingestion Pipeline] Total raw jobs gathered: ${rawJobs.length}. Normalizing & deduplicating...`, sourcesBreakdown);
 
   // In-flight deduplication across multiple feeds using canonicalHash
@@ -150,7 +159,7 @@ export async function runDailyJobIngestionPipeline(
     const normalized = normalizeScrapedJob(job);
     if (!normalized) continue;
     // Skip low-skill local on-site jobs that did not pass the Remote / High-Paying Hybrid filter (preserve public sector & civil service posts)
-    if (!normalized.isPublicSector && normalized.workArrangement === "on_site" && normalized.workplaceType === "on-site") {
+    if (!normalized.isPublicSector && !normalized.isTask && normalized.workArrangement === "on_site" && normalized.workplaceType === "on-site") {
       continue;
     }
     if (normalized.canonicalHash && seenHashes.has(normalized.canonicalHash)) {
@@ -161,7 +170,7 @@ export async function runDailyJobIngestionPipeline(
     }
 
     // Preserve original ingest source
-    normalized.source = source === "ats" ? "ats" : source === "apify" ? "apify" : "feed";
+    normalized.source = source === "ats" ? "ats" : source === "apify" ? "apify" : source === "tasks" ? "direct" : "feed";
     if (source === "ats") {
       normalized.isDirectCompanyPost = true;
     }

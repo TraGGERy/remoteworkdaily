@@ -63,6 +63,16 @@ export interface RawScrapedJob {
   europass_ready?: boolean;
   p11_ready?: boolean;
   portal_type?: "epso" | "un_inspira" | "eures" | "usajobs" | "uk_civil_service" | "french_pep" | "bund_de" | "dpsa_gov_za" | "psc_gov_zw" | "general_gov";
+
+  // Task & Make-Money Fields
+  category?: string;
+  is_task?: boolean;
+  task_type?: "ugc_creator" | "research_interview" | "usability_testing" | "game_playtesting" | "ai_training_rlhf" | "transcription" | "code_bounty" | "design_contest" | "search_rating" | "tutoring";
+  estimated_time?: string;
+  payout_reward?: string;
+  payout_type?: "fixed" | "hourly" | "bounty" | "per_item";
+  difficulty?: "easy" | "intermediate" | "expert";
+  instructions_url?: string;
 }
 
 export function normalizeScrapedJob(raw: RawScrapedJob): Job {
@@ -129,7 +139,8 @@ export function normalizeScrapedJob(raw: RawScrapedJob): Job {
   }
 
   // Infer Category with multi-sector domain classifier
-  let category: Job["category"] = "other";
+  const isTask = Boolean(raw.is_task || raw.category === "tasks");
+  let category: Job["category"] = isTask ? "tasks" : "other";
 
   const farmingRegex = /\b(farm|farmer|farmers|farming|agri|agriculture|agricultural|agronomist|agronomy|crops?|livestock|horticulture|ranch|rancher|ranchers|ranching|grower|growers|harvest|harvester|harvesting|soil|forestry|agroforestry|agtech)\b/i;
   const tradesRegex = /\b(driver|technician|electrician|mechanic|plumber|warehouse|operator|welder|carpenter|assembly|maintenance|logistics|installer|forklift)\b/i;
@@ -147,7 +158,7 @@ export function normalizeScrapedJob(raw: RawScrapedJob): Job {
 
   const combinedSearch = `${title} ${tags.join(" ")}`;
 
-  if (farmingRegex.test(combinedSearch)) {
+  if (!isTask && farmingRegex.test(combinedSearch)) {
     category = "farming";
   } else if (tradesRegex.test(combinedSearch)) {
     category = "trades";
@@ -189,11 +200,11 @@ export function normalizeScrapedJob(raw: RawScrapedJob): Job {
   }
 
   // Normalize salary numbers written in shorthand thousands (e.g. 150 -> 150000)
-  if (salaryMin && salaryMin < 1000) salaryMin = salaryMin * 1000;
-  if (salaryMax && salaryMax < 1000) salaryMax = salaryMax * 1000;
+  if (!isTask && salaryMin && salaryMin < 1000) salaryMin = salaryMin * 1000;
+  if (!isTask && salaryMax && salaryMax < 1000) salaryMax = salaryMax * 1000;
 
   // Default realistic salary range for salary transparency standard
-  if (!salaryMin && !salaryMax) {
+  if (!salaryMin && !salaryMax && !isTask) {
     if (category === "dev") {
       salaryMin = 135000;
       salaryMax = 185000;
@@ -267,6 +278,8 @@ export function normalizeScrapedJob(raw: RawScrapedJob): Job {
     salaryMax,
     workplaceType,
     companyWebsite: raw.url,
+    isTask,
+    category,
   });
   const isDeadlineExpired = Boolean(
     raw.application_deadline && !isNaN(new Date(raw.application_deadline).getTime()) && new Date(raw.application_deadline).getTime() < Date.now()
@@ -334,6 +347,15 @@ export function normalizeScrapedJob(raw: RawScrapedJob): Job {
     europassReady: raw.europass_ready ?? true,
     p11Ready: raw.p11_ready ?? false,
     portalType: raw.portal_type,
+
+    // Task & Make-Money Properties
+    isTask,
+    taskType: raw.task_type,
+    estimatedTime: raw.estimated_time,
+    payoutReward: raw.payout_reward,
+    payoutType: raw.payout_type,
+    difficulty: raw.difficulty,
+    instructionsUrl: raw.instructions_url,
   };
 }
 

@@ -51,9 +51,10 @@ export function JobDetailDrawer({
   const [bookmarked, setBookmarked] = useState(false);
   const [showGovModal, setShowGovModal] = useState(false);
   const isGovJob = Boolean(job.isPublicSector || job.isGovernment);
+  const isTask = Boolean(job.isTask || job.category === "tasks");
 
-  const salaryText = formatSalary(job.salaryMin, job.salaryMax, job.salaryCurrency);
-  const hourlyText = formatHourlyEquivalent(job.salaryMin, job.salaryMax, job.salaryCurrency);
+  const salaryText = isTask && job.payoutReward ? job.payoutReward : formatSalary(job.salaryMin, job.salaryMax, job.salaryCurrency);
+  const hourlyText = isTask && job.payoutReward ? null : formatHourlyEquivalent(job.salaryMin, job.salaryMax, job.salaryCurrency);
   const isWorldwide = isTrueWorldwideJob(job.location, job.workArrangement, job.workplaceType);
   const competition = getCompetitionSignal(job.appliesCount, job.postedAt);
   const isEarlyAccess = isEarlyAccessJob(job.postedAt);
@@ -238,6 +239,49 @@ export function JobDetailDrawer({
         </div>
       </div>
 
+      {/* Verified Task & Bounty Metadata Dossier */}
+      {isTask && (
+        <div className="my-5 p-5 sm:p-6 rounded-2xl border-2 border-amber-400/50 bg-gradient-to-br from-amber-50/70 via-white to-orange-50/30 dark:from-neutral-900 dark:via-neutral-900 dark:to-neutral-950 shadow-lg space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center font-black text-lg shrink-0">
+                {job.payoutType === "bounty" ? "💰" : "⚡"}
+              </div>
+              <div>
+                <span className="text-[10px] font-black uppercase tracking-wider text-amber-700 dark:text-amber-400 block">
+                  {job.payoutType === "bounty" ? "Verified Code Bounty" : "Verified Remote Task & Gig"}
+                </span>
+                <h4 className="text-base font-black text-neutral-900 dark:text-white">
+                  {job.company} • {job.payoutReward || salaryText}
+                </h4>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-2 text-xs">
+            <div className="p-2.5 rounded-xl bg-white/80 dark:bg-neutral-800/60 border border-neutral-200 dark:border-neutral-700">
+              <span className="text-[10px] font-bold text-neutral-400 block uppercase">Reward / Payout</span>
+              <span className="font-extrabold text-emerald-600 dark:text-emerald-400 mt-0.5 block">{job.payoutReward || salaryText}</span>
+            </div>
+
+            <div className="p-2.5 rounded-xl bg-white/80 dark:bg-neutral-800/60 border border-neutral-200 dark:border-neutral-700">
+              <span className="text-[10px] font-bold text-neutral-400 block uppercase">Estimated Time</span>
+              <span className="font-extrabold text-neutral-900 dark:text-white mt-0.5 block">{job.estimatedTime || "Flexible"}</span>
+            </div>
+
+            <div className="p-2.5 rounded-xl bg-white/80 dark:bg-neutral-800/60 border border-neutral-200 dark:border-neutral-700">
+              <span className="text-[10px] font-bold text-neutral-400 block uppercase">Difficulty</span>
+              <span className="font-extrabold text-neutral-900 dark:text-white mt-0.5 block capitalize">{job.difficulty || "Easy"}</span>
+            </div>
+
+            <div className="p-2.5 rounded-xl bg-white/80 dark:bg-neutral-800/60 border border-neutral-200 dark:border-neutral-700">
+              <span className="text-[10px] font-bold text-neutral-400 block uppercase">Payout Type</span>
+              <span className="font-extrabold text-neutral-900 dark:text-white mt-0.5 block capitalize">{job.payoutType || "Fixed"}</span>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Public Sector Official Dossier & Easy Apply Highlight */}
       {isGovJob && (
         <div className="my-5 p-5 sm:p-6 rounded-2xl border-2 border-[#003399]/40 bg-gradient-to-br from-blue-50/70 via-white to-amber-50/30 dark:from-neutral-900 dark:via-neutral-900 dark:to-neutral-950 shadow-lg space-y-4">
@@ -360,6 +404,9 @@ export function JobDetailDrawer({
           applyUrl={job.applyUrl}
           variant="inline"
           isEarlyAccess={isEarlyAccess}
+          isTask={isTask}
+          payoutType={job.payoutType}
+          payoutReward={job.payoutReward}
           onApplySuccess={onApply}
         />
       </div>
@@ -383,6 +430,9 @@ export function JobDetailDrawer({
             applyUrl={job.applyUrl}
             variant="floating"
             isEarlyAccess={isEarlyAccess}
+          isTask={isTask}
+          payoutType={job.payoutType}
+          payoutReward={job.payoutReward}
             onApplySuccess={onApply}
           />
 

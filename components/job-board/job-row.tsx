@@ -26,8 +26,9 @@ interface JobRowProps {
 export function JobRow({ job, isSelected, onToggleSelect, onTagClick }: JobRowProps) {
   const { hasActiveSubscription, openUpgradeModal } = useSubscription();
   const [showGovModal, setShowGovModal] = useState(false);
-  const salaryText = formatSalary(job.salaryMin, job.salaryMax, job.salaryCurrency);
-  const hourlyText = formatHourlyEquivalent(job.salaryMin, job.salaryMax, job.salaryCurrency);
+  const isTask = Boolean(job.isTask || job.category === "tasks");
+  const salaryText = isTask && job.payoutReward ? job.payoutReward : formatSalary(job.salaryMin, job.salaryMax, job.salaryCurrency);
+  const hourlyText = isTask && job.payoutReward ? null : formatHourlyEquivalent(job.salaryMin, job.salaryMax, job.salaryCurrency);
   const isWorldwide = isTrueWorldwideJob(job.location, job.workArrangement, job.workplaceType);
   const competition = getCompetitionSignal(job.appliesCount, job.postedAt);
   const isDirectAts = Boolean(job.source === "ats" || job.atsProvider || job.isDirectCompanyPost);
@@ -114,6 +115,18 @@ export function JobRow({ job, isSelected, onToggleSelect, onTagClick }: JobRowPr
               <span className="inline-flex items-center gap-0.5 text-[10px] font-black uppercase px-1.5 py-0.5 rounded bg-red-100 dark:bg-red-950/80 text-[#FF4742] dark:text-red-400 border border-red-300 dark:border-red-800/80">
                 <Flame className="w-2.5 h-2.5 fill-current" />
                 <span>Early Access (&lt;6h)</span>
+              </span>
+            )}
+
+            {isTask && (
+              <span className="inline-flex items-center gap-1 text-[10px] font-extrabold uppercase px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-950/90 text-amber-900 dark:text-amber-300 border border-amber-300 dark:border-amber-800">
+                {job.payoutType === "bounty" ? "💰 Bounty" : "⚡ Task"}
+              </span>
+            )}
+
+            {isTask && job.estimatedTime && (
+              <span className="hidden sm:inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 border border-neutral-200 dark:border-neutral-700">
+                ⏱️ {job.estimatedTime}
               </span>
             )}
 
@@ -313,6 +326,8 @@ export function JobRow({ job, isSelected, onToggleSelect, onTagClick }: JobRowPr
               </>
             ) : isSelected ? (
               "Close"
+            ) : isTask ? (
+              job.payoutType === "bounty" ? "Claim Bounty" : "Start Task"
             ) : (
               "Apply"
             )}

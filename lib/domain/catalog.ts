@@ -36,6 +36,16 @@ export class SalaryRange {
   format(): string {
     if (!this.min && !this.max) return "Competitive (Unspecified)";
     const curr = this.currency;
+    const isSubThousand = (this.max != null && this.max < 1000) || (this.min != null && this.min < 1000 && (this.max == null || this.max < 1000));
+    if (isSubThousand) {
+      if (this.min && this.max) {
+        return `$${this.min} - $${this.max} ${curr}`;
+      }
+      if (this.min) {
+        return `From $${this.min} ${curr}`;
+      }
+      return `Up to ${this.max} ${curr}`;
+    }
     if (this.min && this.max) {
       return `$${Math.round(this.min / 1000)}k - $${Math.round(this.max / 1000)}k ${curr}`;
     }

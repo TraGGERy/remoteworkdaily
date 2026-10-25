@@ -59,10 +59,16 @@ export function CandidateUpgradeModal() {
 
     setIsProcessing(true);
     try {
+      const mlAttr = typeof window !== "undefined" ? window.minilytics?.attribution?.() : undefined;
       const response = await fetch("/api/checkout/candidate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: cleanEmail, planId: selectedPlan }),
+        body: JSON.stringify({
+          email: cleanEmail,
+          planId: selectedPlan,
+          ml_visitor_id: mlAttr?.ml_visitor_id,
+          ml_session_id: mlAttr?.ml_session_id,
+        }),
       });
 
       const data = await response.json();
@@ -209,6 +215,8 @@ export function CandidateUpgradeModal() {
                 {/* Weekly Tier */}
                 <button
                   type="button"
+                  data-ml-goal="pricing_cta"
+                  data-ml-goal-plan="weekly"
                   onClick={() => setSelectedPlan("weekly")}
                   className={`relative p-3 rounded-2xl border text-left transition-all ${
                     selectedPlan === "weekly"
@@ -231,6 +239,8 @@ export function CandidateUpgradeModal() {
                 {/* Monthly Tier */}
                 <button
                   type="button"
+                  data-ml-goal="pricing_cta"
+                  data-ml-goal-plan="monthly"
                   onClick={() => setSelectedPlan("monthly")}
                   className={`relative p-3 rounded-2xl border text-left transition-all ${
                     selectedPlan === "monthly"
@@ -253,6 +263,8 @@ export function CandidateUpgradeModal() {
                 {/* Lifetime Tier */}
                 <button
                   type="button"
+                  data-ml-goal="pricing_cta"
+                  data-ml-goal-plan="lifetime"
                   onClick={() => setSelectedPlan("lifetime")}
                   className={`relative p-3 rounded-2xl border text-left transition-all ${
                     selectedPlan === "lifetime"
@@ -316,6 +328,8 @@ export function CandidateUpgradeModal() {
               <button
                 type="submit"
                 disabled={isProcessing}
+                data-ml-goal="checkout_click"
+                data-ml-goal-plan={selectedPlan}
                 className="w-full py-3.5 rounded-xl text-sm font-black bg-[#FF4742] hover:bg-[#e03a35] text-white shadow-lg shadow-red-500/20 active:scale-95 transition-all flex items-center justify-center gap-2"
               >
                 <Lock className="w-4 h-4" />

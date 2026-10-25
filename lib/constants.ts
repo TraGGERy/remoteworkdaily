@@ -15,6 +15,7 @@ export const ROLE_CATEGORIES: TagCategory[] = [
   { id: "education", label: "Education", icon: "👨‍🏫", tag: "education" },
   { id: "medical", label: "Medical & Health", icon: "🚑", tag: "medical" },
   { id: "hospitality", label: "Hospitality & Food", icon: "🍽️", tag: "hospitality" },
+  { id: "tasks", label: "Tasks & Gigs", icon: "⚡", tag: "tasks" },
 ];
 
 export const POPULAR_TAGS = [

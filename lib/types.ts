@@ -12,7 +12,7 @@ export interface Job {
   location: string;   // e.g. "Worldwide", "North America", "Europe", "US Only", "Berlin, Germany"
   locationCode?: string; // e.g. "WW", "US", "EU"
   workplaceType?: "remote" | "hybrid" | "on-site"; // e.g. "remote", "hybrid", "on-site"
-  category: "dev" | "design" | "marketing" | "sales" | "ops" | "exec" | "support" | "finance" | "medical" | "education" | "farming" | "trades" | "hospitality" | "other";
+  category: "dev" | "design" | "marketing" | "sales" | "ops" | "exec" | "support" | "finance" | "medical" | "education" | "farming" | "trades" | "hospitality" | "tasks" | "other";
   tags: string[];     // e.g. ["React", "TypeScript", "Next.js", "Full Stack"]
   benefits: string[]; // e.g. ["401k", "async", "unlimited_vacation", "health_insurance"]
   salaryMin?: number;
@@ -58,6 +58,15 @@ export interface Job {
   europassReady?: boolean;
   p11Ready?: boolean;
   portalType?: "epso" | "un_inspira" | "eures" | "usajobs" | "uk_civil_service" | "french_pep" | "bund_de" | "dpsa_gov_za" | "psc_gov_zw" | "general_gov";
+
+  // Tasks, Micro-Gigs, Bounties & Make-Money Agents Metadata
+  isTask?: boolean;
+  taskType?: "ugc_creator" | "research_interview" | "usability_testing" | "game_playtesting" | "ai_training_rlhf" | "transcription" | "code_bounty" | "design_contest" | "search_rating" | "tutoring";
+  estimatedTime?: string;
+  payoutReward?: string;
+  payoutType?: "fixed" | "hourly" | "bounty" | "per_item";
+  difficulty?: "easy" | "intermediate" | "expert";
+  instructionsUrl?: string;
 }
 
 export interface Company {
@@ -94,6 +103,10 @@ export interface FilterState {
   eligibility?: "all" | "open_worldwide" | "citizenship_required" | "visa_sponsored";
   languageReq?: "all" | "en_only" | "multilingual";
   deadlineUrgency?: "all" | "closing_48h" | "next_7d";
+
+  // Tasks & Micro-Gigs Filter Controls
+  tasksOnly?: boolean;
+  taskType?: string;
 }
 
 export type CefrLevel = "A1" | "A2" | "B1" | "B2" | "C1" | "C2" | "Native";

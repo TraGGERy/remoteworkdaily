@@ -249,7 +249,8 @@ function normalizeRawJob(raw) {
     tags.unshift(workplaceTag);
   }
 
-  let category = "other";
+  const isTask = Boolean(raw.is_task || raw.category === "tasks");
+  let category = isTask ? "tasks" : (raw.category || "other");
 
   const farmingRegex = /\b(farm|farmer|farmers|farming|agri|agriculture|agricultural|agronomist|agronomy|crops?|livestock|horticulture|ranch|rancher|ranchers|ranching|grower|growers|harvest|harvester|harvesting|soil|forestry|agroforestry|agtech)\b/i;
   const tradesRegex = /\b(driver|technician|electrician|mechanic|plumber|warehouse|operator|welder|carpenter|assembly|maintenance|logistics|installer|forklift)\b/i;
@@ -267,7 +268,7 @@ function normalizeRawJob(raw) {
 
   const combinedSearch = `${title} ${tags.join(" ")}`;
 
-  if (farmingRegex.test(combinedSearch)) {
+  if (!isTask && farmingRegex.test(combinedSearch)) {
     category = "farming";
   } else if (tradesRegex.test(combinedSearch)) {
     category = "trades";
@@ -308,10 +309,10 @@ function normalizeRawJob(raw) {
     }
   }
 
-  if (salaryMin && salaryMin < 1000) salaryMin *= 1000;
-  if (salaryMax && salaryMax < 1000) salaryMax *= 1000;
+  if (!isTask && salaryMin && salaryMin < 1000) salaryMin *= 1000;
+  if (!isTask && salaryMax && salaryMax < 1000) salaryMax *= 1000;
 
-  if (!salaryMin && !salaryMax) {
+  if (!salaryMin && !salaryMax && !isTask) {
     if (category === "dev") { salaryMin = 135000; salaryMax = 185000; }
     else if (category === "design") { salaryMin = 115000; salaryMax = 160000; }
     else if (category === "marketing") { salaryMin = 100000; salaryMax = 145000; }
@@ -405,6 +406,19 @@ function normalizeRawJob(raw) {
     status: expired ? "archived" : "active",
     isActive: !expired,
     canonicalHash: generateCanonicalHash(company, title, applyUrl),
+    isTask,
+    is_task: isTask,
+    taskType: raw.task_type,
+    task_type: raw.task_type,
+    estimatedTime: raw.estimated_time,
+    estimated_time: raw.estimated_time,
+    payoutReward: raw.payout_reward,
+    payout_reward: raw.payout_reward,
+    payoutType: raw.payout_type,
+    payout_type: raw.payout_type,
+    difficulty: raw.difficulty,
+    instructionsUrl: raw.instructions_url,
+    instructions_url: raw.instructions_url,
   };
 }
 
@@ -945,6 +959,13 @@ async function runScrape() {
         external_id: job.externalId || job.canonicalHash || null,
         is_featured: job.isFeatured ?? (job.featured || false),
         is_active: job.isActive ?? (job.status === "active"),
+        is_task: job.isTask ?? (job.category === "tasks"),
+        task_type: job.taskType || null,
+        estimated_time: job.estimatedTime || null,
+        payout_reward: job.payoutReward || null,
+        payout_type: job.payoutType || null,
+        difficulty: job.difficulty || null,
+        instructions_url: job.instructionsUrl || null,
         updated_at: new Date().toISOString(),
       }));
 

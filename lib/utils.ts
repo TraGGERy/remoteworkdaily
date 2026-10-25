@@ -8,6 +8,16 @@ export function cn(...inputs: ClassValue[]) {
 export function formatSalary(min?: number | null, max?: number | null, currency: string = "USD"): string {
   if (!min && !max) return "Competitive";
   const sym = currency === "EUR" ? "€" : currency === "GBP" ? "£" : "$";
+  const isSubThousand = (max != null && max < 1000) || (min != null && min < 1000 && (max == null || max < 1000));
+  if (isSubThousand) {
+    if (min && max) {
+      return `${sym}${min} - ${sym}${max}`;
+    }
+    if (min) {
+      return `From ${sym}${min}`;
+    }
+    return `Up to ${sym}${max!}`;
+  }
   if (min && max) {
     return `${sym}${Math.round(min / 1000)}k - ${sym}${Math.round(max / 1000)}k`;
   }
@@ -21,7 +31,7 @@ export function formatHourlyEquivalent(min?: number | null, max?: number | null,
   if (!min && !max) return null;
   const sym = currency === "EUR" ? "€" : currency === "GBP" ? "£" : "$";
   const avgAnnual = min && max ? (min + max) / 2 : (max || min || 0);
-  if (avgAnnual <= 0) return null;
+  if (avgAnnual < 1000) return null;
   const hourly = Math.round(avgAnnual / 2000);
   return `~${sym}${hourly}/hr`;
 }

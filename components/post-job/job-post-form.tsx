@@ -224,6 +224,7 @@ export function JobPostForm() {
     }
 
     setLoading(true);
+    const mlAttr = typeof window !== "undefined" ? window.minilytics?.attribution?.() : undefined;
 
     try {
       const response = await fetch("/api/checkout", {
@@ -249,6 +250,8 @@ export function JobPostForm() {
           paymentRail,
           plaidItemId: paymentRail === "plaid_ach" ? plaidItemId : undefined,
           plaidInstitution: paymentRail === "plaid_ach" ? plaidBankName : undefined,
+          ml_visitor_id: mlAttr?.ml_visitor_id,
+          ml_session_id: mlAttr?.ml_session_id,
           addOns: {
             sticky,
             highlight,
@@ -1010,6 +1013,8 @@ export function JobPostForm() {
             <button
               type="submit"
               disabled={loading || plaidLoading}
+              data-ml-goal="checkout_click"
+              data-ml-goal-plan="job_post"
               className="w-full py-4 rounded-xl text-base font-black bg-[#FF4742] hover:bg-[#e03a35] text-white shadow-xl shadow-red-500/20 active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer"
             >
               <span>

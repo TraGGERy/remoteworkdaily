@@ -422,6 +422,8 @@ export function MultiStepOnboarding() {
           resumeText: form.resumeText,
           isPro: true,
           planId: plan,
+          ml_visitor_id: typeof window !== "undefined" ? window.minilytics?.attribution?.()?.ml_visitor_id : undefined,
+          ml_session_id: typeof window !== "undefined" ? window.minilytics?.attribution?.()?.ml_session_id : undefined,
         }),
       });
 
@@ -443,6 +445,8 @@ export function MultiStepOnboarding() {
         body: JSON.stringify({
           email,
           planId: plan,
+          ml_visitor_id: typeof window !== "undefined" ? window.minilytics?.attribution?.()?.ml_visitor_id : undefined,
+          ml_session_id: typeof window !== "undefined" ? window.minilytics?.attribution?.()?.ml_session_id : undefined,
         }),
       });
       const checkoutData = await checkoutRes.json();

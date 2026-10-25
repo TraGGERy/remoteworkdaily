@@ -187,6 +187,13 @@ function toSupabaseRow(job: Job) {
     europass_ready: job.europassReady ?? false,
     p11_ready: job.p11Ready ?? false,
     portal_type: cleanStr(job.portalType ?? null),
+    is_task: job.isTask ?? (job.category === "tasks"),
+    task_type: job.taskType ?? null,
+    estimated_time: cleanStr(job.estimatedTime ?? null),
+    payout_reward: cleanStr(job.payoutReward ?? null),
+    payout_type: job.payoutType ?? null,
+    difficulty: job.difficulty ?? null,
+    instructions_url: cleanStr(job.instructionsUrl ?? null),
     updated_at: new Date().toISOString(),
   };
 }
@@ -194,6 +201,74 @@ function toSupabaseRow(job: Job) {
 /**
  * Asynchronously persists or updates a job in Supabase if configured.
  */
+export function fromSupabaseRow(row: any): Job {
+  return {
+    id: row.id,
+    slug: row.slug,
+    title: row.title,
+    company: row.company,
+    companySlug: row.company_slug,
+    companyLogo: row.company_logo || undefined,
+    companyWebsite: row.company_website || undefined,
+    verified: row.verified ?? true,
+    featured: row.featured ?? false,
+    sticky: row.sticky ?? false,
+    location: row.location || "Worldwide",
+    locationCode: row.location_code || "WW",
+    workplaceType: row.workplace_type || "remote",
+    category: row.category || "dev",
+    tags: Array.isArray(row.tags) ? row.tags : [],
+    benefits: Array.isArray(row.benefits) ? row.benefits : [],
+    salaryMin: row.salary_min ?? undefined,
+    salaryMax: row.salary_max ?? undefined,
+    salaryCurrency: row.salary_currency || "USD",
+    description: row.description || "",
+    applyUrl: row.apply_url,
+    postedAt: row.posted_at || new Date().toISOString(),
+    viewsCount: row.views_count ?? 0,
+    appliesCount: row.applies_count ?? 0,
+    source: row.source || "direct",
+    status: row.status || "active",
+    employerEmail: row.employer_email || undefined,
+    canonicalHash: row.canonical_hash || undefined,
+    workArrangement: row.work_arrangement || "remote_global",
+    hybridCity: row.hybrid_city || undefined,
+    hybridCountry: row.hybrid_country || undefined,
+    daysInOffice: row.days_in_office || undefined,
+    externalId: row.external_id || undefined,
+    isFeatured: row.is_featured ?? false,
+    isActive: row.is_active ?? true,
+    isGovernment: row.is_government ?? false,
+    isPublicSector: row.is_public_sector ?? false,
+    agency: row.agency || undefined,
+    agencyLogo: row.agency_logo || undefined,
+    jurisdiction: row.jurisdiction || undefined,
+    publicSectorType: row.public_sector_type || undefined,
+    grade: row.grade || undefined,
+    eligibilityType: row.eligibility_type || undefined,
+    citizenshipRequirements: row.citizenship_requirements || undefined,
+    securityClearanceRequired: row.security_clearance_required ?? false,
+    securityClearanceLevel: row.security_clearance_level || undefined,
+    applicationDeadline: row.application_deadline || undefined,
+    languagesRequired: row.languages_required || undefined,
+    requiredDocuments: row.required_documents || undefined,
+    originalApplyUrl: row.original_apply_url || undefined,
+    selectionRef: row.selection_ref || undefined,
+    europassReady: row.europass_ready ?? false,
+    p11Ready: row.p11_ready ?? false,
+    portalType: row.portal_type || undefined,
+
+    // Task fields
+    isTask: row.is_task ?? (row.category === "tasks"),
+    taskType: row.task_type || undefined,
+    estimatedTime: row.estimated_time || undefined,
+    payoutReward: row.payout_reward || undefined,
+    payoutType: row.payout_type || undefined,
+    difficulty: row.difficulty || undefined,
+    instructionsUrl: row.instructions_url || undefined,
+  };
+}
+
 async function syncJobToSupabase(job: Job) {
   await syncJobsBatchToSupabase([job]);
 }

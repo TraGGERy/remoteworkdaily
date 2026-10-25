@@ -19,6 +19,8 @@ export interface CheckoutParams {
   };
   successUrl: string;
   cancelUrl: string;
+  mlVisitorId?: string;
+  mlSessionId?: string;
 }
 
 export async function createJobPostingCheckoutSession(params: CheckoutParams) {
@@ -107,12 +109,16 @@ export async function createJobPostingCheckoutSession(params: CheckoutParams) {
         companyName: params.companyName,
         sticky: params.addOns.sticky ? "true" : "false",
         highlight: params.addOns.highlight ? "true" : "false",
+        ml_visitor_id: params.mlVisitorId ?? "",
+        ml_session_id: params.mlSessionId ?? "",
       },
       payment_intent_data: {
         metadata: {
           type: "job_post",
           jobId: params.jobId,
           companyName: params.companyName,
+          ml_visitor_id: params.mlVisitorId ?? "",
+          ml_session_id: params.mlSessionId ?? "",
         },
       },
     },
@@ -129,6 +135,8 @@ export interface CandidateCheckoutParams {
   planId?: CandidatePlanId;
   successUrl: string;
   cancelUrl: string;
+  mlVisitorId?: string;
+  mlSessionId?: string;
 }
 
 /**
@@ -173,6 +181,8 @@ export async function createCandidateSubscriptionCheckoutSession(params: Candida
       type: metadataType,
       planId: plan.id,
       email: params.email,
+      ml_visitor_id: params.mlVisitorId ?? "",
+      ml_session_id: params.mlSessionId ?? "",
     },
   };
 
@@ -182,6 +192,8 @@ export async function createCandidateSubscriptionCheckoutSession(params: Candida
         type: metadataType,
         planId: plan.id,
         email: params.email,
+        ml_visitor_id: params.mlVisitorId ?? "",
+        ml_session_id: params.mlSessionId ?? "",
       },
     };
   } else {
@@ -190,6 +202,8 @@ export async function createCandidateSubscriptionCheckoutSession(params: Candida
         type: metadataType,
         planId: plan.id,
         email: params.email,
+        ml_visitor_id: params.mlVisitorId ?? "",
+        ml_session_id: params.mlSessionId ?? "",
       },
     };
   }
@@ -349,6 +363,8 @@ export async function createJobBoostCheckoutSession(params: {
   companyName?: string;
   successUrl: string;
   cancelUrl: string;
+  mlVisitorId?: string;
+  mlSessionId?: string;
 }) {
   const lineItem: Stripe.Checkout.SessionCreateParams.LineItem = {
     price_data: {
@@ -375,12 +391,16 @@ export async function createJobBoostCheckoutSession(params: {
       jobTitle: params.jobTitle || "",
       companyName: params.companyName || "",
       email: params.userEmail,
+      ml_visitor_id: params.mlVisitorId ?? "",
+      ml_session_id: params.mlSessionId ?? "",
     },
     payment_intent_data: {
       metadata: {
         type: "job_boost",
         jobId: params.jobId,
         companyName: params.companyName || "",
+        ml_visitor_id: params.mlVisitorId ?? "",
+        ml_session_id: params.mlSessionId ?? "",
       },
     },
   });

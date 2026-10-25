@@ -1,5 +1,6 @@
 import { ClerkProvider } from "@clerk/nextjs";
 import type { Metadata } from "next";
+import Script from "next/script";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { AppAuthProvider } from "@/components/auth/auth-provider";
@@ -97,6 +98,13 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
+        {/* Minilytics Web Analytics & Revenue Attribution */}
+        <Script
+          defer
+          data-website-id="2u3p38016p60125j"
+          src="https://minilytics.traggerozzyboune.workers.dev/js/script.js"
+          strategy="afterInteractive"
+        />
         {/* Google tag (gtag.js) */}
         <script
           async

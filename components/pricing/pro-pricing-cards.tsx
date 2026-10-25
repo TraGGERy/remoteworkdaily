@@ -105,7 +105,12 @@ export function ProPricingCards() {
       const res = await fetch("/api/checkout/candidate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: cleanEmail, planId }),
+        body: JSON.stringify({
+          email: cleanEmail,
+          planId,
+          ml_visitor_id: typeof window !== "undefined" ? window.minilytics?.attribution?.()?.ml_visitor_id : undefined,
+          ml_session_id: typeof window !== "undefined" ? window.minilytics?.attribution?.()?.ml_session_id : undefined,
+        }),
       });
 
       const data = await res.json();
@@ -213,6 +218,8 @@ export function ProPricingCards() {
                 <button
                   type="button"
                   disabled={isLoading}
+                  data-ml-goal="pricing_cta"
+                  data-ml-goal-plan={p.id}
                   onClick={(e) => {
                     e.stopPropagation();
                     handleCheckout(p.id);

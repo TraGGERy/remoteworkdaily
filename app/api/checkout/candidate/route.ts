@@ -1,3 +1,4 @@
+import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createCandidateSubscriptionCheckoutSession } from "@/lib/stripe";
@@ -8,6 +9,8 @@ import { notifyPaymentReceived } from "@/lib/telegram";
 const CandidateCheckoutSchema = z.object({
   email: z.string().email("A valid email is required for early alerts"),
   planId: z.enum(["weekly", "monthly", "lifetime", "pro_monthly", "pro_quarterly"]).optional().default("pro_monthly"),
+  ml_visitor_id: z.string().optional(),
+  ml_session_id: z.string().optional(),
 });
 
 export async function POST(request: Request) {
@@ -32,12 +35,18 @@ export async function POST(request: Request) {
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 
   try {
+    const jar = await cookies();
+    const mlVisitorId = jar.get("ml_vid")?.value || parseResult.data.ml_visitor_id || "";
+    const mlSessionId = jar.get("ml_sid")?.value || parseResult.data.ml_session_id || "";
+
     if (isLiveStripe) {
       const session = await createCandidateSubscriptionCheckoutSession({
         email,
         planId: planId as CandidatePlanId,
         successUrl: `${appUrl}/?subscription=success&plan=${planId}`,
         cancelUrl: `${appUrl}/?subscription=cancelled`,
+        mlVisitorId,
+        mlSessionId,
       });
 
       return NextResponse.json({ url: session.url });

@@ -14,6 +14,9 @@ interface GatedApplyActionProps {
   applyUrl: string;
   variant?: "header" | "floating" | "inline";
   isEarlyAccess?: boolean;
+  isTask?: boolean;
+  payoutType?: "fixed" | "hourly" | "bounty" | "per_item";
+  payoutReward?: string;
   onApplySuccess?: () => void;
 }
 
@@ -23,11 +26,15 @@ export function GatedApplyAction({
   applyUrl,
   variant = "inline",
   isEarlyAccess = false,
+  isTask = false,
+  payoutType,
+  payoutReward,
   onApplySuccess,
 }: GatedApplyActionProps) {
   const { isConfigured } = useAppAuth();
   const { isSignedIn, hasActiveSubscription, openUpgradeModal } = useSubscription();
   const [hasApplied, setHasApplied] = useState(false);
+  const taskActionText = isTask ? (payoutType === "bounty" ? "Claim Bounty" : "Start Task") : "Apply for this job";
 
   const handleApplyClick = () => {
     setHasApplied(true);
@@ -47,7 +54,7 @@ export function GatedApplyAction({
           onClick={handleApplyClick}
           className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl text-sm font-black bg-[#FF4742] hover:bg-[#e03a35] text-white shadow-lg shadow-red-500/25 active:scale-95 transition-all"
         >
-          <span>{hasApplied ? "Open Application Portal" : "Apply for this job"}</span>
+          <span>{hasApplied ? (isTask ? "Open Task Portal" : "Open Application Portal") : taskActionText}</span>
           <ExternalLink className="w-4 h-4" />
         </a>
       );
@@ -62,7 +69,7 @@ export function GatedApplyAction({
           onClick={handleApplyClick}
           className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-6 py-3 rounded-lg text-sm font-extrabold bg-[#FF4742] hover:bg-[#e03a35] text-white shadow-lg shadow-red-500/30 transition-transform active:scale-95"
         >
-          <span>Apply for this job</span>
+          <span>{taskActionText}</span>
           <ExternalLink className="w-4 h-4" />
         </a>
       );
@@ -76,7 +83,7 @@ export function GatedApplyAction({
           <span>Active Subscription Verified</span>
         </div>
         <h4 className="text-lg font-black text-neutral-900 dark:text-white">
-          Direct ATS Application Link Unlocked
+          {isTask ? (payoutType === "bounty" ? "Direct Code Bounty Brief Unlocked" : "Direct Task Instructions Unlocked") : "Direct ATS Application Link Unlocked"}
         </h4>
         <p className="text-xs text-neutral-600 dark:text-neutral-400 max-w-md mx-auto">
           As an active subscriber, you have priority access to {company}&apos;s verified application link.
@@ -89,7 +96,7 @@ export function GatedApplyAction({
             onClick={handleApplyClick}
             className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 sm:px-8 py-3.5 sm:py-4 rounded-xl text-sm sm:text-base font-black bg-[#FF4742] hover:bg-[#e03a35] text-white shadow-xl shadow-red-500/25 active:scale-95 transition-all text-center"
           >
-            <span>Apply now on {company} Careers</span>
+            <span>{isTask ? `${taskActionText} on ${company}` : `Apply now on ${company} Careers`}</span>
             <ExternalLink className="w-5 h-5 shrink-0" />
           </a>
         </div>
@@ -104,6 +111,7 @@ export function GatedApplyAction({
         <button
           type="button"
           onClick={openUpgradeModal}
+          data-ml-goal="pricing_cta"
           className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl text-sm font-black bg-gradient-to-r from-amber-500 to-[#FF4742] hover:opacity-95 text-white shadow-lg shadow-amber-500/25 active:scale-95 transition-all"
         >
           <Lock className="w-4 h-4" />
@@ -117,6 +125,7 @@ export function GatedApplyAction({
         <button
           type="button"
           onClick={openUpgradeModal}
+          data-ml-goal="pricing_cta"
           className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-6 py-3 rounded-lg text-sm font-extrabold bg-gradient-to-r from-amber-500 to-[#FF4742] hover:opacity-95 text-white shadow-lg shadow-amber-500/30 transition-transform active:scale-95"
         >
           <Lock className="w-4 h-4" />
@@ -152,6 +161,7 @@ export function GatedApplyAction({
           <button
             type="button"
             onClick={openUpgradeModal}
+          data-ml-goal="pricing_cta"
             className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 sm:px-8 py-3.5 rounded-xl text-xs sm:text-sm font-black bg-[#FF4742] hover:bg-[#e03a35] text-white shadow-xl shadow-red-500/25 active:scale-95 transition-all text-center"
           >
             <Lock className="w-4 h-4 shrink-0" />

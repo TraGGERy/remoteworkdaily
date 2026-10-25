@@ -91,6 +91,15 @@ export function filterJobs(jobs: Job[], filters: Partial<FilterState>): Job[] {
   if (filters.category && filters.category !== "all" && filters.category !== "") {
     const targetCat = filters.category.toLowerCase().trim();
     result = result.filter((job) => {
+      if (targetCat === "tasks" || targetCat === "task") {
+        if (job.category === "tasks" || (job as any).category === "task" || Boolean(job.isTask)) return true;
+        if (job.tags && job.tags.some((t) => /\b(task|tasks|gig|bounty|microtask|micro-task|annotation|rlhf|playtest|usability|transcription|tutoring|screener|ugc)\b/i.test(t))) return true;
+        if (/\b(task|tasks|gig|bounty|microtask|micro-task|annotation|rlhf|playtest|usability|transcription|tutoring|screener|ugc)\b/i.test(job.title || "")) return true;
+        return false;
+      }
+      if (Boolean(job.isTask) || job.category === "tasks") {
+        return false;
+      }
       if (job.category && job.category.toLowerCase() === targetCat) return true;
       if (job.tags && job.tags.some((t) => t.toLowerCase() === targetCat || t.toLowerCase().includes(targetCat))) return true;
       if (targetCat === "dev" && /developer|engineer|software|fullstack|full-stack|frontend|front-end|backend|back-end|devops|architect|programmer|coding|web dev/i.test(job.title || "")) return true;
@@ -271,6 +280,15 @@ export function filterJobs(jobs: Job[], filters: Partial<FilterState>): Job[] {
       }
       return true;
     });
+  }
+
+  // 6.15 Tasks & Micro-Gigs Specific Filters
+  if (filters.tasksOnly) {
+    result = result.filter((job) => Boolean(job.isTask) || job.category === "tasks");
+  }
+
+  if (filters.taskType) {
+    result = result.filter((job) => job.taskType === filters.taskType);
   }
 
   // 7. Sorting

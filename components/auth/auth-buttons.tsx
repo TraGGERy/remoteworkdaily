@@ -23,7 +23,10 @@ export function AuthButtons() {
             </button>
           </SignInButton>
           <SignUpButton mode="modal" forceRedirectUrl="/onboarding" fallbackRedirectUrl="/onboarding">
-            <button className="hidden sm:inline-block px-3.5 py-1.5 text-sm font-semibold rounded-lg bg-[#FF4742] text-white hover:bg-[#e03a35] transition-colors shadow-sm">
+            <button
+              data-ml-goal="signup_click"
+              className="hidden sm:inline-block px-3.5 py-1.5 text-sm font-semibold rounded-lg bg-[#FF4742] text-white hover:bg-[#e03a35] transition-colors shadow-sm"
+            >
               Sign up
             </button>
           </SignUpButton>
@@ -54,6 +57,7 @@ export function AuthButtons() {
       </Link>
       <Link
         href="/onboarding"
+        data-ml-goal="signup_click"
         className="hidden sm:inline-block px-3.5 py-1.5 text-sm font-semibold rounded-lg bg-[#FF4742] text-white hover:bg-[#e03a35] transition-colors shadow-sm"
       >
         Join

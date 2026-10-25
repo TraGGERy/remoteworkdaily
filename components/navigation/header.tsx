@@ -58,6 +58,7 @@ export function Header() {
           </Link>
           <Link
             href="/pro"
+            data-ml-goal="pricing_cta"
             className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-50 dark:bg-amber-950/60 border border-amber-300 dark:border-amber-800 text-xs font-extrabold text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/80 transition-colors"
           >
             <span>⚡ Pro Access</span>
@@ -75,6 +76,7 @@ export function Header() {
           {/* Post a Job CTA - Hidden on mobile, prominent in drawer */}
           <Link
             href="/hire-remotely"
+            data-ml-goal="post_job_click"
             className="hidden sm:inline-flex items-center gap-1.5 px-4 py-2 text-sm font-bold rounded-lg bg-[#FF4742] hover:bg-[#e03a35] text-white shadow-sm hover:shadow transition-all active:scale-95"
           >
             <span>Post a job</span>
@@ -130,6 +132,7 @@ export function Header() {
             </Link>
             <Link
               href="/pro"
+            data-ml-goal="pricing_cta"
               onClick={() => setMobileMenuOpen(false)}
               className="p-3 min-h-[44px] flex items-center gap-2 rounded-xl bg-amber-50 dark:bg-amber-950/40 font-bold text-amber-700 dark:text-amber-300 col-span-2 border border-amber-200 dark:border-amber-800/60"
             >
@@ -146,6 +149,7 @@ export function Header() {
           <div className="pt-3 border-t border-neutral-200 dark:border-neutral-800 flex justify-center">
             <Link
               href="/hire-remotely"
+            data-ml-goal="post_job_click"
               onClick={() => setMobileMenuOpen(false)}
               className="w-full min-h-[44px] py-3 flex items-center justify-center text-center text-sm font-bold rounded-xl bg-[#FF4742] text-white shadow-sm"
             >

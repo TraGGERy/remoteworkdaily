@@ -118,6 +118,8 @@ export function classifyJobArrangement(params: {
   salaryMax?: number;
   workplaceType?: string;
   companyWebsite?: string;
+  isTask?: boolean;
+  category?: string;
 }): ClassificationResult {
   const { title, company, salaryMin = 0, salaryMax = 0 } = params;
   const location = params.location || "";
@@ -125,6 +127,21 @@ export function classifyJobArrangement(params: {
   const externalId = generateExternalId(company, title, location);
   const email = extractEmployerEmail(description, params.companyWebsite, company);
   const hybridMeta = extractHybridMetadata(description, location);
+
+  const isTaskJob = Boolean(
+    params.isTask ||
+    params.category === "tasks" ||
+    /\b(task|tasks|gig|bounty|microtask|micro-task|annotation|rlhf|playtest|usability|transcription|tutoring|screener|ugc)\b/i.test(title)
+  );
+
+  if (isTaskJob && (params.workplaceType === "remote" || !params.workplaceType || params.workplaceType === "all")) {
+    return {
+      workArrangement: "remote_global",
+      shouldIngest: true,
+      employerEmail: email,
+      externalId,
+    };
+  }
 
   const titleLower = title.toLowerCase();
   const descLower = description.toLowerCase();

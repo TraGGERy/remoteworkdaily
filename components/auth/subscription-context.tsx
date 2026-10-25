@@ -91,6 +91,17 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
     clerkUser?.emailAddresses?.[0]?.emailAddress ||
     null;
 
+  // Identify logged-in users with Minilytics analytics
+  useEffect(() => {
+    if (clerkIsSignedIn && clerkUser && primaryEmail) {
+      window.minilytics?.("identify", {
+        user_id: clerkUser.id,
+        email: primaryEmail,
+        name: clerkUser.fullName || clerkUser.firstName || primaryEmail.split("@")[0],
+      });
+    }
+  }, [clerkIsSignedIn, clerkUser, primaryEmail]);
+
   // Check subscription status from server
   const checkSubscription = useCallback(async (email: string | null) => {
     if (!email) {
@@ -220,6 +231,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
       document.cookie = "rwd_onboarding_completed=true; path=/; max-age=31536000; SameSite=Lax";
     }
     setIsOnboardingCompleted(true);
+    window.minilytics?.("goal", "signup_completed");
 
     if (clerkUser) {
       try {

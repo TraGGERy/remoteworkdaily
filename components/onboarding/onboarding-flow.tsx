@@ -138,6 +138,8 @@ export function CareerHoundOnboardingFlow() {
           tailorsResume: state.tailorsResume,
           isPro: false,
           planId: state.selectedPricingPlan,
+          ml_visitor_id: typeof window !== "undefined" ? window.minilytics?.attribution?.()?.ml_visitor_id : undefined,
+          ml_session_id: typeof window !== "undefined" ? window.minilytics?.attribution?.()?.ml_session_id : undefined,
         }),
       });
     } catch (err) {
@@ -300,6 +302,8 @@ export function CareerHoundOnboardingFlow() {
         body: JSON.stringify({
           email: email.trim().toLowerCase(),
           planId: state.selectedPricingPlan,
+          ml_visitor_id: typeof window !== "undefined" ? window.minilytics?.attribution?.()?.ml_visitor_id : undefined,
+          ml_session_id: typeof window !== "undefined" ? window.minilytics?.attribution?.()?.ml_session_id : undefined,
         }),
       });
 
