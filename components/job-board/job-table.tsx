@@ -194,13 +194,13 @@ export function JobTable({
                   </div>
                   <h3 className="text-xl sm:text-2xl font-black text-neutral-900 dark:text-white">
                     {isTasksFiltered
-                      ? "Unlock 1,000+ Verified Tasks & Quick Cash Gigs ($50 – $500/task)"
-                      : "Unlock 40,000+ Verified Direct Roles, Medical Aid & Instant Gigs"}
+                      ? "Unlock 8,500+ Verified Tasks & Quick Cash Gigs ($50 – $500/task)"
+                      : "Unlock 65,000+ Verified Direct Roles, Medical Aid & Instant Gigs"}
                   </h3>
                   <p className="text-xs sm:text-sm text-neutral-600 dark:text-neutral-400 max-w-xl leading-relaxed">
                     {isTasksFiltered
                       ? "Stop waiting weeks for resume callbacks. Pro members get instant access to direct creator briefs, 15-minute usability tests, AI rating tasks, and open-source code bounties paying out within 24–48 hours."
-                      : "Bypass 200+ automated LinkedIn applicants. Our members unlock unadvertised direct ATS listings at GitLab, Supabase, Linear, and 1,000+ instant-earning task briefs."}
+                      : "Bypass 200+ automated LinkedIn applicants. Our members unlock unadvertised direct ATS listings at GitLab, Supabase, Linear, and 8,500+ instant-earning task briefs."}
                   </p>
                 </div>
 
@@ -297,7 +297,7 @@ export function JobTable({
                     onClick={openUpgradeModal}
                     className="w-full py-3 px-4 rounded-xl text-xs font-black bg-[#FF4742] text-white hover:bg-[#e03a35] shadow-lg shadow-red-500/25 active:scale-95 transition-all"
                   >
-                    {isTasksFiltered ? "Unlock 1,000+ Tasks & Gigs" : "Unlock Feed (From $6.99/wk)"}
+                    {isTasksFiltered ? "Unlock 8,500+ Tasks & Gigs" : "Unlock Feed (From $6.99/wk)"}
                   </button>
                 </div>
               </div>

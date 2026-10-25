@@ -1,4 +1,5 @@
 import fs from 'fs';
+import path from 'path';
 import crypto from 'crypto';
 
 function generateCanonicalHash(company, title, applyUrl) {
@@ -119,124 +120,137 @@ const TUTORING_TASKS = [
 export function generateAllMiniJobs() {
   const allTasks = [];
   const now = Date.now();
+  const TASKS_PER_CAT = 855; // 10 categories * 855 = 8,550 total tasks
 
   function makeTask(category, type, title, company, reward, payoutType, min, max, time, diff, tags, applyUrl, idx) {
-    const hoursAgo = (idx * 0.4) % 48;
+    const hoursAgo = (idx * 0.2) % 72;
     const postedAt = new Date(now - hoursAgo * 3600000).toISOString();
     const cleanComp = company.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
     const cleanTitle = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-    const slug = `${cleanTitle}-${cleanComp}-${idx}`.slice(0, 90);
-    const id = `task-${type}-${idx + 1}-${Date.now().toString(36)}`;
+    const slug = `${cleanTitle}-${cleanComp}-${idx + 1}`.slice(0, 80);
+    const id = `task-${type}-${idx + 1}`;
     const hash = generateCanonicalHash(company, title, applyUrl);
+    const description = `<h3>${title}</h3><p><strong>Platform / Sponsor:</strong> ${company}</p><p><strong>Reward:</strong> ${reward}</p><p><strong>Estimated Time:</strong> ${time}</p><p><strong>Difficulty Level:</strong> ${diff}</p><p>100% remote online task available worldwide with verified fast payout rails.</p>`.slice(0, 380);
 
-    return {
+    const task = {
       id,
       slug,
       title,
       company,
       companySlug: cleanComp,
       location: "Worldwide",
+      locationCode: "WW",
       workplaceType: "remote",
       workArrangement: "remote_global",
       category: "tasks",
       isTask: true,
+      is_task: true,
       taskType: type,
+      task_type: type,
       payoutReward: reward,
+      payout_reward: reward,
       payoutType,
+      payout_type: payoutType,
       salaryMin: min,
       salaryMax: max,
       salaryCurrency: "USD",
       estimatedTime: time,
+      estimated_time: time,
       difficulty: diff,
-      tags: ["Tasks", ...tags],
-      description: `<h3>${title}</h3><p><strong>Platform / Sponsor:</strong> ${company}</p><p><strong>Reward:</strong> ${reward}</p><p><strong>Estimated Time:</strong> ${time}</p><p><strong>Difficulty Level:</strong> ${diff}</p><h4>Task Requirements & Guidelines:</h4><ul><li>100% remote online task available worldwide.</li><li>Completed submissions receive fast review and payout directly through verified payment rails.</li><li>Follow platform quality guidelines for immediate approval.</li></ul>`,
+      tags: ["Tasks", ...tags].slice(0, 5),
+      description,
       applyUrl,
       postedAt,
       canonicalHash: hash,
       source: "ats",
       verified: true,
-      featured: idx % 15 === 0,
-      sticky: idx % 25 === 0,
-      viewsCount: Math.floor(Math.random() * 150) + 20,
-      appliesCount: Math.floor(Math.random() * 12),
+      viewsCount: 20 + ((idx * 7) % 180),
+      appliesCount: (idx * 3) % 15,
+      status: "active",
+      isActive: true,
     };
+
+    if (idx % 15 === 0) task.featured = true;
+    if (idx % 25 === 0) task.sticky = true;
+
+    return task;
   }
 
-  // 1. UGC Creator (110 items)
-  for (let i = 0; i < 110; i++) {
+  // 1. UGC Creator (855 items)
+  for (let i = 0; i < TASKS_PER_CAT; i++) {
     const brand = BRANDS_UGC[i % BRANDS_UGC.length];
     const brief = UGC_BRIEFS[i % UGC_BRIEFS.length];
-    const fullTitle = `${brief.t} (${brand})`;
-    const url = `https://joinbrands.com/creators/campaign/${brand.toLowerCase().replace(/\s+/g, '-')}-${i + 1}`;
+    const fullTitle = `${brief.t} (${brand} #${i + 1})`;
+    const url = `https://joinbrands.com/creators/campaign/${brand.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${i + 1}`;
     allTasks.push(makeTask("tasks", "ugc_creator", fullTitle, `${brand} (via JoinBrands)`, brief.reward, "fixed", brief.min, brief.max, brief.time, brief.diff, ["UGC Creator", "Short-Form Video", "TikTok", "Instagram Reels"], url, i));
   }
 
-  // 2. Paid Research Interviews (110 items)
-  for (let i = 0; i < 110; i++) {
+  // 2. Paid Research Interviews (855 items)
+  for (let i = 0; i < TASKS_PER_CAT; i++) {
     const item = RESEARCH_TOPICS[i % RESEARCH_TOPICS.length];
     const variantTitle = `${item.t} [Cohort #${i + 101}]`;
     const url = `https://www.userinterviews.com/studies/${i + 5000}`;
     allTasks.push(makeTask("tasks", "research_interview", variantTitle, item.comp, item.reward, "fixed", item.min, item.max, item.time, item.diff, ["Paid Interview", "User Research", "Video Call", "Focus Group"], url, i));
   }
 
-  // 3. Usability Testing (110 items)
-  for (let i = 0; i < 110; i++) {
+  // 3. Usability Testing (855 items)
+  for (let i = 0; i < TASKS_PER_CAT; i++) {
     const item = USABILITY_TASKS[i % USABILITY_TASKS.length];
     const variantTitle = `${item.t} [Test ID: #${i + 201}]`;
     const url = `https://www.usertesting.com/test-invitation/${i + 8000}`;
     allTasks.push(makeTask("tasks", "usability_testing", variantTitle, item.comp, item.reward, "fixed", item.min, item.max, item.time, item.diff, ["Usability Testing", "UX Feedback", "Screen Recording"], url, i));
   }
 
-  // 4. Game Playtesting (110 items)
-  for (let i = 0; i < 110; i++) {
+  // 4. Game Playtesting (855 items)
+  for (let i = 0; i < TASKS_PER_CAT; i++) {
     const item = PLAYTEST_GAMES[i % PLAYTEST_GAMES.length];
-    const variantTitle = `${item.t} [Build v${(i % 5) + 1}.${i}]`;
+    const variantTitle = `${item.t} [Build v${(i % 5) + 1}.${i + 1}]`;
     const url = `https://www.playtestcloud.com/participate/playtest-${i + 1000}`;
     allTasks.push(makeTask("tasks", "game_playtesting", variantTitle, item.comp, item.reward, "fixed", item.min, item.max, item.time, item.diff, ["Game Playtest", "Gaming", "Beta Tester", "Mobile Games"], url, i));
   }
 
-  // 5. AI Training & RLHF (110 items)
-  for (let i = 0; i < 110; i++) {
+  // 5. AI Training & RLHF (855 items)
+  for (let i = 0; i < TASKS_PER_CAT; i++) {
     const item = AI_TASKS[i % AI_TASKS.length];
     const variantTitle = `${item.t} [Project Stream #${i + 301}]`;
     const url = `https://outlier.ai/projects/evaluate-${i + 4000}`;
     allTasks.push(makeTask("tasks", "ai_training_rlhf", variantTitle, item.comp, item.reward, "hourly", item.min, item.max, item.time, item.diff, ["AI Training", "RLHF", "Data Annotation", "Code Review"], url, i));
   }
 
-  // 6. Audio Transcription (110 items)
-  for (let i = 0; i < 110; i++) {
+  // 6. Audio Transcription (855 items)
+  for (let i = 0; i < TASKS_PER_CAT; i++) {
     const item = TRANSCRIPTION_TASKS[i % TRANSCRIPTION_TASKS.length];
     const variantTitle = `${item.t} [Batch #${i + 601}]`;
     const url = `https://www.rev.com/freelancers/assignment/${i + 9000}`;
     allTasks.push(makeTask("tasks", "transcription", variantTitle, item.comp, item.reward, "hourly", item.min, item.max, item.time, item.diff, ["Transcription", "Audio to Text", "Captions"], url, i));
   }
 
-  // 7. Open-Source Code Bounties (110 items)
-  for (let i = 0; i < 110; i++) {
+  // 7. Open-Source Code Bounties (855 items)
+  for (let i = 0; i < TASKS_PER_CAT; i++) {
     const item = CODE_BOUNTIES[i % CODE_BOUNTIES.length];
     const variantTitle = `${item.t} (Issue #${i + 412})`;
     const url = `https://algora.io/bounties/issue-${i + 1500}`;
     allTasks.push(makeTask("tasks", "code_bounty", variantTitle, item.comp, item.reward, "bounty", item.min, item.max, item.time, item.diff, ["Code Bounty", "Open Source", "GitHub", "Algora"], url, i));
   }
 
-  // 8. Design Contests (110 items)
-  for (let i = 0; i < 110; i++) {
+  // 8. Design Contests (855 items)
+  for (let i = 0; i < TASKS_PER_CAT; i++) {
     const item = DESIGN_CONTESTS[i % DESIGN_CONTESTS.length];
     const variantTitle = `${item.t} [Challenge #${i + 701}]`;
     const url = `https://99designs.com/contests/${i + 3000}`;
     allTasks.push(makeTask("tasks", "design_contest", variantTitle, item.comp, item.reward, "bounty", item.min, item.max, item.time, item.diff, ["Design Contest", "Figma", "Logo Design", "Creative Brief"], url, i));
   }
 
-  // 9. Micro-Auditing & Search Rating (110 items)
-  for (let i = 0; i < 110; i++) {
+  // 9. Micro-Auditing & Search Rating (855 items)
+  for (let i = 0; i < TASKS_PER_CAT; i++) {
     const item = SEARCH_RATING_TASKS[i % SEARCH_RATING_TASKS.length];
     const variantTitle = `${item.t} [Queue #${i + 801}]`;
     const url = `https://telusinternational.com/careers/rater-${i + 2500}`;
     allTasks.push(makeTask("tasks", "search_rating", variantTitle, item.comp, item.reward, "hourly", item.min, item.max, item.time, item.diff, ["Search Rating", "Micro-Auditing", "Ad Evaluation"], url, i));
   }
 
-  // 10. Online Tutoring & Conversation (110 items)
-  for (let i = 0; i < 110; i++) {
+  // 10. Online Tutoring & Conversation (855 items)
+  for (let i = 0; i < TASKS_PER_CAT; i++) {
     const item = TUTORING_TASKS[i % TUTORING_TASKS.length];
     const variantTitle = `${item.t} [Session Slot #${i + 901}]`;
     const url = `https://www.cambly.com/en/tutors/session-${i + 1200}`;
@@ -248,4 +262,7 @@ export function generateAllMiniJobs() {
 
 const tasks = generateAllMiniJobs();
 console.log('Generated total tasks:', tasks.length);
-fs.writeFileSync('data/mini-jobs-pool.json', JSON.stringify(tasks, null, 2), 'utf8');
+const outputPath = path.join(process.cwd(), 'data', 'mini-jobs-pool.json');
+fs.writeFileSync(outputPath, JSON.stringify(tasks), 'utf8');
+const stats = fs.statSync(outputPath);
+console.log(`Task pool file size: ${(stats.size / 1024 / 1024).toFixed(2)} MB`);

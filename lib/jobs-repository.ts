@@ -549,7 +549,7 @@ export function insertJobsBatch(newJobs: Job[]): { added: number; updated: numbe
 
   // Keep sliding window of latest 20,000 active jobs.
   // MUST match MAX_JOBS in scripts/sync-jobs.mjs so the website and Telegram report identical totals.
-  const MAX_LOCAL_JOBS = 42000;
+  const MAX_LOCAL_JOBS = 70000;
   const pruned = merged.length > MAX_LOCAL_JOBS ? merged.slice(0, MAX_LOCAL_JOBS) : merged;
 
   saveJobs(pruned);

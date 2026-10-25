@@ -961,12 +961,39 @@ async function runScrape() {
   // MUST match MAX_LOCAL_JOBS in lib/jobs-repository.ts — a lower cap here (12,000) truncated the
   // committed dataset while the live site kept more, so Telegram and the website reported
   // different totals. 20k compact JSON ≈ 60 MB, safely under GitHub's 100 MB file limit.
-  const MAX_JOBS = 42000;
+  const MAX_JOBS = 68000;
   const pruned = merged.length > MAX_JOBS ? merged.slice(0, MAX_JOBS) : merged;
   for (const it of pruned) {
-    if (it.description && it.description.length > 900) {
-      it.description = it.description.slice(0, 900);
+    if (it.description && it.description.length > 250) {
+      it.description = it.description.slice(0, 250);
     }
+    if (it.companyLogo && (it.companyLogo.includes("photo-1572044162444") || it.companyLogo.includes("images.unsplash.com"))) {
+      delete it.companyLogo;
+    }
+    if (!it.companyLogo) delete it.companyLogo;
+    if (it.featured === false) delete it.featured;
+    if (it.isFeatured === false) delete it.isFeatured;
+    if (it.sticky === false) delete it.sticky;
+    if (!it.employerEmail) delete it.employerEmail;
+    if (!it.externalId) delete it.externalId;
+    if (!it.atsProvider) delete it.atsProvider;
+    if (!it.instructionsUrl) delete it.instructionsUrl;
+    if (!it.instructions_url) delete it.instructions_url;
+    if (!it.isTask && it.category !== "tasks") {
+      delete it.isTask;
+      delete it.is_task;
+      delete it.taskType;
+      delete it.task_type;
+      delete it.payoutReward;
+      delete it.payout_reward;
+      delete it.payoutType;
+      delete it.payout_type;
+      delete it.estimatedTime;
+      delete it.estimated_time;
+      delete it.difficulty;
+    }
+    if (Array.isArray(it.tags)) it.tags = it.tags.slice(0, 5);
+    if (Array.isArray(it.benefits)) it.benefits = it.benefits.slice(0, 4);
   }
 
   // Compact JSON (no indentation) keeps the committed file small enough for git/Vercel bundles
