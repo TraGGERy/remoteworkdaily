@@ -5,6 +5,8 @@ import { createCandidateSubscriptionCheckoutSession } from "@/lib/stripe";
 import { CANDIDATE_PRICING, CandidatePlanId } from "@/lib/constants";
 import { saveCandidatePass } from "@/lib/candidate-passes-repository";
 import { notifyPaymentReceived } from "@/lib/telegram";
+import { saveCandidateLead, markLeadConverted } from "@/lib/candidate-leads-repository";
+import { saveSubscriber } from "@/lib/subscribers-repository";
 
 const CandidateCheckoutSchema = z.object({
   email: z.string().email("A valid email is required for early alerts"),
@@ -30,6 +32,7 @@ export async function POST(request: Request) {
   }
 
   const { email, planId } = parseResult.data;
+  const cleanEmail = email.toLowerCase().trim();
   const stripeKey = process.env.STRIPE_SECRET_KEY;
   const isLiveStripe = Boolean(stripeKey && !stripeKey.includes("placeholder"));
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
@@ -39,9 +42,24 @@ export async function POST(request: Request) {
     const mlVisitorId = jar.get("ml_vid")?.value || parseResult.data.ml_visitor_id || "";
     const mlSessionId = jar.get("ml_sid")?.value || parseResult.data.ml_session_id || "";
 
+    // 1. Capture candidate lead immediately upon checkout initiation
+    await saveCandidateLead({
+      email: cleanEmail,
+      source: "onboarding_abandoned_checkout",
+      selected_plan: planId,
+      ml_visitor_id: mlVisitorId,
+      ml_session_id: mlSessionId,
+    }).catch(() => {});
+
+    // Ensure subscriber record exists for alerts
+    await saveSubscriber({
+      email: cleanEmail,
+      category: "checkout_initiated",
+    }).catch(() => {});
+
     if (isLiveStripe) {
       const session = await createCandidateSubscriptionCheckoutSession({
-        email,
+        email: cleanEmail,
         planId: planId as CandidatePlanId,
         successUrl: `${appUrl}/?subscription=success&plan=${planId}`,
         cancelUrl: `${appUrl}/?subscription=cancelled`,
@@ -63,18 +81,20 @@ export async function POST(request: Request) {
     // Development fallback: Record in persistent repository or return simulated success
     const selectedPlan = CANDIDATE_PRICING.plans[planId as CandidatePlanId] || CANDIDATE_PRICING.plans.monthly;
     await saveCandidatePass({
-      email,
+      email: cleanEmail,
       amount: selectedPlan.price,
       currency: "USD",
       status: "active",
       plan: planId,
     });
 
+    await markLeadConverted(cleanEmail).catch(() => {});
+
     await notifyPaymentReceived({
       paymentType: "candidate_subscription",
       amount: selectedPlan.price,
       currency: "USD",
-      customerEmail: email,
+      customerEmail: cleanEmail,
       planName: selectedPlan.name,
       paymentId: "dev_checkout",
     }).catch((err) => console.warn("[Telegram Alert Error]:", err));

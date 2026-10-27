@@ -5,6 +5,7 @@ import { clerkClient } from "@clerk/nextjs/server";
 import { stripe } from "@/lib/stripe";
 import { getJobById, insertJob, boostJob } from "@/lib/jobs-repository";
 import { saveCandidatePass, expireCandidatePass } from "@/lib/candidate-passes-repository";
+import { markLeadConverted } from "@/lib/candidate-leads-repository";
 import {
   getUserProfileByEmail,
   setUserProStatus,
@@ -89,7 +90,10 @@ export async function POST(req: Request) {
       }
 
       if (email) {
-        await saveCandidatePass({
+        if (email) {
+        await markLeadConverted(email);
+      }
+      await saveCandidatePass({
           email,
           amount: (session.amount_total ?? 1200) / 100,
           currency: (session.currency ?? "usd").toUpperCase(),

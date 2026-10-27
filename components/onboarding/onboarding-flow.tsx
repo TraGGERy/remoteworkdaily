@@ -142,6 +142,27 @@ export function CareerHoundOnboardingFlow() {
           ml_session_id: typeof window !== "undefined" ? window.minilytics?.attribution?.()?.ml_session_id : undefined,
         }),
       });
+
+      // Capture as candidate lead for win-back automation even if user abandons checkout
+      if (activeEmail && activeEmail.includes("@")) {
+        await fetch("/api/leads", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email: activeEmail.trim().toLowerCase(),
+            source: "onboarding_step_8",
+            targetRoles: state.jobTitles,
+            seniority: state.experienceLevel || "Mid-level",
+            minSalary: parsedMinSalary,
+            workType: state.jobTypes.join(", ") || "Remote",
+            frustrations: state.frustrations,
+            platformsTried: state.platformsTried,
+            selectedPlan: state.selectedPricingPlan,
+            ml_visitor_id: typeof window !== "undefined" ? window.minilytics?.attribution?.()?.ml_visitor_id : undefined,
+            ml_session_id: typeof window !== "undefined" ? window.minilytics?.attribution?.()?.ml_session_id : undefined,
+          }),
+        }).catch(() => {});
+      }
     } catch (err) {
       console.warn("[Onboarding] Non-blocking draft save notice:", err);
     }
@@ -737,6 +758,34 @@ export function CareerHoundOnboardingFlow() {
                   <p className="text-sm text-slate-700 italic">
                     &ldquo;Posted 1 hour ago, over 200 applicants.&rdquo;
                   </p>
+                </div>
+
+                {/* Lead Capture: Send matches to inbox */}
+                <div className="rounded-2xl border border-blue-200 bg-blue-50/50 p-4 sm:p-5 space-y-2.5">
+                  <div className="flex items-center gap-2 text-blue-900 font-bold text-sm">
+                    <Mail className="w-4 h-4 text-blue-600" />
+                    <span>Where should we send your verified direct ATS matches?</span>
+                  </div>
+                  <p className="text-xs text-slate-600">
+                    Enter your email to save your personalized job stream. We never spam or sell your data.
+                  </p>
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <input
+                      type="email"
+                      value={state.candidateEmail}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        saveState({ candidateEmail: val });
+                      }}
+                      onBlur={() => {
+                        if (state.candidateEmail && state.candidateEmail.includes("@")) {
+                          persistProfileDraft(state.candidateEmail);
+                        }
+                      }}
+                      placeholder="alex.morgan@gmail.com"
+                      className="flex-1 px-3.5 py-2.5 rounded-xl border border-slate-300 bg-white text-sm text-slate-900 focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 font-sans"
+                    />
+                  </div>
                 </div>
               </div>
             </div>
