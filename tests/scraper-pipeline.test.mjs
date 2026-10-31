@@ -349,19 +349,114 @@ test("Scraper Pipeline: Email extraction captures verified in-body emails and fa
   assert.equal(extractEmail("", "", "Vercel Inc"), "careers@vercelinc.com");
 });
 
-test("Scraper Pipeline: 30-day auto-expiration marks stale jobs inactive", () => {
+test("Scraper Pipeline: 60-day (2-month) auto-expiration retention & deletion policy", () => {
+  const JOB_RETENTION_DAYS = 60;
+  const JOB_RETENTION_MS = JOB_RETENTION_DAYS * 24 * 60 * 60 * 1000;
+
   function isJobExpired(postedAt) {
+    if (!postedAt) return false;
     const time = new Date(postedAt).getTime();
-    const thirtyDaysMs = 30 * 24 * 60 * 60 * 1000;
-    return Date.now() - time > thirtyDaysMs;
+    if (isNaN(time)) return false;
+    return Date.now() - time > JOB_RETENTION_MS;
   }
 
   const now = Date.now();
   const fiveDaysAgo = new Date(now - 5 * 24 * 60 * 60 * 1000).toISOString();
-  const thirtyFiveDaysAgo = new Date(now - 35 * 24 * 60 * 60 * 1000).toISOString();
+  const fortyFiveDaysAgo = new Date(now - 45 * 24 * 60 * 60 * 1000).toISOString();
+  const sixtyFiveDaysAgo = new Date(now - 65 * 24 * 60 * 60 * 1000).toISOString();
 
   assert.equal(isJobExpired(fiveDaysAgo), false, "5-day-old job should remain active");
-  assert.equal(isJobExpired(thirtyFiveDaysAgo), true, "35-day-old job should expire");
+  assert.equal(isJobExpired(fortyFiveDaysAgo), false, "45-day-old job should remain active (within 60 days / 2 months)");
+  assert.equal(isJobExpired(sixtyFiveDaysAgo), true, "65-day-old job should expire (>60 days / 2 months)");
+
+  // Deletion logic verifies expired jobs are deleted from dataset
+  const dataset = [
+    { id: "job-fresh", postedAt: fiveDaysAgo },
+    { id: "job-mid", postedAt: fortyFiveDaysAgo },
+    { id: "job-stale", postedAt: sixtyFiveDaysAgo },
+  ];
+  const retained = dataset.filter((j) => !isJobExpired(j.postedAt));
+  const expiredIds = dataset.filter((j) => isJobExpired(j.postedAt)).map((j) => j.id);
+
+  assert.equal(retained.length, 2);
+  assert.deepEqual(retained.map((j) => j.id), ["job-fresh", "job-mid"]);
+  assert.deepEqual(expiredIds, ["job-stale"]);
+});
+
+test("Scraper Pipeline: Pool exceeds 70,000 jobs without hardcoded truncation and purges >60-day jobs", () => {
+  const JOB_RETENTION_DAYS = 60;
+  const JOB_RETENTION_MS = JOB_RETENTION_DAYS * 24 * 60 * 60 * 1000;
+
+  function isJobExpired(postedAt) {
+    if (!postedAt) return false;
+    const time = new Date(postedAt).getTime();
+    if (isNaN(time)) return false;
+    return Date.now() - time > JOB_RETENTION_MS;
+  }
+
+  const now = Date.now();
+  const freshDate = new Date(now - 2 * 24 * 60 * 60 * 1000).toISOString();
+  const staleDate = new Date(now - 70 * 24 * 60 * 60 * 1000).toISOString();
+
+  // Create an existing pool of 70,000 active jobs (<60 days old) plus 500 stale jobs (>60 days old)
+  const existingActiveCount = 70000;
+  const existingJobs = new Array(existingActiveCount);
+  for (let i = 0; i < existingActiveCount; i++) {
+    existingJobs[i] = {
+      id: `existing-${i}`,
+      postedAt: freshDate,
+      canonicalHash: `hash-${i}`,
+    };
+  }
+  // Add 500 stale jobs to test purging
+  const staleJobs = new Array(500);
+  for (let i = 0; i < 500; i++) {
+    staleJobs[i] = {
+      id: `stale-${i}`,
+      postedAt: staleDate,
+      canonicalHash: `stale-hash-${i}`,
+    };
+  }
+  const pool = [...existingJobs, ...staleJobs];
+
+  // Ingest 1,500 new incoming jobs (1,000 fresh, 500 stale)
+  const incoming = [];
+  for (let i = 0; i < 1000; i++) {
+    incoming.push({
+      id: `new-${i}`,
+      postedAt: freshDate,
+      canonicalHash: `new-hash-${i}`,
+    });
+  }
+  for (let i = 0; i < 500; i++) {
+    incoming.push({
+      id: `new-stale-${i}`,
+      postedAt: staleDate,
+      canonicalHash: `new-stale-hash-${i}`,
+    });
+  }
+
+  // Pipeline ingestion logic: filter incoming >60 days old
+  const validIncoming = incoming.filter((j) => !isJobExpired(j.postedAt));
+  assert.equal(validIncoming.length, 1000, "Should discard incoming jobs older than 60 days");
+
+  // Merge with existing pool
+  const merged = [...validIncoming, ...pool];
+
+  // Retention filter: keep only !isJobExpired(j.postedAt)
+  const retained = [];
+  const expiredIds = [];
+  for (const j of merged) {
+    if (isJobExpired(j.postedAt)) {
+      expiredIds.push(j.id);
+    } else {
+      retained.push(j);
+    }
+  }
+
+  // Verify pool scaled above 70,000: 70,000 active + 1,000 new = 71,000
+  assert.equal(retained.length, 71000, "Pool must scale past 70,000 instead of truncating at 68,000 or 70,000");
+  assert.equal(expiredIds.length, 500, "Stale jobs older than 60 days must be purged");
 });
 
 

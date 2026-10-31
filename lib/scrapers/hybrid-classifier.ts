@@ -212,15 +212,17 @@ export function classifyJobArrangement(params: {
   };
 }
 
+export const JOB_RETENTION_DAYS = 60;
+export const JOB_RETENTION_MS = JOB_RETENTION_DAYS * 24 * 60 * 60 * 1000;
+
 /**
- * Checks whether a job was posted more than 30 days ago.
+ * Checks whether a job was posted more than 60 days (2 months) ago.
  */
 export function isJobExpired(postedAt: string | Date): boolean {
   if (!postedAt) return false;
   const time = new Date(postedAt).getTime();
   if (isNaN(time)) return false;
-  const thirtyDaysMs = 30 * 24 * 60 * 60 * 1000;
-  return Date.now() - time > thirtyDaysMs;
+  return Date.now() - time > JOB_RETENTION_MS;
 }
 
 /**

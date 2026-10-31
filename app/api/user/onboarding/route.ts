@@ -48,6 +48,7 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   try {
     const body = await req.json();
+    const isCompleted = body.onboardingCompleted !== undefined ? Boolean(body.onboardingCompleted) : true;
     let authUserId: string | null = null;
     let userEmail: string | undefined = body.email;
 
@@ -86,11 +87,11 @@ export async function POST(req: Request) {
       frustrations: body.frustrations || [],
       platforms_tried: body.platformsTried || [],
       is_pro: Boolean(body.isPro),
-      onboarding_completed: true,
+      onboarding_completed: isCompleted,
     });
 
-    // Update Clerk user's publicMetadata if Clerk is available and user is authenticated
-    if (userId && !userId.startsWith("usr_guest_")) {
+    // Update Clerk user's publicMetadata if Clerk is available, user is authenticated, and onboarding is completed
+    if (isCompleted && userId && !userId.startsWith("usr_guest_")) {
       try {
         const client = await clerkClient();
         await client.users.updateUserMetadata(userId, {
@@ -132,17 +133,19 @@ export async function POST(req: Request) {
       matchCount,
     });
 
-    // Set persistence cookies
-    response.cookies.set("onboarding_completed", "true", {
-      path: "/",
-      maxAge: 31536000,
-      sameSite: "lax",
-    });
-    response.cookies.set("rwd_onboarding_completed", "true", {
-      path: "/",
-      maxAge: 31536000,
-      sameSite: "lax",
-    });
+    // Set persistence cookies only when onboarding is completed
+    if (isCompleted) {
+      response.cookies.set("onboarding_completed", "true", {
+        path: "/",
+        maxAge: 31536000,
+        sameSite: "lax",
+      });
+      response.cookies.set("rwd_onboarding_completed", "true", {
+        path: "/",
+        maxAge: 31536000,
+        sameSite: "lax",
+      });
+    }
 
     return response;
   } catch (err: unknown) {

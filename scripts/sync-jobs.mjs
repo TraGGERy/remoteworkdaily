@@ -207,12 +207,14 @@ function classifyJobArrangement(params) {
   };
 }
 
+const JOB_RETENTION_DAYS = 60;
+const JOB_RETENTION_MS = JOB_RETENTION_DAYS * 24 * 60 * 60 * 1000;
+
 function isJobExpired(postedAt) {
   if (!postedAt) return false;
   const time = new Date(postedAt).getTime();
   if (isNaN(time)) return false;
-  const thirtyDaysMs = 30 * 24 * 60 * 60 * 1000;
-  return Date.now() - time > thirtyDaysMs;
+  return Date.now() - time > JOB_RETENTION_MS;
 }
 
 function normalizeRawJob(raw) {
@@ -363,7 +365,10 @@ function normalizeRawJob(raw) {
     return null;
   }
 
-  const expired = isJobExpired(postedAt);
+  if (isJobExpired(postedAt)) {
+    return null;
+  }
+
   const companyLogo = raw.company_logo || raw.company_logo_url || "https://images.unsplash.com/photo-1572044162444-ad60f128bdea?w=128&h=128&fit=crop&q=80";
 
   return {
@@ -403,8 +408,8 @@ function normalizeRawJob(raw) {
     source: raw.source || "feed",
     atsProvider: raw.ats_provider,
     isDirectCompanyPost: raw.is_direct_company_post || raw.source === "ats",
-    status: expired ? "archived" : "active",
-    isActive: !expired,
+    status: "active",
+    isActive: true,
     canonicalHash,
     isTask,
     is_task: isTask,
@@ -957,12 +962,19 @@ async function runScrape() {
   // Strictly sort by postedAt descending so today's newest jobs are always at the top
   merged.sort((a, b) => (new Date(b.postedAt).getTime() || 0) - (new Date(a.postedAt).getTime() || 0));
 
-  // Sliding window of latest 20,000 active listings.
-  // MUST match MAX_LOCAL_JOBS in lib/jobs-repository.ts — a lower cap here (12,000) truncated the
-  // committed dataset while the live site kept more, so Telegram and the website reported
-  // different totals. 20k compact JSON ≈ 60 MB, safely under GitHub's 100 MB file limit.
-  const MAX_JOBS = 68000;
-  const pruned = merged.length > MAX_JOBS ? merged.slice(0, MAX_JOBS) : merged;
+  // Retain all listings within the 2-month (60-day) window.
+  // Purge any stale listings older than 60 days from local file and Supabase.
+  const pruned = [];
+  const expiredIds = [];
+  for (const it of merged) {
+    if (isJobExpired(it.postedAt)) {
+      expiredIds.push(it.id);
+    } else {
+      pruned.push(it);
+    }
+  }
+  console.log(`[Retention] Retained ${pruned.length} active jobs within 60 days; pruned ${expiredIds.length} expired jobs.`);
+
   for (const it of pruned) {
     if (it.description && it.description.length > 250) {
       it.description = it.description.slice(0, 250);
@@ -1006,6 +1018,8 @@ async function runScrape() {
     syncedCount: normalizedJobs.length,
     addedCount: added,
     updatedCount: updated,
+    deletedExpiredCount: expiredIds.length,
+    retentionDays: JOB_RETENTION_DAYS,
     source: "universal-multi-source",
     targetCount: TARGET_COUNT,
     sources,
@@ -1017,75 +1031,105 @@ async function runScrape() {
   console.log(`✅ Job Ingestion Completed in ${durationSec}s`);
   console.log(`   +${added} newly added jobs`);
   console.log(`   ${updated} existing jobs refreshed`);
+  console.log(`   ${expiredIds.length} expired (>60 days) jobs deleted`);
   console.log(`   ${pruned.length} total active verified listings in database`);
   console.log(`========================================================\n`);
 
-  // Sync newly ingested jobs to Supabase (requires SUPABASE_SERVICE_ROLE_KEY or write RLS permission)
-  const hasServiceKey = Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY?.trim());
-  if (supabase && hasServiceKey && normalizedJobs.length > 0) {
-    console.log(`[Supabase] Syncing ${normalizedJobs.length} ingested jobs to Supabase cloud...`);
-    const CHUNK_SIZE = 100;
-    let supaSuccess = 0;
-    for (let i = 0; i < normalizedJobs.length; i += CHUNK_SIZE) {
-      const chunk = normalizedJobs.slice(i, i + CHUNK_SIZE);
-      const records = chunk.map((job) => ({
-        id: job.id,
-        slug: job.slug,
-        title: job.title,
-        company: job.company,
-        company_slug: job.companySlug,
-        company_logo: job.companyLogo || null,
-        company_website: job.companyWebsite || null,
-        verified: job.verified ?? true,
-        featured: job.featured ?? false,
-        sticky: job.sticky ?? false,
-        location: job.location || "Worldwide",
-        location_code: job.locationCode || "WW",
-        workplace_type: job.workplaceType || "remote",
-        category: job.category || "dev",
-        tags: Array.isArray(job.tags) ? job.tags : [],
-        benefits: Array.isArray(job.benefits) ? job.benefits : [],
-        salary_min: job.salaryMin || null,
-        salary_max: job.salaryMax || null,
-        salary_currency: job.salaryCurrency || "USD",
-        description: job.description || "",
-        apply_url: job.applyUrl,
-        posted_at: job.postedAt || new Date().toISOString(),
-        views_count: job.viewsCount || 0,
-        applies_count: job.appliesCount || 0,
-        source: job.source || "feed",
-        status: job.status || "active",
-        employer_email: job.employerEmail || null,
-        canonical_hash: job.canonicalHash || null,
-        work_arrangement: job.workArrangement || (job.workplaceType === "hybrid" ? "hybrid_high_pay" : "remote_global"),
-        hybrid_city: job.hybridCity || null,
-        hybrid_country: job.hybridCountry || null,
-        days_in_office: job.daysInOffice || null,
-        external_id: job.externalId || job.canonicalHash || null,
-        is_featured: job.isFeatured ?? (job.featured || false),
-        is_active: job.isActive ?? (job.status === "active"),
-        is_task: job.isTask ?? (job.category === "tasks"),
-        task_type: job.taskType || null,
-        estimated_time: job.estimatedTime || null,
-        payout_reward: job.payoutReward || null,
-        payout_type: job.payoutType || null,
-        difficulty: job.difficulty || null,
-        instructions_url: job.instructionsUrl || null,
-        updated_at: new Date().toISOString(),
-      }));
-
-      try {
-        const { error } = await supabase.from("jobs").upsert(records, { onConflict: "canonical_hash" });
-        if (!error) {
-          supaSuccess += chunk.length;
-        } else {
-          console.warn(`[Supabase] Batch error:`, error.message);
+  // Sync newly ingested jobs to Supabase and purge jobs older than 60 days
+  if (supabase) {
+    try {
+      const cutoffIso = new Date(Date.now() - JOB_RETENTION_MS).toISOString();
+      await supabase.from("jobs").delete().lt("posted_at", cutoffIso);
+      if (expiredIds.length > 0) {
+        for (let i = 0; i < expiredIds.length; i += 200) {
+          await supabase.from("jobs").delete().in("id", expiredIds.slice(i, i + 200));
         }
-      } catch (sErr) {
-        console.warn(`[Supabase] Upsert exception:`, sErr.message);
       }
+      console.log(`[Supabase] Cleaned up jobs older than 60 days (${expiredIds.length} locally expired IDs purged).`);
+    } catch (cleanErr) {
+      console.warn(`[Supabase] Retention deletion notice:`, cleanErr.message);
     }
-    console.log(`[Supabase] ✅ Successfully synced ${supaSuccess} jobs to Supabase!`);
+
+    const jobsToUpsert = toPrepend.length > 0 ? toPrepend : normalizedJobs;
+    if (jobsToUpsert.length > 0) {
+      console.log(`[Supabase] Syncing ${jobsToUpsert.length} newly ingested jobs to Supabase cloud...`);
+      const CHUNK_SIZE = 100;
+      let supaSuccess = 0;
+      const seenBatchExts = new Set();
+      const UNPAIRED_SURROGATE_REGEX = /[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/g;
+      const cleanStr = (v) => (typeof v === "string" ? v.replace(UNPAIRED_SURROGATE_REGEX, "") : v);
+      const cleanArr = (arr) => (Array.isArray(arr) ? arr.map((item) => (typeof item === "string" ? item.replace(UNPAIRED_SURROGATE_REGEX, "") : item)) : []);
+
+      for (let i = 0; i < jobsToUpsert.length; i += CHUNK_SIZE) {
+        const chunk = jobsToUpsert.slice(i, i + CHUNK_SIZE);
+        const records = chunk.map((job) => {
+          let ext = cleanStr(job.externalId || job.canonicalHash || null);
+          if (ext) {
+            if (seenBatchExts.has(ext)) {
+              ext = `${ext}_${job.id}`;
+            }
+            seenBatchExts.add(ext);
+          }
+          return {
+            id: job.id,
+            slug: cleanStr(job.slug),
+            title: cleanStr(job.title),
+            company: cleanStr(job.company),
+            company_slug: cleanStr(job.companySlug),
+            company_logo: cleanStr(job.companyLogo || null),
+            company_website: cleanStr(job.companyWebsite || null),
+            verified: job.verified ?? true,
+            featured: job.featured ?? false,
+            sticky: job.sticky ?? false,
+            location: cleanStr(job.location || "Worldwide"),
+            location_code: cleanStr(job.locationCode || "WW"),
+            workplace_type: job.workplaceType || "remote",
+            category: cleanStr(job.category || "dev"),
+            tags: cleanArr(job.tags),
+            benefits: cleanArr(job.benefits),
+            salary_min: job.salaryMin || null,
+            salary_max: job.salaryMax || null,
+            salary_currency: cleanStr(job.salaryCurrency || "USD"),
+            description: cleanStr(job.description || ""),
+            apply_url: cleanStr(job.applyUrl),
+            posted_at: job.postedAt || new Date().toISOString(),
+            views_count: job.viewsCount || 0,
+            applies_count: job.appliesCount || 0,
+            source: cleanStr(job.source || "feed"),
+            status: job.status || "active",
+            employer_email: cleanStr(job.employerEmail || null),
+            canonical_hash: cleanStr(job.canonicalHash || null),
+            work_arrangement: job.workArrangement || (job.workplaceType === "hybrid" ? "hybrid_high_pay" : "remote_global"),
+            hybrid_city: cleanStr(job.hybridCity || null),
+            hybrid_country: cleanStr(job.hybridCountry || null),
+            days_in_office: job.daysInOffice || null,
+            external_id: ext,
+            is_featured: job.isFeatured ?? (job.featured || false),
+            is_active: job.isActive ?? (job.status === "active"),
+            is_task: job.isTask ?? (job.category === "tasks"),
+            task_type: cleanStr(job.taskType || null),
+            estimated_time: cleanStr(job.estimatedTime || null),
+            payout_reward: job.payoutReward || null,
+            payout_type: cleanStr(job.payoutType || null),
+            difficulty: cleanStr(job.difficulty || null),
+            instructions_url: cleanStr(job.instructionsUrl || null),
+            updated_at: new Date().toISOString(),
+          };
+        });
+
+        try {
+          const { error } = await supabase.from("jobs").upsert(records, { onConflict: "id" });
+          if (!error) {
+            supaSuccess += chunk.length;
+          } else {
+            console.warn(`[Supabase] Batch error:`, error.message);
+          }
+        } catch (sErr) {
+          console.warn(`[Supabase] Upsert exception:`, sErr.message);
+        }
+      }
+      console.log(`[Supabase] ✅ Successfully synced ${supaSuccess} jobs to Supabase!`);
+    }
   }
 
   // Dispatch real-time Telegram notification

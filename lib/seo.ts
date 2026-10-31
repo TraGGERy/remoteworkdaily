@@ -4,7 +4,7 @@ import { LocationEligibility } from "./domain/catalog";
 const SITE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://remoteworkdaily.com";
 
 export function generateJobPostingSchema(job: Job) {
-  const validThroughDate = new Date(new Date(job.postedAt).getTime() + 30 * 24 * 3600 * 1000).toISOString();
+  const validThroughDate = new Date(new Date(job.postedAt).getTime() + 60 * 24 * 3600 * 1000).toISOString();
   const locationObj = new LocationEligibility(job.location, job.workplaceType);
 
   const schema: Record<string, unknown> = {

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
@@ -53,9 +53,15 @@ export function CareerHoundOnboardingFlow() {
   const [emailInput, setEmailInput] = useState("");
   const [checkoutSuccess, setCheckoutSuccess] = useState(false);
 
+  const hasCheckedInitialRedirect = useRef(false);
+
   // If user already completed onboarding or has active subscription, redirect to dashboard unless retaking
   useEffect(() => {
-    if (!isLoading && (isOnboardingCompleted || hasActiveSubscription)) {
+    if (isLoading) return;
+    if (hasCheckedInitialRedirect.current) return;
+    hasCheckedInitialRedirect.current = true;
+
+    if (isOnboardingCompleted || hasActiveSubscription) {
       if (typeof window !== "undefined") {
         const urlParams = new URLSearchParams(window.location.search);
         if (urlParams.get("retake") !== "true") {
@@ -68,11 +74,16 @@ export function CareerHoundOnboardingFlow() {
   // Restore draft state from localStorage if available
   useEffect(() => {
     try {
+      const isRetake = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("retake") === "true";
       const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
       if (saved) {
         const parsed = JSON.parse(saved);
         setTimeout(() => {
-          setState((prev) => ({ ...prev, ...parsed }));
+          setState((prev) => ({
+            ...prev,
+            ...parsed,
+            ...(isRetake ? { currentStep: 1 } : {}),
+          }));
           if (parsed.jobTitles && parsed.jobTitles.length > 0) {
             setCurrentTitleInput((prev) => (!prev ? parsed.jobTitles[0] || "" : prev));
           }
@@ -100,13 +111,21 @@ export function CareerHoundOnboardingFlow() {
   };
 
   // Helper to persist draft profile to backend
-  const persistProfileDraft = async (emailOverride?: string) => {
+  const persistProfileDraft = async (emailOverride?: string, isCompleted: boolean = false) => {
     const activeEmail =
       emailOverride ||
       state.candidateEmail ||
       (typeof window !== "undefined"
         ? localStorage.getItem("remotework_user_email") || ""
         : "");
+
+    if (activeEmail && activeEmail.includes("@") && typeof window !== "undefined") {
+      try {
+        localStorage.setItem("remotework_user_email", activeEmail.trim().toLowerCase());
+      } catch {
+        // Ignore write errors
+      }
+    }
 
     const parsedMinSalary = (() => {
       if (state.salaryExpectation.includes("150k+")) return 150000;
@@ -122,6 +141,7 @@ export function CareerHoundOnboardingFlow() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           email: activeEmail.trim().toLowerCase(),
+          onboardingCompleted: isCompleted,
           targetRoles: state.jobTitles,
           seniority: state.experienceLevel || "Mid-level",
           minSalary: parsedMinSalary,
@@ -1118,8 +1138,9 @@ export function CareerHoundOnboardingFlow() {
                     <div className="pt-2">
                       <button
                         type="button"
-                        onClick={() => {
-                          markOnboardingCompleted();
+                        onClick={async () => {
+                          await persistProfileDraft(undefined, true);
+                          await markOnboardingCompleted();
                           router.push("/");
                         }}
                         className="text-xs text-slate-400 hover:text-slate-700 hover:underline cursor-pointer"

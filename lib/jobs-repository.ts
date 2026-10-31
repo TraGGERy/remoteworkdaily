@@ -4,6 +4,7 @@ import os from "os";
 import { Job } from "./types";
 import { INITIAL_JOBS } from "./sample-jobs";
 import { getSupabaseClient, isSupabaseConfigured } from "./supabase";
+import { isJobExpired, JOB_RETENTION_MS } from "./scrapers/hybrid-classifier";
 export { filterJobs } from "./filter-jobs";
 
 /**
@@ -329,6 +330,36 @@ async function archiveJobsInSupabase(ids: string[]) {
   }
 }
 
+/**
+ * Permanently deletes expired jobs (>60 days / 2 months old) from Supabase.
+ */
+async function deleteJobsFromSupabase(ids: string[], cutoffIso?: string) {
+  if (!isSupabaseConfigured()) return;
+  const supabase = getSupabaseClient();
+  if (!supabase) return;
+
+  if (cutoffIso) {
+    try {
+      const { error } = await supabase.from("jobs").delete().lt("posted_at", cutoffIso);
+      if (error) console.warn("[Supabase delete cutoff error]:", error.message);
+    } catch (err: any) {
+      console.warn("[Supabase delete cutoff exception]:", err?.message);
+    }
+  }
+
+  if (ids && ids.length > 0) {
+    for (let i = 0; i < ids.length; i += 200) {
+      const batch = ids.slice(i, i + 200);
+      try {
+        const { error } = await supabase.from("jobs").delete().in("id", batch);
+        if (error) console.warn("[Supabase delete batch error]:", error.message);
+      } catch (err: any) {
+        console.warn("[Supabase delete batch exception]:", err?.message);
+      }
+    }
+  }
+}
+
 let isBackgroundAutoSyncing = false;
 
 /**
@@ -369,9 +400,28 @@ export function getAllJobs(forceReload: boolean = false): Job[] {
   const jobs = ensureDataFile(forceReload);
   const now = Date.now();
 
+  // Purge any jobs older than 60 days (2 months) from local list and Supabase
+  const activeJobs: Job[] = [];
+  const purgedExpiredIds: string[] = [];
+  for (const j of jobs) {
+    if (isJobExpired(j.postedAt)) {
+      purgedExpiredIds.push(j.id);
+    } else {
+      activeJobs.push(j);
+    }
+  }
+
+  if (purgedExpiredIds.length > 0) {
+    saveJobs(activeJobs);
+    deleteJobsFromSupabase(
+      purgedExpiredIds,
+      new Date(now - JOB_RETENTION_MS).toISOString()
+    ).catch(() => {});
+  }
+
   // Automated Public Sector & General Deadline Expiration (mirrored to Supabase)
   const expiredIds: string[] = [];
-  for (const j of jobs) {
+  for (const j of activeJobs) {
     if (j.applicationDeadline) {
       const deadlineMs = new Date(j.applicationDeadline).getTime();
       if (!isNaN(deadlineMs) && deadlineMs < now && j.status === "active") {
@@ -383,7 +433,7 @@ export function getAllJobs(forceReload: boolean = false): Job[] {
   }
   if (expiredIds.length > 0) archiveJobsInSupabase(expiredIds).catch(() => {});
 
-  return [...jobs].sort(
+  return [...activeJobs].sort(
     (a, b) => (new Date(b.postedAt).getTime() || 0) - (new Date(a.postedAt).getTime() || 0)
   );
 }
@@ -440,6 +490,9 @@ export function getTopCompanies(limit: number = 100): { slug: string; name: stri
 }
 
 export function insertJob(job: Job): Job {
+  if (isJobExpired(job.postedAt)) {
+    return job;
+  }
   const jobs = getAllJobs();
   const idx = jobs.findIndex((j) => j.id === job.id || (job.canonicalHash && j.canonicalHash === job.canonicalHash));
   if (idx >= 0) {
@@ -495,7 +548,9 @@ export async function boostJob(jobId: string, days: number = 30): Promise<Job | 
  * Performs a single atomic write to disk and batches Supabase upserts.
  */
 export function insertJobsBatch(newJobs: Job[]): { added: number; updated: number; total: number } {
-  if (newJobs.length === 0) {
+  // Filter incoming newJobs so jobs already older than 60 days (2 months) are not inserted
+  const validIncomingJobs = newJobs.filter((job) => !isJobExpired(job.postedAt));
+  if (validIncomingJobs.length === 0) {
     const current = getAllJobs();
     return { added: 0, updated: 0, total: current.length };
   }
@@ -514,7 +569,7 @@ export function insertJobsBatch(newJobs: Job[]): { added: number; updated: numbe
   let updatedCount = 0;
   const toPrepend: Job[] = [];
 
-  for (const job of newJobs) {
+  for (const job of validIncomingJobs) {
     let matchIdx: number | undefined;
     if (job.canonicalHash && hashToIdx.has(job.canonicalHash)) {
       matchIdx = hashToIdx.get(job.canonicalHash);
@@ -547,25 +602,31 @@ export function insertJobsBatch(newJobs: Job[]): { added: number; updated: numbe
   const merged = [...toPrepend, ...existingJobs];
   merged.sort((a, b) => (new Date(b.postedAt).getTime() || 0) - (new Date(a.postedAt).getTime() || 0));
 
-  // Keep sliding window of latest 20,000 active jobs.
-  // MUST match MAX_JOBS in scripts/sync-jobs.mjs so the website and Telegram report identical totals.
-  const MAX_LOCAL_JOBS = 70000;
-  const pruned = merged.length > MAX_LOCAL_JOBS ? merged.slice(0, MAX_LOCAL_JOBS) : merged;
+  // Retain all jobs within the 2-month (60-day) window, collecting expired IDs
+  const pruned: Job[] = [];
+  const expiredIds: string[] = [];
+  for (const j of merged) {
+    if (isJobExpired(j.postedAt)) {
+      expiredIds.push(j.id);
+    } else {
+      pruned.push(j);
+    }
+  }
 
   saveJobs(pruned);
 
   // Sync the MERGED records (existing ids preserved) so Supabase ids never drift from local ids,
-  // and archive anything pruned out of the local sliding window.
+  // and permanently delete anything aged past 60 days from Supabase.
   const touchedIds = new Set<string>();
-  for (const job of newJobs) {
+  for (const job of validIncomingJobs) {
     const idx = job.canonicalHash ? hashToIdx.get(job.canonicalHash) : undefined;
     touchedIds.add(idx !== undefined && idx >= 0 ? existingJobs[idx].id : job.id);
   }
-  const keptIds = new Set(pruned.map((j) => j.id));
   const toSync = pruned.filter((j) => touchedIds.has(j.id));
-  const prunedIds = merged.filter((j) => !keptIds.has(j.id)).map((j) => j.id);
+  const cutoffIso = new Date(Date.now() - JOB_RETENTION_MS).toISOString();
+
   syncJobsBatchToSupabase(toSync)
-    .then(() => archiveJobsInSupabase(prunedIds))
+    .then(() => deleteJobsFromSupabase(expiredIds, cutoffIso))
     .catch(() => {});
 
   return { added: addedCount, updated: updatedCount, total: pruned.length };

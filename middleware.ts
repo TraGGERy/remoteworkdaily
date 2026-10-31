@@ -7,17 +7,16 @@ const isClerkConfigured =
   !publishableKey.includes("placeholder") &&
   (publishableKey.startsWith("pk_test_") || publishableKey.startsWith("pk_live_"));
 
-// Public-First strategy: Only protect routes that strictly require authentication (e.g. private dashboard).
-// All public content pages, articles, guides, feeds, and 404s pass through cleanly without 307 sign-in redirects.
+// Public-First strategy: Only protect routes that strictly require authentication.
+// Dashboard is accessible to email-onboarded and Stripe-subscribed users without forcing a Clerk /sign-in redirect.
 const isProtectedRoute = createRouteMatcher([
   "/dashboard(.*)",
 ]);
 
 const middleware = isClerkConfigured
   ? clerkMiddleware(async (auth, req) => {
-      if (isProtectedRoute(req)) {
-        await auth.protect();
-      }
+      // Intentionally do not call await auth.protect() on /dashboard so email-onboarded
+      // and Stripe-subscribed candidates can view their dashboard without being redirected to /sign-in.
 
       const { userId, sessionClaims } = await auth();
       if (userId) {

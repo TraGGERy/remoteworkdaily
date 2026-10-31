@@ -45,7 +45,7 @@ test("SEO Structured Data: LocationEligibility generates compliant Schema.org Co
   const npxCmd = process.platform === "win32" ? "npx.cmd" : "npx";
   const scriptPath = path.join(process.cwd(), "tests", "verify-applicant-location.ts");
 
-  const output = execFileSync(npxCmd, ["tsx", scriptPath], {
+  const output = execFileSync(npxCmd, ["--yes", "tsx", scriptPath], {
     cwd: process.cwd(),
     encoding: "utf8",
     shell: true,

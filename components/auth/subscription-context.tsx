@@ -55,6 +55,20 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
   const [hasServerSub, setHasServerSub] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState(true);
   const [subscriptionPlan, setSubscriptionPlan] = useState<string | null>(null);
+  const [storedEmail, setStoredEmail] = useState<string | null>(() => {
+    if (typeof window !== "undefined") {
+      const email = localStorage.getItem("remotework_user_email");
+      if (email) return email;
+      try {
+        const draft = localStorage.getItem("careerhound_onboarding_draft");
+        if (draft) {
+          const parsed = JSON.parse(draft);
+          if (parsed.candidateEmail) return parsed.candidateEmail;
+        }
+      } catch {}
+    }
+    return null;
+  });
   const [isOnboardingCompleted, setIsOnboardingCompleted] = useState<boolean>(() => {
     if (typeof window !== "undefined") {
       const local = localStorage.getItem("rwd_onboarding_completed") === "true";
@@ -104,6 +118,9 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
 
   // Check subscription status from server
   const checkSubscription = useCallback(async (email: string | null) => {
+    if (email) {
+      setStoredEmail(email);
+    }
     if (!email) {
       setHasServerSub(false);
       setIsLoading(false);
@@ -176,8 +193,24 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
       }, 0);
     }
 
-    const storedEmail = typeof window !== "undefined" ? localStorage.getItem("remotework_user_email") : null;
-    const emailToCheck = primaryEmail || storedEmail;
+    const storedEmailFromStorage =
+      typeof window !== "undefined"
+        ? localStorage.getItem("remotework_user_email") ||
+          (() => {
+            try {
+              const draft = localStorage.getItem("careerhound_onboarding_draft");
+              return draft ? JSON.parse(draft).candidateEmail : null;
+            } catch {
+              return null;
+            }
+          })()
+        : null;
+
+    if (storedEmailFromStorage) {
+      setStoredEmail(storedEmailFromStorage);
+    }
+
+    const emailToCheck = primaryEmail || storedEmailFromStorage;
 
     if (emailToCheck) {
       setTimeout(() => {
@@ -225,6 +258,19 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
 
   const markOnboardingCompleted = useCallback(async () => {
     if (typeof window !== "undefined") {
+      const email =
+        localStorage.getItem("remotework_user_email") ||
+        (() => {
+          try {
+            const draft = localStorage.getItem("careerhound_onboarding_draft");
+            return draft ? JSON.parse(draft).candidateEmail : null;
+          } catch {
+            return null;
+          }
+        })();
+      if (email) {
+        setStoredEmail(email);
+      }
       localStorage.setItem("rwd_onboarding_completed", "true");
       sessionStorage.setItem("rwd_onboarding_completed", "true");
       sessionStorage.setItem("rwd_onboarding_shown", "true");
@@ -321,6 +367,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
         setSimulatedSub(false);
         setHasServerSub(false);
         setSubscriptionPlan(null);
+        setStoredEmail(null);
         if (typeof window !== "undefined") {
           localStorage.removeItem("remotework_user_email");
           localStorage.removeItem("remotework_employer_email");
@@ -362,8 +409,8 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
   };
 
   const refreshSubscription = async () => {
-    const storedEmail = typeof window !== "undefined" ? localStorage.getItem("remotework_user_email") : null;
-    await checkSubscription(primaryEmail || storedEmail);
+    const stored = typeof window !== "undefined" ? localStorage.getItem("remotework_user_email") : null;
+    await checkSubscription(primaryEmail || stored || storedEmail);
   };
 
   // Determine final subscription state:
@@ -374,10 +421,10 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
   return (
     <SubscriptionContext.Provider
       value={{
-        isSignedIn: isConfigured ? clerkIsSignedIn : Boolean(primaryEmail || simulatedSub),
+        isSignedIn: Boolean(clerkIsSignedIn || primaryEmail || storedEmail || hasActiveSubscription || isOnboardingCompleted),
         hasActiveSubscription,
         isLoading: isConfigured ? !clerkIsLoaded || isLoading : false,
-        userEmail: primaryEmail,
+        userEmail: primaryEmail || storedEmail,
         subscriptionPlan,
         isUpgradeModalOpen,
         setUpgradeModalOpen,

@@ -44,7 +44,7 @@ export function GatedApplyAction({
   };
 
   // 1. STATE: Active Subscriber (UNLOCKED)
-  if (isSignedIn && hasActiveSubscription) {
+  if (hasActiveSubscription) {
     if (variant === "header") {
       return (
         <a
