@@ -48,6 +48,15 @@ export function Footer() {
             <Link href="/pro" className="hover:text-[#FF4742] transition-colors font-bold text-amber-600 dark:text-amber-400">
               ⚡ Pro Early Access
             </Link>
+            <Link href="/features" className="hover:text-[#FF4742] transition-colors font-medium">
+              Features
+            </Link>
+            <Link href="/pricing" className="hover:text-[#FF4742] transition-colors font-medium">
+              Pricing
+            </Link>
+            <Link href="/about" className="hover:text-[#FF4742] transition-colors font-medium">
+              About Us
+            </Link>
             <Link href="/tools/remote-savings-calculator" className="hover:text-[#FF4742] transition-colors">
               WFH Savings Calculator
             </Link>
@@ -86,4 +95,3 @@ export function Footer() {
     </footer>
   );
 }
-

@@ -7,8 +7,12 @@ export async function GET() {
 
   const urls: string[] = [
     `<url><loc>${baseUrl}/</loc><changefreq>hourly</changefreq><priority>1.0</priority></url>`,
+    `<url><loc>${baseUrl}/pricing</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>`,
+    `<url><loc>${baseUrl}/features</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>`,
     `<url><loc>${baseUrl}/hire-remotely</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>`,
     `<url><loc>${baseUrl}/pro</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>`,
+    `<url><loc>${baseUrl}/about</loc><changefreq>weekly</changefreq><priority>0.85</priority></url>`,
+    `<url><loc>${baseUrl}/contact</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>`,
     `<url><loc>${baseUrl}/companies</loc><changefreq>daily</changefreq><priority>0.9</priority></url>`,
     `<url><loc>${baseUrl}/remote-jobs.json</loc><changefreq>hourly</changefreq><priority>0.85</priority></url>`,
     `<url><loc>${baseUrl}/tools/remote-savings-calculator</loc><changefreq>weekly</changefreq><priority>0.85</priority></url>`,

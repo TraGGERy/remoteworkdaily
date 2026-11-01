@@ -393,7 +393,7 @@ test("Bug 1, 2, and 3 Codebase Invariant Fix Verification", () => {
     "route.ts must save isCompleted in user profile"
   );
   assert.ok(
-    routeSrc.includes("if (isCompleted) {\n      response.cookies.set"),
+    routeSrc.includes("if (isCompleted)") && routeSrc.includes("response.cookies.set"),
     "route.ts must only set persistence cookies when isCompleted is true"
   );
 

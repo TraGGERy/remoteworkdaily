@@ -57,6 +57,18 @@ export function Header() {
             Product & Ops
           </Link>
           <Link
+            href="/features"
+            className="hover:text-[#FF4742] transition-colors"
+          >
+            Features
+          </Link>
+          <Link
+            href="/pricing"
+            className="hover:text-[#FF4742] transition-colors"
+          >
+            Pricing
+          </Link>
+          <Link
             href="/pro"
             data-ml-goal="pricing_cta"
             className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-50 dark:bg-amber-950/60 border border-amber-300 dark:border-amber-800 text-xs font-extrabold text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/80 transition-colors"
@@ -131,8 +143,22 @@ export function Header() {
               ⚡ Product & Ops
             </Link>
             <Link
+              href="/features"
+              onClick={() => setMobileMenuOpen(false)}
+              className="p-3 min-h-[44px] flex items-center rounded-xl bg-neutral-50 dark:bg-neutral-900 font-semibold text-neutral-800 dark:text-neutral-200"
+            >
+              ✨ Features
+            </Link>
+            <Link
+              href="/pricing"
+              onClick={() => setMobileMenuOpen(false)}
+              className="p-3 min-h-[44px] flex items-center rounded-xl bg-neutral-50 dark:bg-neutral-900 font-semibold text-neutral-800 dark:text-neutral-200"
+            >
+              💳 Pricing
+            </Link>
+            <Link
               href="/pro"
-            data-ml-goal="pricing_cta"
+              data-ml-goal="pricing_cta"
               onClick={() => setMobileMenuOpen(false)}
               className="p-3 min-h-[44px] flex items-center gap-2 rounded-xl bg-amber-50 dark:bg-amber-950/40 font-bold text-amber-700 dark:text-amber-300 col-span-2 border border-amber-200 dark:border-amber-800/60"
             >
@@ -149,7 +175,7 @@ export function Header() {
           <div className="pt-3 border-t border-neutral-200 dark:border-neutral-800 flex justify-center">
             <Link
               href="/hire-remotely"
-            data-ml-goal="post_job_click"
+              data-ml-goal="post_job_click"
               onClick={() => setMobileMenuOpen(false)}
               className="w-full min-h-[44px] py-3 flex items-center justify-center text-center text-sm font-bold rounded-xl bg-[#FF4742] text-white shadow-sm"
             >
