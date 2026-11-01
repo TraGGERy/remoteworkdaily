@@ -277,7 +277,16 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
       document.cookie = "rwd_onboarding_completed=true; path=/; max-age=31536000; SameSite=Lax";
     }
     setIsOnboardingCompleted(true);
-    window.minilytics?.("goal", "signup_completed");
+    // Only fire real signup_completed if a valid email is verified/stored or user is authenticated
+    const activeEmail =
+      storedEmail ||
+      (typeof window !== "undefined" ? localStorage.getItem("remotework_user_email") : null) ||
+      clerkUser?.primaryEmailAddress?.emailAddress;
+    if (activeEmail && activeEmail.includes("@")) {
+      window.minilytics?.("goal", "signup_completed");
+    } else {
+      window.minilytics?.("goal", "onboarding_modal_dismissed");
+    }
 
     if (clerkUser) {
       try {

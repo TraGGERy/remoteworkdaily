@@ -96,6 +96,8 @@ export function CandidateHunterPass() {
             <button
               type="button"
               onClick={openUpgradeModal}
+              data-ml-goal="pricing_cta"
+              data-ml-goal-location="hunter_pass_banner"
               className="w-full lg:w-auto min-h-[46px] px-6 py-2.5 rounded-2xl text-xs sm:text-sm font-black bg-[#FF4742] hover:bg-[#e03a35] text-white shadow-lg shadow-red-500/25 group-hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2"
             >
               <Zap className="w-4 h-4 fill-current shrink-0" />

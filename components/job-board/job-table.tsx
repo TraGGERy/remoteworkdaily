@@ -208,6 +208,8 @@ export function JobTable({
                   <button
                     type="button"
                     onClick={openUpgradeModal}
+                    data-ml-goal="pricing_cta"
+                    data-ml-goal-location="job_table_paywall_btn"
                     className="w-full sm:w-auto px-4 sm:px-7 py-3.5 sm:py-4 rounded-2xl text-xs sm:text-sm font-black bg-[#FF4742] hover:bg-[#e03a35] text-white shadow-xl shadow-red-500/25 active:scale-95 transition-all flex items-center justify-center gap-2 text-center"
                   >
                     <Zap className="w-4 h-4 fill-current shrink-0" />
@@ -295,6 +297,8 @@ export function JobTable({
                   <button
                     type="button"
                     onClick={openUpgradeModal}
+                    data-ml-goal="pricing_cta"
+                    data-ml-goal-location="job_table_overlay_btn"
                     className="w-full py-3 px-4 rounded-xl text-xs font-black bg-[#FF4742] text-white hover:bg-[#e03a35] shadow-lg shadow-red-500/25 active:scale-95 transition-all"
                   >
                     {isTasksFiltered ? "Unlock 8,500+ Tasks & Gigs" : "Unlock Feed (From $6.99/wk)"}

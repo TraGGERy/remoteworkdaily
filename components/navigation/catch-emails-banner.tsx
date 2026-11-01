@@ -25,6 +25,7 @@ export function CatchEmailsBanner() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: email.trim(), category: "all" }),
       });
+      window.minilytics?.("goal", "signup_completed");
     } catch (err) {
       console.warn("Newsletter subscription failed:", err);
     }

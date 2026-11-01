@@ -49,6 +49,8 @@ export default function Home() {
         <div className="flex flex-wrap items-center justify-center gap-2.5 mt-4">
           <Link
             href="/pro"
+            data-ml-goal="pricing_cta"
+            data-ml-goal-location="hero_top_pill"
             className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-amber-50 dark:bg-amber-950/60 border border-amber-300/80 dark:border-amber-800/80 text-xs font-bold text-amber-800 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/60 transition-all hover:scale-[1.02] shadow-2xs"
           >
             <span>⚡ Beat 500+ applicants with 6-Hour Early Access</span>

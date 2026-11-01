@@ -35,6 +35,7 @@ export function NewsletterSignup({ className = "" }: NewsletterSignupProps) {
       const data = await res.json();
       if (res.ok && data.success) {
         setStatus("success");
+        window.minilytics?.("goal", "signup_completed");
       } else {
         setStatus("error");
         setErrorMessage(data.error || "Failed to subscribe. Please try again.");

@@ -56,7 +56,12 @@ export function CandidateOnboardingModal({
     }
 
     // Only show for first-time unauthenticated visitors 2s after arrival
-    const timer = setTimeout(() => setIsOpen(true), 2000);
+    // Delay popup on mobile and in-app webviews (e.g. Facebook) to prevent immediate bounce
+    const isMobileOrFb =
+      typeof window !== "undefined" &&
+      (window.innerWidth < 768 || /FBAN|FBAV|Instagram|TikTok/i.test(navigator.userAgent));
+    const delay = isMobileOrFb ? 7000 : 3500;
+    const timer = setTimeout(() => setIsOpen(true), delay);
     return () => clearTimeout(timer);
   }, [isLoading, isOnboardingCompleted, hasActiveSubscription, isSignedIn, markOnboardingCompleted]);
 
@@ -243,6 +248,8 @@ export function CandidateOnboardingModal({
               <button
                 type="button"
                 onClick={handleUpgradeFromOnboarding}
+                data-ml-goal="pricing_cta"
+                data-ml-goal-location="onboarding_modal"
                 className="w-full min-h-[48px] py-3 px-4 rounded-xl text-xs sm:text-sm font-black bg-[#FF4742] hover:bg-[#e03a35] text-white shadow-xl shadow-red-500/25 active:scale-95 transition-all flex items-center justify-center gap-2 text-center"
               >
                 <Zap className="w-4 h-4 fill-current shrink-0" />
